@@ -21,6 +21,7 @@ import { StudentTransferService } from '../services/studentTransferService.js';
 import { GeneratorAdapterService } from '../services/generatorAdapter.js';
 import { DraftImportService } from '../services/draftImportService.js';
 import { PublicationService } from '../services/publicationService.js';
+import { allocateCourseColor, ensureCourseColorsInRepository, persistCourseToDb } from '../services/courseService.js';
 import {
   AcademicTerm,
   Section,
@@ -453,6 +454,13 @@ export function createApp(initialRepo?: TimetableRepository) {
       }
 
       const courseId = id || `c-${String(code).toLowerCase().replace(/[^a-z0-9]/g, '')}-${Date.now().toString().slice(-4)}`;
+      
+      // Dynamic Palette Assignment from CSV Pool
+      const existingColors = Array.from(state.courses.values())
+        .filter(c => c.cardBgColor && c.fontColor)
+        .map(c => ({ cardBgColor: c.cardBgColor!, fontColor: c.fontColor!, borderColor: c.borderColor }));
+      const colorPair = allocateCourseColor(courseId, existingColors);
+
       const course: Course = {
         id: courseId,
         code: String(code),
@@ -463,11 +471,15 @@ export function createApp(initialRepo?: TimetableRepository) {
         practicalHours: pHours,
         requiredRoomType: roomType,
         department: department ? String(department) : undefined,
+        cardBgColor: colorPair.cardBgColor,
+        fontColor: colorPair.fontColor,
+        borderColor: colorPair.borderColor,
       };
 
       await repo.runTransaction(async (tx) => {
         tx.courses.set(courseId, course);
       });
+      persistCourseToDb(course).catch(() => {});
       repo.logAudit(session.userId, 'CREATE_COURSE', 'courses', courseId, 'success', { course });
       res.json({ success: true, course });
     } catch (err: any) {
@@ -1127,5 +1139,6 @@ function seedInitialData(repo: TimetableRepository) {
   repo.runTransaction(async (tx) => {
     populateRealisticUniversityData(tx);
   });
+  ensureCourseColorsInRepository(repo);
 }
 

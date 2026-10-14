@@ -236,6 +236,9 @@ export async function hydrateRepositoryFromDatabase(repo: TimetableRepository): 
             tutorialHours: row.tutorial_hours,
             practicalHours: row.practical_hours,
             requiredRoomType: row.required_room_type,
+            cardBgColor: row.card_bg_color || undefined,
+            fontColor: row.font_color || undefined,
+            borderColor: row.border_color || undefined,
           };
           tx.courses.set(c.id, c);
         }

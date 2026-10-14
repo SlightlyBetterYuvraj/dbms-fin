@@ -5,3 +5,4 @@ export * from './studentTransferService.js';
 export * from './generatorAdapter.js';
 export * from './draftImportService.js';
 export * from './publicationService.js';
+export * from './courseService.js';

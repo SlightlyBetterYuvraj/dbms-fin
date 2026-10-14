@@ -134,6 +134,9 @@ CREATE TABLE IF NOT EXISTS courses (
     tutorial_hours INT NOT NULL DEFAULT 0,
     practical_hours INT NOT NULL DEFAULT 0,
     required_room_type VARCHAR(8) NOT NULL CHECK (required_room_type IN ('LT', 'P')),
+    card_bg_color TEXT,
+    font_color TEXT,
+    border_color TEXT,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     CONSTRAINT check_course_hours CHECK (lecture_hours >= 0 AND tutorial_hours >= 0 AND practical_hours >= 0)
 );

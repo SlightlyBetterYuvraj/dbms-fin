@@ -115,6 +115,9 @@ export interface Course {
   practicalHours: number; // P
   requiredRoomType: RoomType;
   department?: string;
+  cardBgColor?: string;
+  fontColor?: string;
+  borderColor?: string;
 }
 
 export interface CourseOffering {

@@ -588,21 +588,44 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       border-color: var(--primary);
     }
 
-    /* Class Occurrence Cards */
+    /* Class Occurrence Cards (Bounded Scrollable Container & Cancellation Styling) */
     .class-card {
       border-radius: 12px;
-      padding: 10px 12px;
+      padding: 8px 10px;
       font-size: 12px;
       cursor: pointer;
       transition: all 0.15s ease;
       height: 100%;
+      max-height: 98px;
       display: flex;
       flex-direction: column;
-      justify-content: space-between;
+      box-sizing: border-box;
+      overflow: hidden;
+      position: relative;
     }
     .class-card:hover {
       transform: translateY(-2px);
       box-shadow: var(--shadow-sm);
+    }
+
+    .class-card-scroll-body {
+      flex: 1 1 auto;
+      min-height: 0;
+      overflow-y: auto;
+      overflow-x: hidden;
+      scrollbar-width: thin;
+      padding-right: 2px;
+    }
+    .class-card-scroll-body::-webkit-scrollbar {
+      width: 4px;
+    }
+    .class-card-scroll-body::-webkit-scrollbar-track {
+      background: rgba(0, 0, 0, 0.05);
+      border-radius: 4px;
+    }
+    .class-card-scroll-body::-webkit-scrollbar-thumb {
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 4px;
     }
 
     .class-lecture {
@@ -626,9 +649,10 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       color: #047857;
     }
     .class-cancelled {
-      background: var(--danger-light);
-      border: 1px dashed #FCA5A5;
-      color: var(--danger);
+      background: #FEE2E2 !important;
+      border: 1px dashed #FCA5A5 !important;
+      color: #991B1B !important;
+      box-shadow: none !important;
     }
 
     .badge-pill {
@@ -1032,13 +1056,11 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     <div class="nav-links" id="mainNavLinks">
       <a class="nav-link" id="navLinkHome" onclick="switchView('landing')">Home</a>
       <a class="nav-link" id="navLinkDashboard" onclick="switchView('dashboard')">Timetable Grid</a>
-      <a class="nav-link" id="navLinkRoleGate" onclick="switchView('roles')">Switch Roles</a>
     </div>
 
     <div class="nav-actions">
       <!-- Unauthenticated View -->
       <div id="unauthNav">
-        <button class="btn btn-secondary" onclick="switchView('roles')">Select Role</button>
         <button class="btn btn-primary" onclick="openLoginModal()">🔑 Sign In</button>
       </div>
 
@@ -2124,20 +2146,50 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           <div class="logo-text" style="font-size:18px;">TimeTable<span>+</span></div>
         </div>
 
-        <h3 id="authModalTitle" style="font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 6px;">Sign In</h3>
-        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Access your verified university timetable.</p>
+        <h3 id="authModalTitle" style="font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 6px;">Sign In to TimeTable+</h3>
+        <p id="authModalDesc" style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Step 1: Select your role persona to proceed.</p>
 
         <div id="modalAlertBox" style="display: none; padding: 10px; border-radius: 8px; margin-bottom: 14px; font-size: 12px; font-weight: 600;"></div>
 
-        <div id="loginFormPane">
-          <div style="margin-bottom: 14px; background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 10px;">
-            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Institutional Accounts:</div>
-            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
-              <button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="prefillAuth('admin')">👑 Patient Zero Admin</button>
-              <button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="prefillAuth('teacher')">🧑‍🏫 Faculty</button>
-              <button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="prefillAuth('student')">🎓 Student</button>
+        <!-- Step 1: Role Persona Selection Pane -->
+        <div id="roleSelectPane">
+          <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
+            <div onclick="selectAuthRole('student')" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: all 0.15s ease; background: #FFFFFF;" onmouseover="this.style.borderColor='var(--primary)'; this.style.background='#F8FAFC';" onmouseout="this.style.borderColor='var(--border)'; this.style.background='#FFFFFF';">
+              <div style="width: 36px; height: 36px; border-radius: 10px; background: #E0F2FE; color: #0284C7; display: flex; align-items: center; justify-content: center; font-size: 18px;">🎓</div>
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 14px; color: var(--text);">Student Portal</div>
+                <div style="font-size: 11px; color: var(--text-muted);">Personalized section, batches & real-time notices</div>
+              </div>
+              <span style="color: var(--primary); font-weight: 700;">➔</span>
+            </div>
+
+            <div onclick="selectAuthRole('teacher')" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: all 0.15s ease; background: #FFFFFF;" onmouseover="this.style.borderColor='var(--primary)'; this.style.background='#F8FAFC';" onmouseout="this.style.borderColor='var(--border)'; this.style.background='#FFFFFF';">
+              <div style="width: 36px; height: 36px; border-radius: 10px; background: #FCE8F3; color: #E05697; display: flex; align-items: center; justify-content: center; font-size: 18px;">🧑‍🏫</div>
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 14px; color: var(--text);">Faculty Hub</div>
+                <div style="font-size: 11px; color: var(--text-muted);">Teaching timetable, slot drawer & leave requests</div>
+              </div>
+              <span style="color: var(--primary); font-weight: 700;">➔</span>
+            </div>
+
+            <div onclick="selectAuthRole('admin')" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: all 0.15s ease; background: #FFFFFF;" onmouseover="this.style.borderColor='var(--primary)'; this.style.background='#F8FAFC';" onmouseout="this.style.borderColor='var(--border)'; this.style.background='#FFFFFF';">
+              <div style="width: 36px; height: 36px; border-radius: 10px; background: #EDE9FE; color: #5842E3; display: flex; align-items: center; justify-content: center; font-size: 18px;">👑</div>
+              <div style="flex: 1;">
+                <div style="font-weight: 700; font-size: 14px; color: var(--text);">Administrator</div>
+                <div style="font-size: 11px; color: var(--text-muted);">Full campus management & CP-SAT generator</div>
+              </div>
+              <span style="color: var(--primary); font-weight: 700;">➔</span>
             </div>
           </div>
+        </div>
+
+        <!-- Step 2: Login Credentials Pane -->
+        <div id="loginFormPane" style="display: none;">
+          <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+            <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="switchAuthPane('roleSelect')">⬅ Change Role</button>
+            <span id="activeRolePersonaBadge" class="status-badge" style="background:var(--primary-light); color:var(--primary); font-size:11px;">👑 Administrator</span>
+          </div>
+
           <div class="form-group" style="margin-bottom: 12px;">
             <label>Institutional Email</label>
             <input type="email" id="loginEmail" class="form-control" value="admin@university.edu" placeholder="name@university.edu">
@@ -2148,15 +2200,16 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <a href="javascript:void(0)" onclick="switchAuthPane('forgot')" style="font-size: 12px; color: var(--primary); text-decoration: none; font-weight: 600;">Forgot Password?</a>
-            <span style="font-size: 11px; color: var(--text-muted);">Supabase Verified</span>
+            <span style="font-size: 11px; color: var(--text-muted);">Supabase Auth Verified</span>
           </div>
           <button class="btn btn-primary" onclick="handleLogin()" style="width: 100%; padding: 11px;">Sign In to TimeTable+</button>
           
-          <div style="margin-top: 16px; text-align: center; font-size: 12px; color: var(--text-muted);">
+          <div style="margin-top: 14px; text-align: center; font-size: 12px; color: var(--text-muted);">
             Need access? Contact your university administrator.
           </div>
         </div>
 
+        <!-- Password Recovery Pane -->
         <div id="forgotFormPane" style="display: none;">
           <div class="form-group" style="margin-bottom: 16px;">
             <label>Institutional Email</label>
@@ -2685,20 +2738,26 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         badgeLabel = 'EXTRA CLASS';
       }
 
+      let inlineStyle = '';
       if (isCancelled) {
         cardClass = 'class-cancelled';
         badgeClass = 'badge-pill-cancel';
         badgeLabel = 'CANCELLED';
+        inlineStyle = 'background: #FEE2E2 !important; color: #991B1B !important; border: 1px dashed #FCA5A5 !important;';
+      } else if (course && course.cardBgColor && course.fontColor) {
+        inlineStyle = 'background: ' + course.cardBgColor + ' !important; color: ' + course.fontColor + ' !important;' +
+          (course.borderColor ? ' border: 1px solid ' + course.borderColor + ' !important;' : ' border: 1px solid rgba(0,0,0,0.08) !important;');
       }
 
-      return '<div class="class-card ' + cardClass + '" onclick="openDrawer(\\'' + o.id + '\\')">' +
-        '<div>' +
+      return '<div class="class-card ' + cardClass + '" style="' + inlineStyle + '" onclick="openDrawer(\\'' + o.id + '\\')">' +
+        '<div class="class-card-scroll-body">' +
           '<span class="badge-pill ' + badgeClass + '">' + badgeLabel + '</span>' +
-          '<div class="class-code">' + courseCode + ' ' + (isCancelled ? '<span style="text-decoration:line-through;">' + courseName + '</span>' : courseName) + '</div>' +
-          '<div class="class-meta">📍 Room ' + room.roomNumber + ' (' + room.building + ')</div>' +
-          '<div class="class-meta">🧑‍🏫 ' + teacherName + '</div>' +
+          '<div class="class-code" style="color:inherit;">' + courseCode + ' ' + (isCancelled ? '<span style="text-decoration:line-through;">' + courseName + '</span>' : courseName) + '</div>' +
+          '<div class="class-meta" style="color:inherit; opacity:0.9;">📍 Room ' + room.roomNumber + ' (' + room.building + ')</div>' +
+          '<div class="class-meta" style="color:inherit; opacity:0.9;">🧑‍🏫 ' + teacherName + '</div>' +
+          (o.targetId ? '<div class="class-meta" style="color:inherit; opacity:0.85; font-size:10px;">👥 ' + (o.targetType === 'batch' ? 'Batch: ' : 'Section: ') + o.targetId + '</div>' : '') +
+          (isCancelled && o.cancellationReason ? '<div style="font-size:10px; color:#7F1D1D; font-weight:700; margin-top:4px; padding:3px 6px; background:rgba(254,202,202,0.6); border-radius:4px;">⚠️ Reason: ' + o.cancellationReason + '</div>' : '') +
         '</div>' +
-        (isCancelled && o.cancellationReason ? '<div style="font-size:10px; color:#DC2626; font-style:italic; margin-top:4px;">Reason: ' + o.cancellationReason + '</div>' : '') +
       '</div>';
     }
 
@@ -2873,18 +2932,55 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
 
     // Auth & Login Modal
     function openLoginModal(role) {
-      if (role) prefillAuth(role);
       const modal = document.getElementById('loginModal');
-      if (modal) { modal.style.display = 'flex'; switchAuthPane('login'); }
+      const alertBox = document.getElementById('modalAlertBox');
+      if (alertBox) alertBox.style.display = 'none';
+      if (role) {
+        selectAuthRole(role);
+      } else {
+        switchAuthPane('roleSelect');
+      }
+      if (modal) modal.style.display = 'flex';
     }
     function closeLoginModal() {
       const modal = document.getElementById('loginModal');
       if (modal) modal.style.display = 'none';
     }
+    function selectAuthRole(role) {
+      prefillAuth(role);
+      const badge = document.getElementById('activeRolePersonaBadge');
+      if (badge) {
+        if (role === 'admin') badge.innerHTML = '👑 Administrator';
+        else if (role === 'teacher') badge.innerHTML = '🧑‍🏫 Faculty Hub';
+        else badge.innerHTML = '🎓 Student Portal';
+      }
+      switchAuthPane('login');
+    }
     function switchAuthPane(pane) {
-      document.getElementById('loginFormPane').style.display = pane === 'login' ? 'block' : 'none';
-      document.getElementById('forgotFormPane').style.display = pane === 'forgot' ? 'block' : 'none';
-      document.getElementById('authModalTitle').textContent = pane === 'login' ? 'Sign In to TimeTable+' : 'Password Recovery';
+      const rolePane = document.getElementById('roleSelectPane');
+      const loginPane = document.getElementById('loginFormPane');
+      const forgotPane = document.getElementById('forgotFormPane');
+      const title = document.getElementById('authModalTitle');
+      const desc = document.getElementById('authModalDesc');
+      const alertBox = document.getElementById('modalAlertBox');
+      if (alertBox) alertBox.style.display = 'none';
+
+      if (rolePane) rolePane.style.display = pane === 'roleSelect' ? 'block' : 'none';
+      if (loginPane) loginPane.style.display = pane === 'login' ? 'block' : 'none';
+      if (forgotPane) forgotPane.style.display = pane === 'forgot' ? 'block' : 'none';
+
+      if (title && desc) {
+        if (pane === 'roleSelect') {
+          title.textContent = 'Sign In to TimeTable+';
+          desc.textContent = 'Step 1: Select your role persona to proceed.';
+        } else if (pane === 'login') {
+          title.textContent = 'Sign In to TimeTable+';
+          desc.textContent = 'Step 2: Enter your institutional credentials.';
+        } else if (pane === 'forgot') {
+          title.textContent = 'Password Recovery';
+          desc.textContent = 'Enter your institutional email to dispatch a recovery link.';
+        }
+      }
     }
 
     async function handleLogin() {
