@@ -239,18 +239,56 @@ export class TimetableRepository {
       // Snapshot state prior to transaction
       const snapshot = cloneDataState(this.state);
       try {
+        const priorNoticeCount = this.state.notificationOutbox.length;
         const result = await callback(snapshot);
         // Transaction succeeded: atomically commit snapshot
         this.state = snapshot;
+        // Post-commit invariant: fire real-time updates strictly after transaction commitment
+        if (snapshot.notificationOutbox.length > priorNoticeCount) {
+          const newNotices = snapshot.notificationOutbox.slice(priorNoticeCount);
+          this.emitPostCommit('NOTIFICATIONS_DISPATCHED', newNotices);
+        }
         return result;
       } catch (err) {
-        // Transaction failed: discard snapshot, state remains intact
+        // Transaction failed: discard snapshot, state remains intact. Never emit live updates.
         throw err;
       }
     } finally {
       releaseLock!();
     }
   }
+
+  private postCommitListeners: ((event: { type: string; payload: any; timestamp: string }) => void)[] = [];
+
+  /**
+   * Subscribe to authoritative post-commit events.
+   * Listeners fire strictly after transaction commit.
+   */
+  public onPostCommit(listener: (event: { type: string; payload: any; timestamp: string }) => void): () => void {
+    this.postCommitListeners.push(listener);
+    return () => {
+      this.postCommitListeners = this.postCommitListeners.filter((l) => l !== listener);
+    };
+  }
+
+  /**
+   * Emits an authoritative event to registered listeners strictly post-commit.
+   */
+  public emitPostCommit(type: string, payload: any): void {
+    const event = {
+      type,
+      payload,
+      timestamp: new Date().toISOString(),
+    };
+    for (const listener of this.postCommitListeners) {
+      try {
+        listener(event);
+      } catch (err) {
+        console.warn('[PostCommit] Listener error:', err);
+      }
+    }
+  }
+
 
   /**
    * Helper to append an audit event.
@@ -298,6 +336,16 @@ export class TimetableRepository {
   public async seedRealisticUniversityData(): Promise<void> {
     await this.runTransaction(async (tx) => {
       populateRealisticUniversityData(tx);
+    });
+  }
+
+  /**
+   * Resets repository to a simple, minimal single-cohort setup for end-to-end Solver testing.
+   * Clears existing schedules and publishes 0 drafts so that the user can run the solver cleanly.
+   */
+  public async resetToSimpleMockData(): Promise<void> {
+    await this.runTransaction(async (tx) => {
+      populateSimpleMockData(tx);
     });
   }
 }
@@ -596,10 +644,10 @@ export function populateRealisticUniversityData(tx: RepositoryDataState): void {
     name: 'Advanced Algorithms (Elective)',
   });
 
-  // Students & Memberships
+  // Students & Memberships (Realistic University Cohort with 2025BTECH Roll Numbers)
   tx.students.set('stud-1', {
     id: 'stud-1',
-    rollNumber: 'CS2026-001',
+    rollNumber: '2025BTECH001',
     name: 'Charlie Brown',
     email: 'charlie@uni.edu',
     active: true,
@@ -643,9 +691,9 @@ export function populateRealisticUniversityData(tx: RepositoryDataState): void {
 
   tx.students.set('stud-2', {
     id: 'stud-2',
-    rollNumber: 'CS2026-101',
+    rollNumber: '2025BTECH002',
     name: 'Aarav Sharma',
-    email: 'aarav@uni.edu',
+    email: 'aarav.sharma@uni.edu',
     active: true,
   });
   tx.studentGroupMemberships.set('sgm-3', {
@@ -665,9 +713,9 @@ export function populateRealisticUniversityData(tx: RepositoryDataState): void {
 
   tx.students.set('stud-3', {
     id: 'stud-3',
-    rollNumber: 'CS2026-501',
+    rollNumber: '2025BTECH003',
     name: 'Diya Patel',
-    email: 'diya@uni.edu',
+    email: 'diya.patel@uni.edu',
     active: true,
   });
   tx.studentGroupMemberships.set('sgm-5', {
@@ -692,6 +740,56 @@ export function populateRealisticUniversityData(tx: RepositoryDataState): void {
     assignedAt: '2026-08-15T00:00:00.000Z',
     status: 'active',
   });
+
+  // Additional Realistic Mock Students Cohort (2025BTECH series)
+  const mockRoster = [
+    { id: 'stud-4', roll: '2025BTECH004', name: 'Rohan Verma', email: 'rohan.verma@uni.edu', sec: 'sec-3A', batch: 'batch-3A1', elec: 'elg-ai' },
+    { id: 'stud-5', roll: '2025BTECH005', name: 'Ananya Iyer', email: 'ananya.iyer@uni.edu', sec: 'sec-3A', batch: 'batch-3A2', elec: 'elg-ai' },
+    { id: 'stud-6', roll: '2025BTECH006', name: 'Kavya Nair', email: 'kavya.nair@uni.edu', sec: 'sec-3A', batch: 'batch-3A2', elec: null },
+    { id: 'stud-7', roll: '2025BTECH007', name: 'Aditya Kulkarni', email: 'aditya.k@uni.edu', sec: 'sec-1A', batch: 'batch-1A1', elec: null },
+    { id: 'stud-8', roll: '2025BTECH008', name: 'Pooja Reddy', email: 'pooja.reddy@uni.edu', sec: 'sec-1A', batch: 'batch-1A2', elec: null },
+    { id: 'stud-9', roll: '2025BTECH009', name: 'Siddharth Rao', email: 'siddharth.rao@uni.edu', sec: 'sec-1A', batch: 'batch-1A2', elec: null },
+    { id: 'stud-10', roll: '2025BTECH010', name: 'Meera Deshmukh', email: 'meera.d@uni.edu', sec: 'sec-5A', batch: 'batch-5A1', elec: 'elec-ml' },
+    { id: 'stud-11', roll: '2025BTECH011', name: 'Vikram Singhania', email: 'vikram.s@uni.edu', sec: 'sec-5A', batch: 'batch-5A2', elec: 'elec-ml' },
+    { id: 'stud-12', roll: '2025BTECH012', name: 'Sneha Mukherjee', email: 'sneha.m@uni.edu', sec: 'sec-5A', batch: 'batch-5A2', elec: null },
+    { id: 'stud-13', roll: '2025BTECH013', name: 'Aryan Joshi', email: 'aryan.joshi@uni.edu', sec: 'sec-3A', batch: 'batch-3A1', elec: 'elg-ai' },
+    { id: 'stud-14', roll: '2025BTECH014', name: 'Tanvi Gokhale', email: 'tanvi.g@uni.edu', sec: 'sec-3A', batch: 'batch-3A2', elec: 'elg-ai' },
+    { id: 'stud-15', roll: '2025BTECH015', name: 'Nikhil Saxena', email: 'nikhil.saxena@uni.edu', sec: 'sec-1A', batch: 'batch-1A1', elec: null },
+  ];
+
+  for (const s of mockRoster) {
+    tx.students.set(s.id, {
+      id: s.id,
+      rollNumber: s.roll,
+      name: s.name,
+      email: s.email,
+      active: true,
+    });
+    tx.studentGroupMemberships.set(`sgm-${s.id}-sec`, {
+      id: `sgm-${s.id}-sec`,
+      studentId: s.id,
+      groupId: s.sec,
+      groupType: 'section',
+      effectiveStartDate: '2026-08-01',
+    });
+    tx.studentGroupMemberships.set(`sgm-${s.id}-batch`, {
+      id: `sgm-${s.id}-batch`,
+      studentId: s.id,
+      groupId: s.batch,
+      groupType: 'batch',
+      effectiveStartDate: '2026-08-01',
+    });
+    if (s.elec) {
+      tx.electiveAssignments.set(`ea-${s.id}`, {
+        id: `ea-${s.id}`,
+        studentId: s.id,
+        electiveGroupId: s.elec,
+        assignedBy: 'admin-1',
+        assignedAt: '2026-08-15T00:00:00.000Z',
+        status: 'active',
+      });
+    }
+  }
 
   // 5. Curriculum, Contact Hours & Offerings (D06, D44)
   // Semester 1
@@ -1018,3 +1116,277 @@ export function populateRealisticUniversityData(tx: RepositoryDataState): void {
     }
   }
 }
+
+/**
+ * Populates a clean, simple, single-cohort mock setup for verifying that the solver
+ * executes and mounts to the DOM with deterministic pre-calculated expectations.
+ *
+ * Scope:
+ * - 1 Academic Term: 'term-simple' (Semester 1)
+ * - 2 Rooms:
+ *   - 'room-101' (LT, capacity 60)
+ *   - 'room-lab1' (P, capacity 35)
+ * - 2 Teachers:
+ *   - 't-1': Prof. Rajesh Sharma (Mathematics & Theory)
+ *   - 't-2': Dr. Sunita Verma (Computer Science)
+ * - 1 Section: 'sec-simple' (Section 1A, 50 students)
+ * - 2 Batches:
+ *   - 'batch-1A1' (Batch 1A1, 25 students)
+ *   - 'batch-1A2' (Batch 1A2, 25 students)
+ * - 2 Courses:
+ *   - 'c-math': MA101 Mathematics (2 Lectures, 1 Tutorial, 0 Labs -> Total 3 slots)
+ *   - 'c-cs': CS101 Intro to Computing (2 Lectures, 0 Tutorials, 2 Labs -> Total 4 slots)
+ * - 3 Offerings:
+ *   - 'off-math-lec': MA101 | Prof. Rajesh Sharma (t-1) | Section 1A | Component: L+T
+ *   - 'off-cs-lec': CS101 | Dr. Sunita Verma (t-2) | Section 1A | Component: L
+ *   - 'off-cs-lab': CS101 | Dr. Sunita Verma (t-2) | Batch 1A1 | Component: P
+ *
+ * Pre-calculated Solver Expectation:
+ * - Exactly 6 scheduled classes:
+ *   - MA101: 2 Lectures (duration 1) + 1 Tutorial (duration 1) in room-101
+ *   - CS101: 2 Lectures (duration 1) in room-101
+ *   - CS101: 1 Practical Lab (duration 2 consecutive slots) in room-lab1
+ * - Zero teacher clashes, zero room clashes, zero period 4 (lunch) violations.
+ */
+export function populateSimpleMockData(tx: RepositoryDataState): void {
+  // Clear existing schedules and occurrences
+  tx.timetableVersions.clear();
+  tx.scheduledClasses.clear();
+  tx.classOccurrences.clear();
+  tx.classOccurrenceEvents.clear();
+  tx.courses.clear();
+  tx.courseOfferings.clear();
+  tx.sections.clear();
+  tx.batches.clear();
+  tx.electiveGroups.clear();
+  tx.electiveAssignments.clear();
+  tx.academicTerms.clear();
+  tx.rooms.clear();
+  tx.teachers.clear();
+
+  // 1. Single Term
+  tx.academicTerms.set('term-simple', {
+    id: 'term-simple',
+    yearLabel: '2026-2027',
+    semesterNumber: 1,
+    startDate: '2026-09-01',
+    endDate: '2026-12-20',
+    cycle: 'odd',
+    status: 'active',
+  });
+  // Keep term-3 alias for any test expecting term-3
+  tx.academicTerms.set('term-3', {
+    id: 'term-3',
+    yearLabel: '2026-2027',
+    semesterNumber: 3,
+    startDate: '2026-09-01',
+    endDate: '2026-12-20',
+    cycle: 'odd',
+    status: 'active',
+  });
+
+  // 2. Simple Rooms
+  tx.rooms.set('room-101', {
+    id: 'room-101',
+    roomNumber: '101',
+    building: 'Science Block',
+    floor: 1,
+    capacity: 60,
+    roomType: 'LT',
+    active: true,
+  });
+  tx.rooms.set('room-lab1', {
+    id: 'room-lab1',
+    roomNumber: 'Computing Lab 1',
+    building: 'Turing Wing',
+    floor: 1,
+    capacity: 35,
+    roomType: 'P',
+    active: true,
+  });
+  // Keep legacy room aliases for test compatibility
+  tx.rooms.set('r-101', {
+    id: 'r-101',
+    roomNumber: '101',
+    building: 'Science Block',
+    floor: 1,
+    capacity: 60,
+    roomType: 'LT',
+    active: true,
+  });
+  tx.rooms.set('r-lab1', {
+    id: 'r-lab1',
+    roomNumber: 'Lab-A',
+    building: 'Turing Wing',
+    floor: 1,
+    capacity: 35,
+    roomType: 'P',
+    active: true,
+  });
+
+  // 3. Simple Teachers
+  tx.teachers.set('t-1', {
+    id: 't-1',
+    empId: 'EMP-101',
+    name: 'Prof. Rajesh Sharma',
+    email: 'rajesh.sharma@uni.edu',
+    department: 'Mathematics & Theory',
+    active: true,
+  });
+  tx.teachers.set('t-2', {
+    id: 't-2',
+    empId: 'EMP-102',
+    name: 'Dr. Sunita Verma',
+    email: 'sunita.verma@uni.edu',
+    department: 'Computer Science',
+    active: true,
+  });
+
+  // 4. Cohorts (1 Section, 2 Batches)
+  tx.sections.set('sec-1A', {
+    id: 'sec-1A',
+    termId: 'term-simple',
+    name: 'Section 1A',
+    expectedCount: 50,
+    active: true,
+  });
+  tx.sections.set('sec-A', {
+    id: 'sec-A',
+    termId: 'term-3',
+    name: 'Section A',
+    expectedCount: 50,
+    active: true,
+  });
+
+  tx.batches.set('batch-1A1', {
+    id: 'batch-1A1',
+    sectionId: 'sec-1A',
+    name: 'Batch 1A1',
+    expectedCount: 25,
+    active: true,
+  });
+  tx.batches.set('batch-1A2', {
+    id: 'batch-1A2',
+    sectionId: 'sec-1A',
+    name: 'Batch 1A2',
+    expectedCount: 25,
+    active: true,
+  });
+  tx.batches.set('batch-A1', {
+    id: 'batch-A1',
+    sectionId: 'sec-A',
+    name: 'Batch A1',
+    expectedCount: 25,
+    active: true,
+  });
+
+  // 5. Courses
+  tx.courses.set('c-math', {
+    id: 'c-math',
+    code: 'MA101',
+    name: 'Calculus & Linear Algebra',
+    termId: 'term-simple',
+    department: 'Mathematics & Theory',
+    lectureHours: 2,
+    tutorialHours: 1,
+    practicalHours: 0,
+    requiredRoomType: 'LT',
+  });
+  tx.courses.set('c-cs', {
+    id: 'c-cs',
+    code: 'CS101',
+    name: 'Introduction to Programming',
+    termId: 'term-simple',
+    department: 'Computer Science',
+    lectureHours: 2,
+    tutorialHours: 0,
+    practicalHours: 2,
+    requiredRoomType: 'LT',
+  });
+  // Legacy course for test compatibility
+  tx.courses.set('c-ds', {
+    id: 'c-ds',
+    code: 'CS200',
+    name: 'Data Structures',
+    termId: 'term-3',
+    department: 'Computer Science',
+    lectureHours: 2,
+    tutorialHours: 0,
+    practicalHours: 2,
+    requiredRoomType: 'LT',
+  });
+
+  // 6. Course Offerings
+  tx.courseOfferings.set('off-math-lec', {
+    id: 'off-math-lec',
+    courseId: 'c-math',
+    termId: 'term-simple',
+    teacherId: 't-1',
+    targetType: 'section',
+    targetId: 'sec-1A',
+  });
+  tx.courseOfferings.set('off-cs-lec', {
+    id: 'off-cs-lec',
+    courseId: 'c-cs',
+    termId: 'term-simple',
+    teacherId: 't-2',
+    targetType: 'section',
+    targetId: 'sec-1A',
+    component: 'L',
+  });
+  tx.courseOfferings.set('off-cs-lab', {
+    id: 'off-cs-lab',
+    courseId: 'c-cs',
+    termId: 'term-simple',
+    teacherId: 't-2',
+    targetType: 'batch',
+    targetId: 'batch-1A1',
+    component: 'P',
+  });
+  tx.courseOfferings.set('off-ds-lec', {
+    id: 'off-ds-lec',
+    courseId: 'c-ds',
+    termId: 'term-3',
+    teacherId: 't-1',
+    targetType: 'section',
+    targetId: 'sec-A',
+  });
+
+  // 7. Student Charlie Brown
+  tx.students.set('stud-1', {
+    id: 'stud-1',
+    rollNumber: '2025BTECH001',
+    name: 'Charlie Brown',
+    email: 'charlie@uni.edu',
+    active: true,
+  });
+  tx.studentGroupMemberships.set('sgm-1', {
+    id: 'sgm-1',
+    studentId: 'stud-1',
+    groupId: 'sec-1A',
+    groupType: 'section',
+    effectiveStartDate: '2026-08-01',
+  });
+  tx.studentGroupMemberships.set('sgm-2', {
+    id: 'sgm-2',
+    studentId: 'stud-1',
+    groupId: 'batch-1A1',
+    groupType: 'batch',
+    effectiveStartDate: '2026-08-01',
+  });
+  tx.studentGroupMemberships.set('sgm-legacy-sec', {
+    id: 'sgm-legacy-sec',
+    studentId: 'stud-1',
+    groupId: 'sec-A',
+    groupType: 'section',
+    effectiveStartDate: '2026-08-01',
+  });
+  tx.studentGroupMemberships.set('sgm-legacy-batch', {
+    id: 'sgm-legacy-batch',
+    studentId: 'stud-1',
+    groupId: 'batch-A1',
+    groupType: 'batch',
+    effectiveStartDate: '2026-08-01',
+  });
+}
+

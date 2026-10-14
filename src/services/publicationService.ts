@@ -85,6 +85,15 @@ export class PublicationService {
         }
       }
 
+      // Mark occurrences of superseded version as superseded (preserve one-off extra classes)
+      if (priorVersionId) {
+        for (const occ of tx.classOccurrences.values()) {
+          if (occ.versionId === priorVersionId && !occ.isExtraClass && occ.status !== 'superseded') {
+            occ.status = 'superseded';
+          }
+        }
+      }
+
       // Atomically update draft to published
       draftVersion.status = 'published';
       draftVersion.publishedAt = new Date().toISOString();
@@ -189,16 +198,26 @@ export class PublicationService {
         throw new Error(`ERR_VERSION_NOT_FOUND: Timetable version ${versionId} not found.`);
       }
 
-      // Mark current active published version as archived/superseded
+      // Mark current active published version and its occurrences as superseded
       for (const v of tx.timetableVersions.values()) {
         if (v.termId === targetVersion.termId && v.status === 'published') {
           v.status = 'superseded';
+          for (const occ of tx.classOccurrences.values()) {
+            if (occ.versionId === v.id && !occ.isExtraClass) {
+              occ.status = 'superseded';
+            }
+          }
         }
       }
 
-      // Set target version as published
+      // Set target version as published and reactivate its superseded occurrences
       targetVersion.status = 'published';
       targetVersion.publishedAt = new Date().toISOString();
+      for (const occ of tx.classOccurrences.values()) {
+        if (occ.versionId === targetVersion.id && !occ.isExtraClass && occ.status === 'superseded') {
+          occ.status = 'scheduled';
+        }
+      }
 
       this.repo.logAudit(
         session.userId,

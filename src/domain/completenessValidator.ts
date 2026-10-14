@@ -82,10 +82,12 @@ export function validateDraftTimetable(
       continue;
     }
 
-    // Aggregate required sessions by type
+    // Aggregate required sessions by type (filtered by offering component if specified)
     const counts = new Map<string, number>();
     for (const s of sessions) {
-      counts.set(s.activityType, (counts.get(s.activityType) || 0) + 1);
+      if (!offering.component || offering.component === s.activityType) {
+        counts.set(s.activityType, (counts.get(s.activityType) || 0) + 1);
+      }
     }
 
     const reqList: { activityType: string; count: number }[] = [];

@@ -8,13 +8,14 @@
  * - D44 (Two-slot practical lab sessions visibly spanning both consecutive slots)
  */
 
-export function renderHtmlUI(): string {
+export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: string }): string {
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>University Timetable Management System</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
       --bg: #0b1120;
@@ -295,6 +296,7 @@ export function renderHtmlUI(): string {
       <select id="adminFilterVal" onchange="updateAdminFilterVal(this.value)">
         <option value="all">All</option>
       </select>
+      <button onclick="resetToSimpleMockData()" style="margin:0; padding:5px 10px; font-size:12px; background:#f43f5e;">🧹 Reset to Simple Mock Data</button>
       <button onclick="loadDemoSchedule()" style="margin:0; padding:5px 10px; font-size:12px;">⚡ 1-Click Load & Publish Demo</button>
     </div>
   </div>
@@ -537,12 +539,21 @@ export function renderHtmlUI(): string {
               <label>Target Cohort:</label>
               <select id="offeringTargetId"></select>
             </div>
+            <div class="form-col">
+              <label>Component / Activity:</label>
+              <select id="offeringComponent">
+                <option value="">All Components (Default L+T+P)</option>
+                <option value="L">Lecture Only (L)</option>
+                <option value="T">Tutorial Only (T)</option>
+                <option value="P">Practical Only (P)</option>
+              </select>
+            </div>
           </div>
           <button onclick="createOffering()">Create Course Offering</button>
           <div class="data-table-container">
             <table class="data-table">
               <thead>
-                <tr><th>Offering ID</th><th>Course</th><th>Teacher</th><th>Target Cohort</th><th>Term</th></tr>
+                <tr><th>Offering ID</th><th>Course</th><th>Teacher</th><th>Component</th><th>Target Cohort</th><th>Term</th></tr>
               </thead>
               <tbody id="offeringsTableBody"></tbody>
             </table>
@@ -730,6 +741,7 @@ export function renderHtmlUI(): string {
 
         <!-- Assembly Actions & Local Solver Router -->
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:16px;">
+          <button onclick="runSolverAndStageDraftDirectly()" style="background:#10b981; color:#020617; font-weight:700;">🚀 Run Solver & Stage Draft (Instant)</button>
           <button onclick="compileAssemblyPackage()" style="background:#38bdf8; color:#020617; font-weight:700;">⚡ Compile Generation Package</button>
           <button onclick="downloadAssembledPackage()" class="secondary">📥 Download Input Package (.json)</button>
         </div>
@@ -823,30 +835,69 @@ export function renderHtmlUI(): string {
         <p>Directly provision faculty and student accounts linked to Supabase Auth and authoritative profiles.</p>
         <div class="form-row">
           <div class="form-col">
-            <label>Full Name:</label>
-            <input type="text" id="provName" placeholder="e.g. Dr. Jane Smith">
-          </div>
-          <div class="form-col">
-            <label>Institutional Email:</label>
-            <input type="email" id="provEmail" placeholder="e.g. janesmith@university.edu">
-          </div>
-          <div class="form-col">
             <label>Role:</label>
-            <select id="provRole">
-              <option value="teacher">Teacher (Faculty)</option>
+            <select id="provRole" onchange="handleProvRoleChange()">
               <option value="student">Student</option>
+              <option value="teacher">Teacher (Faculty)</option>
               <option value="admin">Administrator</option>
             </select>
           </div>
+          <div class="form-col" id="provEntitySelectCol">
+            <label id="provEntityLabel">Select Student (Roll No):</label>
+            <select id="provEntitySelect" onchange="handleProvEntitySelected()">
+              <option value="">-- Choose Student by Roll No --</option>
+            </select>
+          </div>
           <div class="form-col">
-            <label>Linked Entity ID (e.g. t-1 or stud-1):</label>
-            <input type="text" id="provEntityId" placeholder="e.g. t-1">
+            <label>Linked Entity ID / Roll No:</label>
+            <input type="text" id="provEntityId" placeholder="e.g. 2025BTECH001 or stud-1">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-col">
+            <label>Full Name:</label>
+            <input type="text" id="provName" placeholder="e.g. Rohan Verma">
+          </div>
+          <div class="form-col">
+            <label>Institutional Email:</label>
+            <input type="email" id="provEmail" placeholder="e.g. rohan.verma@uni.edu">
           </div>
           <div class="form-col">
             <label>Temporary Password:</label>
             <input type="text" id="provPassword" value="TempPass123!" placeholder="TempPass123!">
           </div>
         </div>
+        <!-- New Student Academic Enrollment Fields (Optional when not pre-populated) -->
+        <div id="provStudentEnrollmentFields" style="margin-top:14px; padding:12px; border:1px solid rgba(56, 189, 248, 0.2); border-radius:8px; background:rgba(15, 23, 42, 0.5);">
+          <div style="font-weight:600; color:var(--primary); font-size:13px; margin-bottom:8px;">
+            🎓 Academic Enrollment (Assign Section, Batch & Electives to New Student)
+          </div>
+          <div class="form-row">
+            <div class="form-col">
+              <label>Enroll in Section:</label>
+              <select id="provStudentSection" onchange="handleProvSectionChange()">
+                <option value="">-- Select Section --</option>
+              </select>
+            </div>
+            <div class="form-col">
+              <label>Assign Practical Batch:</label>
+              <select id="provStudentBatch">
+                <option value="">-- Select Practical Batch --</option>
+              </select>
+            </div>
+            <div class="form-col">
+              <label>Optional Elective Group:</label>
+              <select id="provStudentElective">
+                <option value="">-- No Elective / Core Only --</option>
+              </select>
+            </div>
+          </div>
+          <p style="font-size:11px; color:var(--text-muted); margin:4px 0 0 0;">
+            ℹ️ If the student is brand new and not yet in the master roster, selecting these fields will automatically create their Student profile, Section membership, Practical Lab sub-batch, and Elective enrollment atomically upon account provisioning.
+          </p>
+        </div>
+
+        <div id="provStudentDetailsBanner" style="display:none; background:#0b1120; border:1px solid var(--border); border-radius:6px; padding:10px 14px; margin:10px 0; font-size:12px; color:var(--text-muted);"></div>
         <button onclick="handleProvisionUser()" class="btn-primary" style="margin-top:12px; font-weight:600;">Provision User Account</button>
       </div>
     </div>
@@ -890,14 +941,16 @@ export function renderHtmlUI(): string {
   <!-- STUDENT VIEW CONTROLS -->
   <div id="studentView" class="view-section" style="display:none;">
     <div class="grid">
-      <div class="card">
+      <div class="card" id="studentProfileCard">
         <h2>Enrolled Student Profile & Cohorts</h2>
-        <p>Active demo student: <strong>Charlie Brown (stud-1)</strong> • Roll CS2026-001 (Semester 3)</p>
-        <ul style="margin: 10px 0 0 18px;">
-          <li>Enrolled Section: <strong>Section 3A (sec-3A)</strong></li>
-          <li>Assigned Practical Batch: <strong>Batch 3A1 (batch-3A1)</strong></li>
-          <li>Enrolled Elective: <strong>Applied Machine Learning / Adv Algorithms</strong></li>
-        </ul>
+        <div id="studentProfileContent">
+          <p>Active student: <strong id="studentProfileName">Charlie Brown (stud-1)</strong> • <span id="studentProfileMeta">Roll CS2026-001 (Semester 3)</span></p>
+          <ul style="margin: 10px 0 0 18px;" id="studentCohortsList">
+            <li>Enrolled Section: <strong>Section 3A (sec-3A)</strong></li>
+            <li>Assigned Practical Batch: <strong>Batch 3A1 (batch-3A1)</strong></li>
+            <li>Enrolled Elective: <strong>Applied Machine Learning / Adv Algorithms</strong></li>
+          </ul>
+        </div>
         <p style="margin-top:10px; font-size:12px;">Only sessions mapped to these cohorts appear on the single-day grid.</p>
       </div>
 
@@ -905,6 +958,18 @@ export function renderHtmlUI(): string {
         <h2>Persistent Inbox Notifications</h2>
         <p>Post-commit notifications for cancellations, reschedules, and extra classes.</p>
         <div id="studentInbox">Loading inbox...</div>
+      </div>
+
+      <div class="card">
+        <h2>Student Security & Password Settings</h2>
+        <p>Update your institutional account password securely.</p>
+        <div style="margin-top:12px;">
+          <label style="display:block; font-size:12px; color:var(--text-muted); margin-bottom:4px;">New Password (minimum 6 characters):</label>
+          <input type="password" id="studentNewPassword" placeholder="••••••••" style="width:100%; max-width:280px; padding:6px 10px; border-radius:6px; background:#0f172a; border:1px solid var(--border); color:var(--text);">
+          <div style="margin-top:10px;">
+            <button onclick="handleStudentChangePassword()" class="btn-primary" style="padding:6px 14px; font-size:12px; font-weight:600;">Update Password</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -937,7 +1002,98 @@ export function renderHtmlUI(): string {
     let adminGroupBy = 'section';
     let adminFilterVal = 'all';
 
+    const SUPABASE_URL = "${config?.supabaseUrl || ''}";
+    const SUPABASE_ANON_KEY = "${config?.supabaseAnonKey || ''}";
+    let realtimeEventSource = null;
+    let supabaseChannelOccurrences = null;
+    let supabaseChannelOutbox = null;
+
+    function setupRealtime() {
+      teardownRealtime();
+
+      // 1. Supabase Realtime channel integration (D05, D22)
+      if (window.supabase && SUPABASE_URL && SUPABASE_ANON_KEY) {
+        try {
+          const client = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+            auth: { persistSession: false }
+          });
+
+          supabaseChannelOccurrences = client
+            .channel('public:class_occurrences')
+            .on('postgres_changes', { event: '*', schema: 'public', table: 'class_occurrences' }, function() {
+              handleOccurrenceRealtimeEvent();
+            })
+            .subscribe();
+
+          supabaseChannelOutbox = client
+            .channel('public:notification_outbox')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'notification_outbox' }, function(payload) {
+              if (payload && payload.new) handleNotificationRealtimeEvent(payload.new);
+            })
+            .subscribe();
+        } catch (e) {
+          console.warn('[Realtime] Supabase subscription warning:', e);
+        }
+      }
+
+      // 2. Dual-channel Server-Sent Events (SSE) Stream (instant cross-window updates)
+      if (window.EventSource) {
+        try {
+          realtimeEventSource = new EventSource('/api/realtime/stream');
+          realtimeEventSource.onmessage = function(e) {
+            try {
+              const event = JSON.parse(e.data);
+              if (event.type === 'OCCURRENCE_MUTATED' || event.type === 'TIMETABLE_PUBLISHED') {
+                handleOccurrenceRealtimeEvent();
+              } else if (event.type === 'NOTIFICATIONS_DISPATCHED') {
+                const notices = Array.isArray(event.payload) ? event.payload : [event.payload];
+                notices.forEach(handleNotificationRealtimeEvent);
+              }
+            } catch (err) {}
+          };
+        } catch (e) {
+          console.warn('[Realtime] SSE subscription warning:', e);
+        }
+      }
+    }
+
+    function teardownRealtime() {
+      if (realtimeEventSource) {
+        try { realtimeEventSource.close(); } catch {}
+        realtimeEventSource = null;
+      }
+      if (supabaseChannelOccurrences) {
+        try { supabaseChannelOccurrences.unsubscribe(); } catch {}
+        supabaseChannelOccurrences = null;
+      }
+      if (supabaseChannelOutbox) {
+        try { supabaseChannelOutbox.unsubscribe(); } catch {}
+        supabaseChannelOutbox = null;
+      }
+    }
+
+    let realtimeDebounceTimer = null;
+    function handleOccurrenceRealtimeEvent() {
+      if (realtimeDebounceTimer) clearTimeout(realtimeDebounceTimer);
+      realtimeDebounceTimer = setTimeout(function() {
+        loadState().then(function() {
+          showMsg('⚡ Real-time schedule update applied across campus.', false);
+        });
+      }, 300);
+    }
+
+    function handleNotificationRealtimeEvent(notice) {
+      if (!notice) return;
+      const targetStudent = currentUser && currentUser.role === 'student' && currentUser.entityId ? currentUser.entityId : 'stud-1';
+      const studentId = notice.recipient_student_id || notice.recipientStudentId;
+      if (!studentId || studentId === targetStudent || currentRole === 'student') {
+        showMsg('🔔 New Alert: ' + (notice.title || 'Schedule Update') + ' — ' + (notice.message || ''), false);
+        renderStudentInbox();
+      }
+    }
+
     function updateAuthNav() {
+
       const unauth = document.getElementById('unauthenticatedControls');
       const auth = document.getElementById('authenticatedControls');
       const roleBadge = document.getElementById('navRoleBadge');
@@ -1031,6 +1187,7 @@ export function renderHtmlUI(): string {
         localStorage.setItem('timetable_auth_token', authToken);
         updateAuthNav();
         closeLoginModal();
+        setupRealtime();
         showMsg('Signed in as ' + currentUser.fullName + ' (' + currentUser.role + ')', false);
         loadState();
       } catch (err) {
@@ -1081,17 +1238,167 @@ export function renderHtmlUI(): string {
       authToken = '';
       currentUser = null;
       localStorage.removeItem('timetable_auth_token');
+      teardownRealtime();
       updateAuthNav();
+      setupRealtime();
       showMsg('You have been signed out.', false);
       loadState();
     }
 
+
+    function renderProvisioningEntityOptions() {
+      const role = document.getElementById('provRole')?.value || 'student';
+      const entitySel = document.getElementById('provEntitySelect');
+      const label = document.getElementById('provEntityLabel');
+      const banner = document.getElementById('provStudentDetailsBanner');
+      const enrollFields = document.getElementById('provStudentEnrollmentFields');
+      if (!entitySel || !label) return;
+
+      if (banner) banner.style.display = 'none';
+
+      if (role === 'student') {
+        label.textContent = 'Select Existing Student (or choose -- Brand New Student --):';
+        const students = currentState.students || [];
+        let html = '<option value="">-- Brand New Student (Enter Roll No & Cohorts below) --</option>';
+        students.forEach(function(s) {
+          html += '<option value="' + s.id + '">' + s.rollNumber + ' — ' + s.name + '</option>';
+        });
+        entitySel.innerHTML = html;
+        document.getElementById('provEntitySelectCol').style.display = 'block';
+        if (enrollFields) enrollFields.style.display = 'block';
+        populateProvisionStudentEnrollmentOptions();
+      } else if (role === 'teacher') {
+        label.textContent = 'Select Faculty (Emp ID):';
+        const teachers = currentState.teachers || [];
+        let html = '<option value="">-- Choose Faculty Member --</option>';
+        teachers.forEach(function(t) {
+          html += '<option value="' + t.id + '">' + t.empId + ' — ' + t.name + ' (' + (t.department || 'Faculty') + ')</option>';
+        });
+        entitySel.innerHTML = html;
+        document.getElementById('provEntitySelectCol').style.display = 'block';
+        if (enrollFields) enrollFields.style.display = 'none';
+      } else {
+        document.getElementById('provEntitySelectCol').style.display = 'none';
+        if (enrollFields) enrollFields.style.display = 'none';
+        const idInput = document.getElementById('provEntityId');
+        if (idInput) idInput.value = '';
+      }
+    }
+
+    function populateProvisionStudentEnrollmentOptions() {
+      const secSel = document.getElementById('provStudentSection');
+      const batchSel = document.getElementById('provStudentBatch');
+      const elecSel = document.getElementById('provStudentElective');
+      if (!secSel || !batchSel || !elecSel) return;
+
+      const sections = currentState.sections || [];
+      const terms = currentState.academicTerms || [];
+      const electives = currentState.electiveGroups || [];
+
+      let secHtml = '<option value="">-- Select Section --</option>';
+      sections.forEach(function(s) {
+        const term = terms.find(function(t) { return t.id === s.termId; });
+        const termLabel = term ? (term.yearLabel + ' Sem ' + term.semesterNumber) : s.termId;
+        secHtml += '<option value="' + s.id + '">' + s.name + ' (' + termLabel + ')</option>';
+      });
+      secSel.innerHTML = secHtml;
+
+      handleProvSectionChange();
+
+      let elecHtml = '<option value="">-- No Elective / Core Only --</option>';
+      electives.forEach(function(e) {
+        elecHtml += '<option value="' + e.id + '">' + e.name + ' (' + e.id + ')</option>';
+      });
+      elecSel.innerHTML = elecHtml;
+    }
+
+    function handleProvSectionChange() {
+      const secId = document.getElementById('provStudentSection')?.value;
+      const batchSel = document.getElementById('provStudentBatch');
+      if (!batchSel) return;
+
+      const batches = (currentState.batches || []).filter(function(b) {
+        return !secId || b.sectionId === secId;
+      });
+
+      let bHtml = '<option value="">-- Select Practical Batch --</option>';
+      batches.forEach(function(b) {
+        bHtml += '<option value="' + b.id + '">' + b.name + ' (' + b.id + ')</option>';
+      });
+      batchSel.innerHTML = bHtml;
+    }
+
+    function handleProvRoleChange() {
+      renderProvisioningEntityOptions();
+      const role = document.getElementById('provRole')?.value;
+      const idInput = document.getElementById('provEntityId');
+      if (idInput) idInput.placeholder = role === 'student' ? 'e.g. 2025BTECH016' : (role === 'teacher' ? 'e.g. EMP-101' : 'e.g. admin-1');
+    }
+
+    function handleProvEntitySelected() {
+      const role = document.getElementById('provRole')?.value;
+      const entityId = document.getElementById('provEntitySelect')?.value;
+      const idInput = document.getElementById('provEntityId');
+      const nameInput = document.getElementById('provName');
+      const emailInput = document.getElementById('provEmail');
+      const banner = document.getElementById('provStudentDetailsBanner');
+      const enrollFields = document.getElementById('provStudentEnrollmentFields');
+
+      if (!entityId) {
+        if (idInput) idInput.value = '';
+        if (nameInput) nameInput.value = '';
+        if (emailInput) emailInput.value = '';
+        if (banner) banner.style.display = 'none';
+        if (enrollFields && role === 'student') enrollFields.style.display = 'block';
+        return;
+      }
+
+      if (role === 'student') {
+        const student = (currentState.students || []).find(function(s) { return s.id === entityId; });
+        if (student) {
+          if (idInput) idInput.value = student.rollNumber || student.id;
+          if (nameInput) nameInput.value = student.name;
+          if (emailInput) emailInput.value = student.email;
+
+          // Lookup enrolled cohorts
+          const sections = [];
+          const batches = [];
+          const electives = [];
+          (currentState.studentGroupMemberships || []).filter(function(m) { return m.studentId === student.id; }).forEach(function(m) {
+            if (m.groupType === 'section') sections.push(m.groupId);
+            if (m.groupType === 'batch') batches.push(m.groupId);
+          });
+          (currentState.electiveAssignments || []).filter(function(ea) { return ea.studentId === student.id && ea.status === 'active'; }).forEach(function(ea) {
+            electives.push(ea.electiveGroupId);
+          });
+
+          if (banner) {
+            banner.style.display = 'block';
+            banner.innerHTML = '<strong>Enrolled Student:</strong> ' + student.name + ' (' + student.rollNumber + ')<br>' +
+              'Section: <code>' + (sections.join(', ') || 'None') + '</code> • Sub-Batch: <code>' + (batches.join(', ') || 'None') + '</code> • Electives: <code>' + (electives.join(', ') || 'None') + '</code>';
+          }
+          if (enrollFields) enrollFields.style.display = 'none';
+        }
+      } else if (role === 'teacher') {
+        const teacher = (currentState.teachers || []).find(function(t) { return t.id === entityId; });
+        if (teacher) {
+          if (idInput) idInput.value = teacher.empId || teacher.id;
+          if (nameInput) nameInput.value = teacher.name;
+          if (emailInput) emailInput.value = teacher.email;
+          if (banner) {
+            banner.style.display = 'block';
+            banner.innerHTML = '<strong>Faculty Member:</strong> ' + teacher.name + ' (' + teacher.empId + ') — Dept: <code>' + (teacher.department || 'General') + '</code>';
+          }
+        }
+      }
+    }
+
     async function handleProvisionUser() {
       try {
-        const name = document.getElementById('provName')?.value;
-        const email = document.getElementById('provEmail')?.value;
+        const name = document.getElementById('provName')?.value.trim();
+        const email = document.getElementById('provEmail')?.value.trim();
         const role = document.getElementById('provRole')?.value;
-        const entityId = document.getElementById('provEntityId')?.value;
+        const entityId = document.getElementById('provEntityId')?.value.trim();
         const password = document.getElementById('provPassword')?.value;
 
         if (!name || !email || !role) {
@@ -1099,14 +1406,40 @@ export function renderHtmlUI(): string {
           return;
         }
 
+        let studentDetails = undefined;
+        if (role === 'student') {
+          const sec = document.getElementById('provStudentSection')?.value;
+          const batch = document.getElementById('provStudentBatch')?.value;
+          const elec = document.getElementById('provStudentElective')?.value;
+          studentDetails = {
+            rollNumber: entityId || ('2025BTECH' + Math.floor(100 + Math.random() * 900)),
+            sectionId: sec || undefined,
+            batchId: batch || undefined,
+            electiveGroupId: elec || undefined,
+          };
+        }
+
         const data = await api('/api/auth/admin/provision-user', {
           method: 'POST',
-          body: JSON.stringify({ name, email, role, entityId: entityId || undefined, password })
+          body: JSON.stringify({
+            name,
+            email,
+            role,
+            entityId: entityId || (studentDetails ? studentDetails.rollNumber : undefined),
+            password,
+            studentDetails,
+          })
         });
+
         showMsg('User ' + data.user.fullName + ' (' + data.user.email + ') provisioned successfully as ' + data.user.role + '!', false);
         if (document.getElementById('provName')) document.getElementById('provName').value = '';
         if (document.getElementById('provEmail')) document.getElementById('provEmail').value = '';
         if (document.getElementById('provEntityId')) document.getElementById('provEntityId').value = '';
+        if (document.getElementById('provEntitySelect')) document.getElementById('provEntitySelect').value = '';
+        const banner = document.getElementById('provStudentDetailsBanner');
+        if (banner) banner.style.display = 'none';
+
+        await loadState();
       } catch (err) {
         showMsg(err.message, true);
       }
@@ -1125,7 +1458,10 @@ export function renderHtmlUI(): string {
       updateContextBanner();
       renderSingleDayGrid();
 
-      if (role === 'student') renderStudentInbox();
+      if (role === 'student') {
+        renderStudentProfile();
+        renderStudentInbox();
+      }
     }
 
     function updateContextBanner() {
@@ -1137,11 +1473,70 @@ export function renderHtmlUI(): string {
         bannerText.innerHTML = '👑 <strong>Administrator View</strong> — Full campus view across sections, rooms, and teachers.';
         if (filtersRow) filtersRow.style.display = 'flex';
       } else if (currentRole === 'teacher') {
-        bannerText.innerHTML = '👨‍🏫 <strong>Teacher View: Prof. Rajesh Sharma (EMP-101)</strong> — Filtered to assigned classes across Sem 1 & Sem 5 and open booking slots.';
+        const teacherName = (currentUser && currentUser.role === 'teacher') ? (currentUser.fullName || currentUser.email) : 'Prof. Rajesh Sharma';
+        const teacherId = (currentUser && currentUser.role === 'teacher' && currentUser.entityId) ? currentUser.entityId : 'EMP-101';
+        bannerText.innerHTML = '👨‍🏫 <strong>Teacher View: ' + teacherName + ' (' + teacherId + ')</strong> — Filtered to assigned classes across Sem 1 & Sem 5 and open booking slots.';
         if (filtersRow) filtersRow.style.display = 'none';
       } else {
-        bannerText.innerHTML = '🎓 <strong>Student View: Charlie Brown (CS2026-001)</strong> — Filtered strictly to enrolled Section 3A, Batch 3A1, and electives.';
+        const studentEntity = (currentUser && currentUser.role === 'student' && currentUser.entityId) ? currentUser.entityId : 'stud-1';
+        const studentObj = (currentState.students || []).find(function(s) { return s.id === studentEntity || s.rollNumber === studentEntity; });
+        const studentName = (currentUser && currentUser.role === 'student') ? (currentUser.fullName || (studentObj ? studentObj.name : currentUser.email)) : (studentObj ? studentObj.name : 'Charlie Brown');
+        const rollLabel = studentObj ? studentObj.rollNumber : studentEntity;
+        bannerText.innerHTML = '🎓 <strong>Student View: ' + studentName + ' (' + rollLabel + ')</strong> — Filtered strictly to enrolled Section, Batch, and electives.';
         if (filtersRow) filtersRow.style.display = 'none';
+      }
+    }
+
+    function renderStudentProfile() {
+      const studentEntity = (currentUser && currentUser.role === 'student' && currentUser.entityId) ? currentUser.entityId : 'stud-1';
+      const studentObj = (currentState.students || []).find(function(s) { return s.id === studentEntity || s.rollNumber === studentEntity; });
+      const studentId = studentObj ? studentObj.id : studentEntity;
+      const rollNumber = studentObj ? studentObj.rollNumber : studentEntity;
+      const studentName = (currentUser && currentUser.role === 'student') ? (currentUser.fullName || (studentObj ? studentObj.name : currentUser.email)) : (studentObj ? studentObj.name : 'Charlie Brown');
+      const nameEl = document.getElementById('studentProfileName');
+      const metaEl = document.getElementById('studentProfileMeta');
+      const cohortsEl = document.getElementById('studentCohortsList');
+      if (nameEl) nameEl.textContent = studentName + ' (' + rollNumber + ')';
+
+      if (metaEl) {
+        metaEl.textContent = studentObj ? ('Roll ' + studentObj.rollNumber + ' • ' + (studentObj.email || '')) : (currentUser && currentUser.email ? currentUser.email : 'Enrolled Student');
+      }
+
+      if (cohortsEl) {
+        const sections = [];
+        const batches = [];
+        const electives = [];
+        (currentState.studentGroupMemberships || []).filter(function(m) { return m.studentId === studentId; }).forEach(function(m) {
+          if (m.groupType === 'section') sections.push(m.groupId);
+          if (m.groupType === 'batch') batches.push(m.groupId);
+        });
+        (currentState.electiveAssignments || []).filter(function(ea) { return ea.studentId === studentId && ea.status === 'active'; }).forEach(function(ea) {
+          electives.push(ea.electiveGroupId);
+        });
+
+        cohortsEl.innerHTML = 
+          '<li>Enrolled Section: <strong>' + (sections.length > 0 ? sections.join(', ') : 'Section 3A (sec-3A)') + '</strong></li>' +
+          '<li>Assigned Practical Batch: <strong>' + (batches.length > 0 ? batches.join(', ') : 'Batch 3A1 (batch-3A1)') + '</strong></li>' +
+          '<li>Enrolled Elective: <strong>' + (electives.length > 0 ? electives.join(', ') : 'Applied Machine Learning / Adv Algorithms') + '</strong></li>';
+      }
+    }
+
+    async function handleStudentChangePassword() {
+      const newPassword = document.getElementById('studentNewPassword')?.value;
+      if (!newPassword || newPassword.length < 6) {
+        showMsg('Password must be at least 6 characters.', true);
+        return;
+      }
+      try {
+        const data = await api('/api/auth/change-password', {
+          method: 'POST',
+          body: JSON.stringify({ newPassword })
+        });
+        showMsg(data.message || 'Password updated successfully!', false);
+        const pwdInput = document.getElementById('studentNewPassword');
+        if (pwdInput) pwdInput.value = '';
+      } catch (err) {
+        showMsg(err.message, true);
       }
     }
 
@@ -1264,6 +1659,7 @@ export function renderHtmlUI(): string {
         renderVersions();
         renderUnavailability();
         renderStagedDraftsReview();
+        renderProvisioningEntityOptions();
         if (currentRole === 'student') renderStudentInbox();
       } catch (err) {
         showMsg(err.message, true);
@@ -1297,9 +1693,9 @@ export function renderHtmlUI(): string {
       const batchesMap = new Map((currentState.batches || []).map(function(b) { return [b.id, b]; }));
       const offeringsMap = new Map((currentState.courseOfferings || []).map(function(o) { return [o.id, o]; }));
 
-      let dayOccs = allOccurrences.filter(function(o) { return o.date === activeDay.date; });
+      let dayOccs = allOccurrences.filter(function(o) { return o.date === activeDay.date && o.status !== 'superseded'; });
       if (dayOccs.length === 0) {
-        dayOccs = allOccurrences.filter(function(o) { return o.dayOfWeek === activeDay.dayOfWeek; });
+        dayOccs = allOccurrences.filter(function(o) { return o.dayOfWeek === activeDay.dayOfWeek && o.status !== 'superseded'; });
       }
       if (dayOccs.length === 0 && scheduledClasses.length > 0) {
         dayOccs = scheduledClasses.filter(function(c) { return c.dayOfWeek === activeDay.dayOfWeek; }).map(function(c) {
@@ -1310,17 +1706,31 @@ export function renderHtmlUI(): string {
       let rowsToRender = [];
 
       if (currentRole === 'student') {
-        const studentSections = new Set(['sec-A']);
-        const studentBatches = new Set(['batch-A1']);
-        const studentElectives = new Set(['elg-ai']);
+        const studentEntity = (currentUser && currentUser.role === 'student' && currentUser.entityId) ? currentUser.entityId : 'stud-1';
+        const studentObj = (currentState.students || []).find(function(s) { return s.id === studentEntity || s.rollNumber === studentEntity; });
+        const studentId = studentObj ? studentObj.id : studentEntity;
+        const studentName = (currentUser && currentUser.role === 'student') ? (currentUser.fullName || (studentObj ? studentObj.name : currentUser.email)) : (studentObj ? studentObj.name : 'Charlie Brown');
+        const rollLabel = studentObj ? studentObj.rollNumber : studentId;
+        const studentSections = new Set();
+        const studentBatches = new Set();
+        const studentElectives = new Set();
 
-        (currentState.studentGroupMemberships || []).filter(function(m) { return m.studentId === 'stud-1'; }).forEach(function(m) {
+        (currentState.studentGroupMemberships || []).filter(function(m) {
+          if (m.studentId !== studentId) return false;
+          if (m.effectiveStartDate && m.effectiveStartDate > activeDay.date) return false;
+          if (m.effectiveEndDate && m.effectiveEndDate < activeDay.date) return false;
+          return true;
+        }).forEach(function(m) {
           if (m.groupType === 'section') studentSections.add(m.groupId);
           if (m.groupType === 'batch') studentBatches.add(m.groupId);
         });
-        (currentState.electiveAssignments || []).filter(function(ea) { return ea.studentId === 'stud-1' && ea.status === 'active'; }).forEach(function(ea) {
+        if (studentSections.size === 0) studentSections.add('sec-A');
+        if (studentBatches.size === 0) studentBatches.add('batch-A1');
+
+        (currentState.electiveAssignments || []).filter(function(ea) { return ea.studentId === studentId && ea.status === 'active'; }).forEach(function(ea) {
           studentElectives.add(ea.electiveGroupId);
         });
+        if (studentElectives.size === 0) studentElectives.add('elg-ai');
 
         const studentOccs = dayOccs.filter(function(o) {
           if (o.targetType === 'section') return studentSections.has(o.targetId);
@@ -1330,13 +1740,17 @@ export function renderHtmlUI(): string {
         });
 
         rowsToRender.push({
-          label: 'Charlie Brown<br><small style="color:var(--text-muted); font-weight:normal;">Section 3A • Batch 3A1</small>',
+          label: studentName + ' (' + rollLabel + ')<br><small style="color:var(--text-muted); font-weight:normal;">' + Array.from(studentSections).join(', ') + ' • ' + Array.from(studentBatches).join(', ') + '</small>',
           occurrences: studentOccs
         });
       } else if (currentRole === 'teacher') {
-        const teacherOccs = dayOccs.filter(function(o) { return o.teacherId === 't-1'; });
+        const teacherEntity = (currentUser && currentUser.role === 'teacher' && currentUser.entityId) ? currentUser.entityId : 't-1';
+        const teacherObj = (currentState.teachers || []).find(function(t) { return t.id === teacherEntity; });
+        const teacherName = teacherObj ? teacherObj.name : (currentUser ? currentUser.fullName || 'Teacher' : 'Prof. Rajesh Sharma');
+        const teacherEmpId = teacherObj ? teacherObj.empId : teacherEntity;
+        const teacherOccs = dayOccs.filter(function(o) { return o.teacherId === teacherEntity; });
         rowsToRender.push({
-          label: 'Prof. Rajesh Sharma<br><small style="color:var(--text-muted); font-weight:normal;">EMP-101 • Mathematics & Theory</small>',
+          label: teacherName + '<br><small style="color:var(--text-muted); font-weight:normal;">' + teacherEmpId + '</small>',
           occurrences: teacherOccs
         });
       } else {
@@ -1555,19 +1969,25 @@ export function renderHtmlUI(): string {
     }
 
     async function renderStudentInbox() {
-      const data = await api('/api/notifications/inbox?studentId=stud-1');
-      const inboxEl = document.getElementById('studentInbox');
-      if (!inboxEl) return;
-      if (data.notices.length === 0) {
-        inboxEl.innerHTML = '<p>No notifications yet.</p>';
-        return;
+      const studentId = (currentUser && currentUser.role === 'student' && currentUser.entityId) ? currentUser.entityId : 'stud-1';
+      try {
+        const data = await api('/api/notifications/inbox?studentId=' + encodeURIComponent(studentId));
+        const inboxEl = document.getElementById('studentInbox');
+        if (!inboxEl) return;
+        if (!data.notices || data.notices.length === 0) {
+          inboxEl.innerHTML = '<p style="color:var(--text-muted); font-size:13px;">No notifications yet.</p>';
+          return;
+        }
+        let html = '<ul style="margin:0; padding-left:18px;">';
+        data.notices.forEach(function(n) {
+          html += '<li style="margin-bottom:8px;"><strong>' + n.title + '</strong>: ' + n.message + ' <br><small style="color:var(--text-muted);">' + n.createdAt + '</small></li>';
+        });
+        html += '</ul>';
+        inboxEl.innerHTML = html;
+      } catch (err) {
+        const inboxEl = document.getElementById('studentInbox');
+        if (inboxEl) inboxEl.innerHTML = '<p style="color:var(--danger); font-size:12px;">Failed to load inbox: ' + err.message + '</p>';
       }
-      let html = '<ul>';
-      data.notices.forEach(function(n) {
-        html += '<li style="margin-bottom:8px;"><strong>' + n.title + '</strong>: ' + n.message + ' <br><small>' + n.createdAt + '</small></li>';
-      });
-      html += '</ul>';
-      inboxEl.innerHTML = html;
     }
 
     // ------------------------------------------------------------------------
@@ -1652,6 +2072,17 @@ export function renderHtmlUI(): string {
         await loadState();
       } catch (err) {
         showMsg('Demo loading error: ' + err.message, true);
+      }
+    }
+
+    async function resetToSimpleMockData() {
+      try {
+        showMsg('Resetting university data to simple, clean mock data...');
+        const res = await api('/api/demo/reset-to-simple', { method: 'POST' });
+        showMsg(res.message);
+        await loadState();
+      } catch (err) {
+        showMsg('Reset error: ' + err.message, true);
       }
     }
 
@@ -2027,10 +2458,15 @@ export function renderHtmlUI(): string {
           if (e) targetLabel = 'Elective: ' + e.name;
         }
 
-        offHtml += '<tr><td><code>' + o.id + '</code></td><td>' + cLabel + '</td><td>' + tName + '</td><td>' + targetLabel + '</td><td>' + o.termId + '</td></tr>';
+        let compBadge = '<span class="status-tag status-scheduled">All (L+T+P)</span>';
+        if (o.component === 'L') compBadge = '<span class="badge-act badge-lec">Lecture (L)</span>';
+        else if (o.component === 'T') compBadge = '<span class="status-tag status-scheduled" style="background:rgba(56,189,248,0.2);color:#38bdf8;">Tutorial (T)</span>';
+        else if (o.component === 'P') compBadge = '<span class="badge-act badge-lab">Practical (P)</span>';
+
+        offHtml += '<tr><td><code>' + o.id + '</code></td><td>' + cLabel + '</td><td>' + tName + '</td><td>' + compBadge + '</td><td>' + targetLabel + '</td><td>' + o.termId + '</td></tr>';
       });
       const oBody = document.getElementById('offeringsTableBody');
-      if (oBody) oBody.innerHTML = offHtml || '<tr><td colspan="5" style="text-align:center; color:var(--text-muted);">No offerings configured yet.</td></tr>';
+      if (oBody) oBody.innerHTML = offHtml || '<tr><td colspan="6" style="text-align:center; color:var(--text-muted);">No offerings configured yet.</td></tr>';
     }
 
     function updateOfferingTargetOptions() {
@@ -2061,11 +2497,19 @@ export function renderHtmlUI(): string {
       const teacherId = document.getElementById('offeringTeacherSelect').value;
       const targetType = document.getElementById('offeringTargetType').value;
       const targetId = document.getElementById('offeringTargetId').value;
+      const componentEl = document.getElementById('offeringComponent');
+      const component = componentEl ? componentEl.value : '';
 
       try {
         await api('/api/catalog/offerings', {
           method: 'POST',
-          body: JSON.stringify({ courseId, teacherId, targetType, targetId })
+          body: JSON.stringify({
+            courseId,
+            teacherId,
+            targetType,
+            targetId,
+            component: component || undefined
+          })
         });
         showMsg('Course offering created successfully.');
         await loadState();
@@ -2448,6 +2892,57 @@ export function renderHtmlUI(): string {
       }
     }
 
+    async function runSolverAndStageDraftDirectly() {
+      const termIds = getSelectedTermIds();
+      const roomIds = [];
+      document.querySelectorAll('.assembly-room-cb:checked').forEach(function(cb) { roomIds.push(cb.value); });
+      const teacherIds = [];
+      document.querySelectorAll('.assembly-faculty-cb:checked').forEach(function(cb) { teacherIds.push(cb.value); });
+      const courseOfferingIds = [];
+      document.querySelectorAll('.assembly-off-cb:checked').forEach(function(cb) { courseOfferingIds.push(cb.value); });
+      const sectionIds = [];
+      document.querySelectorAll('.assembly-sec-cb:checked').forEach(function(cb) { sectionIds.push(cb.value); });
+
+      try {
+        showMsg('🚀 Invoking OR-Tools CP-SAT generator on current scope...');
+        const res = await api('/api/generation/request', {
+          method: 'POST',
+          body: JSON.stringify({
+            termIds,
+            scope: { roomIds, teacherIds, courseOfferingIds, sectionIds }
+          })
+        });
+
+        if (res.hostedAvailable && res.status === 'succeeded') {
+          showMsg('✅ Solver succeeded! Automatically staging draft...');
+          const uploadRes = await api('/api/generation/draft/upload', {
+            method: 'POST',
+            body: JSON.stringify({
+              draft: res.package ? (await (await fetch('http://127.0.0.1:5001/generate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(res.package)
+              })).json()) : null,
+              allowStaleOverride: true
+            })
+          });
+          showMsg('Draft staged successfully! Ready to publish in Step 3 below.');
+          await loadState();
+        } else if (res.package) {
+          // If server reports unavailable or needs execution, compile package for local run
+          latestCompiledPackage = res.package;
+          showMsg(res.message);
+          await loadState();
+        } else {
+          showMsg(res.message);
+        }
+      } catch (err) {
+        // Fallback: compile package
+        await compileAssemblyPackage();
+        showMsg('Package compiled. ' + err.message, true);
+      }
+    }
+
     function downloadAssembledPackage() {
       const termIds = getSelectedTermIds();
       const roomIds = [];
@@ -2642,8 +3137,10 @@ export function renderHtmlUI(): string {
         }
       }
       updateAuthNav();
+      setupRealtime();
       await loadState();
     }
+
 
     setupDragAndDrop();
     initAuthAndLoad();

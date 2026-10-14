@@ -161,7 +161,9 @@ export class RegularClassService {
       };
 
       const ctx = this.buildValidationContext(tx);
-      const activeOccurrences = Array.from(tx.classOccurrences.values());
+      const activeOccurrences = Array.from(tx.classOccurrences.values()).filter(
+        (o) => o.status !== 'cancelled' && o.status !== 'superseded'
+      );
 
       const validationRes: ValidationResult = validateCandidateSession(
         candidate,

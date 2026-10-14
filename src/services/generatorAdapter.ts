@@ -177,6 +177,7 @@ export class GeneratorAdapterService {
         teacherId: o.teacherId,
         targetType: o.targetType,
         targetId: o.targetId,
+        ...(o.component ? { component: o.component } : {}),
       })),
     };
 

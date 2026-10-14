@@ -272,8 +272,8 @@ export function validateCandidateSession(
       continue;
     }
 
-    // Skip cancelled classes (cancelled occurrences do not occupy time/resources)
-    if ('status' in existing && existing.status === 'cancelled') {
+    // Skip cancelled or superseded classes (cancelled/superseded occurrences do not occupy time/resources)
+    if ('status' in existing && (existing.status === 'cancelled' || existing.status === 'superseded')) {
       continue;
     }
 

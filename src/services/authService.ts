@@ -226,6 +226,45 @@ export class AuthService {
   }
 
   /**
+   * Updates an authenticated user's password in Supabase Auth.
+   */
+  public async changePassword(
+    userId: string,
+    newPassword: string
+  ): Promise<{ success: boolean; message: string }> {
+    if (!newPassword || typeof newPassword !== 'string' || newPassword.length < 6) {
+      throw new Error('INVALID_PASSWORD: Password must be at least 6 characters long.');
+    }
+
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(userId);
+
+    if (isSupabaseAdminConfigured() && isUuid) {
+      const admin = getSupabaseAdminClient();
+      const { error } = await admin.auth.admin.updateUserById(userId, {
+        password: newPassword,
+      });
+
+      if (error) {
+        throw new Error(`PASSWORD_UPDATE_FAILED: ${error.message}`);
+      }
+
+      this.repo.logAudit(userId, 'CHANGE_PASSWORD', 'auth.users', userId, 'success', {});
+      return { success: true, message: 'Password updated successfully.' };
+    }
+
+    // Local in-memory repository fallback for test environments
+    return this.repo.runTransaction(async (tx) => {
+      const profile = tx.userProfiles.get(userId);
+      if (profile) {
+        profile.passwordHash = newPassword;
+      }
+      this.repo.logAudit(userId, 'CHANGE_PASSWORD', 'auth.users', userId, 'success', {});
+      return { success: true, message: 'Password updated successfully.' };
+    });
+  }
+
+  /**
+
    * Legacy method for local testing fixture creation.
    */
   public async createUser(

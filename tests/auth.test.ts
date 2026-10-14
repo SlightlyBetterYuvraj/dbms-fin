@@ -280,4 +280,220 @@ describe('Authentication, Authorization & Session Integration (Phase 1)', { time
       expect(data.message).toBe('If the email exists, a reset link has been dispatched');
     });
   });
+
+  describe('6. User Password Management (Change Password)', () => {
+    it('rejects unauthenticated request to change password with 401 Unauthorized', async () => {
+      const res = await fetch(`${testServer.url}/api/auth/change-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newPassword: 'NewValidPassword123!' }),
+      });
+      expect(res.status).toBe(401);
+      const data = await res.json();
+      expect(data.error).toBe('UNAUTHORIZED');
+    });
+
+    it('rejects password shorter than 6 characters with 400 INVALID_PASSWORD', async () => {
+      const res = await fetch(`${testServer.url}/api/auth/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': 'student',
+          'x-user-id': 'stud-1',
+        },
+        body: JSON.stringify({ newPassword: '123' }),
+      });
+      expect(res.status).toBe(400);
+      const data = await res.json();
+      expect(data.error).toBe('INVALID_PASSWORD');
+    });
+
+    it('allows authenticated student to change password successfully', async () => {
+      const res = await fetch(`${testServer.url}/api/auth/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': 'student',
+          'x-user-id': 'stud-1',
+        },
+        body: JSON.stringify({ newPassword: 'MyNewStudentPassword123!' }),
+      });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.success).toBe(true);
+      expect(data.message).toContain('Password updated successfully');
+    });
+  });
+
+  describe('7. Real-Time Post-Commit Invariant & Live Event Stream (/api/realtime/stream)', () => {
+    it('enforces post-commit invariant: failed transactions never emit live events', async () => {
+      const repo = new TimetableRepository();
+      let emitted = false;
+      repo.onPostCommit(() => {
+        emitted = true;
+      });
+
+      // Failed transaction
+      await expect(
+        repo.runTransaction(async () => {
+          throw new Error('Simulated atomic constraint failure');
+        })
+      ).rejects.toThrow('Simulated atomic constraint failure');
+
+      expect(emitted).toBe(false);
+    });
+
+    it('emits post-commit event strictly after successful commit', async () => {
+      const repo = new TimetableRepository();
+      const emittedEvents: any[] = [];
+      repo.onPostCommit((evt) => {
+        emittedEvents.push(evt);
+      });
+
+      await repo.runTransaction(async (tx) => {
+        tx.notificationOutbox.push({
+          id: 'test-notice-1',
+          recipientStudentId: 'stud-1',
+          eventType: 'TEST_EVENT',
+          title: 'Test Notification',
+          message: 'Post-commit verification',
+          status: 'pending',
+          retryCount: 0,
+          createdAt: new Date().toISOString(),
+        });
+      });
+
+      expect(emittedEvents.length).toBe(1);
+      expect(emittedEvents[0].type).toBe('NOTIFICATIONS_DISPATCHED');
+      expect(emittedEvents[0].payload[0].id).toBe('test-notice-1');
+    });
+
+    it('connects to /api/realtime/stream and receives connection handshake', async () => {
+      const controller = new AbortController();
+      const res = await fetch(`${testServer.url}/api/realtime/stream`, {
+        signal: controller.signal,
+      });
+
+      expect(res.status).toBe(200);
+      expect(res.headers.get('content-type')).toContain('text/event-stream');
+
+      // Read initial handshake chunk
+      const reader = res.body?.getReader();
+      const chunk = await reader?.read();
+      const text = new TextDecoder().decode(chunk?.value);
+      expect(text).toContain('CONNECTED');
+
+      controller.abort();
+    });
+  });
+
+  describe('7. Granular RBAC Role Protection on Sensitive Mutating Endpoints', () => {
+    it('rejects student attempting to book extra classes with 403 Forbidden', async () => {
+      const res = await fetch(`${testServer.url}/api/classes/extra/book`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': 'student',
+          'x-user-id': 'stud-1',
+        },
+        body: JSON.stringify({
+          date: '2026-09-08',
+          dayOfWeek: 2,
+          startSlot: 2,
+          courseOfferingId: 'off-ds-lec',
+          termId: 'term-3',
+          roomId: 'r-101',
+          targetType: 'section',
+          targetId: 'sec-A',
+        }),
+      });
+
+      expect(res.status).toBe(403);
+      const data = await res.json();
+      expect(data.error).toBe('FORBIDDEN');
+    });
+
+    it('rejects teacher attempting to cancel extra class booked by another faculty with 403 Forbidden', async () => {
+      // Seed demo
+      await fetch(`${testServer.url}/api/demo/seed-and-publish`, {
+        method: 'POST',
+        headers: { 'x-user-role': 'admin' },
+      });
+
+      // Book extra class as teacher-1 (t-1)
+      const bookRes = await fetch(`${testServer.url}/api/classes/extra/book`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': 'teacher',
+          'x-user-id': 'teacher-1',
+          'x-linked-id': 't-1',
+        },
+        body: JSON.stringify({
+          date: '2026-09-10',
+          dayOfWeek: 4,
+          startSlot: 7,
+          activityType: 'L',
+          courseOfferingId: 'off-ds-lec',
+          termId: 'term-3',
+          roomId: 'r-101',
+          targetType: 'section',
+          targetId: 'sec-A',
+        }),
+      });
+      expect(bookRes.status).toBe(200);
+      const bookData = await bookRes.json();
+      const extraOccId = bookData.occurrence.id;
+
+      // Teacher-2 (t-2) attempts to cancel teacher-1's extra class -> 403 Forbidden
+      const cancelRes = await fetch(`${testServer.url}/api/classes/extra/${extraOccId}/cancel`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': 'teacher',
+          'x-user-id': 'teacher-2',
+          'x-linked-id': 't-2',
+        },
+        body: JSON.stringify({ reason: 'Malicious cancellation attempt' }),
+      });
+
+      expect(cancelRes.status).toBe(403);
+      const cancelData = await cancelRes.json();
+      expect(cancelData.error).toBe('FORBIDDEN');
+      expect(cancelData.message).toContain('Teachers can only cancel extra classes booked by themselves');
+    });
+
+    it('rejects student attempting to configure academic hierarchy or venues with 403 Forbidden', async () => {
+      const termRes = await fetch(`${testServer.url}/api/academic/terms`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': 'student',
+        },
+        body: JSON.stringify({ id: 'term-hack', yearLabel: '2026', semesterNumber: 1, startDate: '2026-01-01', endDate: '2026-05-01' }),
+      });
+      expect(termRes.status).toBe(403);
+
+      const roomRes = await fetch(`${testServer.url}/api/resources/rooms`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': 'student',
+        },
+        body: JSON.stringify({ roomNumber: '999', building: 'Hacker Block' }),
+      });
+      expect(roomRes.status).toBe(403);
+
+      const transRes = await fetch(`${testServer.url}/api/students/transfer`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-role': 'student',
+        },
+        body: JSON.stringify({ studentId: 'stud-1', newGroupId: 'sec-B', newGroupType: 'section', effectiveDate: '2026-09-01' }),
+      });
+      expect(transRes.status).toBe(403);
+    });
+  });
 });
+

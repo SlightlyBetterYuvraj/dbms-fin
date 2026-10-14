@@ -161,7 +161,9 @@ export class ExtraClassService {
 
     return this.repo.runTransaction(async (tx) => {
       const ctx = this.buildValidationContext(tx);
-      const activeOccurrences = Array.from(tx.classOccurrences.values());
+      const activeOccurrences = Array.from(tx.classOccurrences.values()).filter(
+        (o) => o.status !== 'cancelled' && o.status !== 'superseded'
+      );
 
       const candidate = {
         termId: params.termId,

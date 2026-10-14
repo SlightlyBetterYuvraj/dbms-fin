@@ -31,6 +31,7 @@ import {
   Teacher,
 } from '../domain/types.js';
 import { renderHtmlUI } from './ui.js';
+import { persistOccurrenceToDb, persistExtraClassToDb, persistNotificationToDb } from '../data/dbSync.js';
 
 export function createApp(initialRepo?: TimetableRepository) {
   const app = express();
@@ -52,7 +53,19 @@ export function createApp(initialRepo?: TimetableRepository) {
   // Seed sample initial data if repository is empty
   seedInitialData(repo);
 
-  // Authentication helper middleware: uses verified req.user when present
+  // Background replication listener for authoritative database synchronization
+  repo.onPostCommit((event) => {
+    if (event.type === 'NOTIFICATIONS_DISPATCHED') {
+      const notices = event.payload as any[];
+      for (const notice of notices) {
+        persistNotificationToDb(notice).catch((e) =>
+          console.warn('[Supabase DB] Failed to persist notification:', e.message)
+        );
+      }
+    }
+  });
+
+  // Authentication helper: uses verified req.user when present, defaults to zero-trust student
   function getSession(req: Request): AuthSession {
     const user = (req as any).user as AuthenticatedUser | undefined;
     if (user) {
@@ -64,17 +77,28 @@ export function createApp(initialRepo?: TimetableRepository) {
       };
     }
 
-    const roleHeader = (req.headers['x-user-role'] as string) || 'admin';
-    const userIdHeader = (req.headers['x-user-id'] as string) || 'admin-1';
+    const roleHeader = req.headers['x-user-role'] as string;
+    const userIdHeader = req.headers['x-user-id'] as string;
     const linkedIdHeader = req.headers['x-linked-id'] as string;
 
+    if (roleHeader) {
+      return {
+        userId: userIdHeader || 'test-user-id',
+        email: `${userIdHeader || 'test-user'}@university.edu`,
+        role: (roleHeader as any),
+        linkedId: linkedIdHeader || (roleHeader === 'teacher' ? 't-1' : (roleHeader === 'student' ? 'stud-1' : undefined)),
+      };
+    }
+
+    // Zero-trust default: anonymous unauthenticated requests receive read-only student context
     return {
-      userId: userIdHeader,
-      email: `${userIdHeader}@university.edu`,
-      role: (roleHeader as any) || 'admin',
-      linkedId: linkedIdHeader || (roleHeader === 'teacher' ? 't-1' : (roleHeader === 'student' ? 'stud-1' : undefined)),
+      userId: 'anonymous',
+      email: 'anonymous@university.edu',
+      role: 'student',
+      linkedId: 'stud-1',
     };
   }
+
 
   // --------------------------------------------------------------------------
   // 0. Supabase Authentication & User Provisioning Endpoints
@@ -98,15 +122,89 @@ export function createApp(initialRepo?: TimetableRepository) {
   app.post('/api/auth/admin/provision-user', requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const actor = (req as any).user as AuthenticatedUser;
-      const { email, name, role, entityId, password } = req.body;
+      const { email, name, role, entityId, password, studentDetails } = req.body;
       if (!email || !name || !role) {
         return res.status(400).json({ success: false, error: 'BAD_REQUEST', message: 'Email, name, and role are required.' });
       }
+
+      // If provisioning a student with academic details, create authoritative student records
+      let resolvedEntityId = entityId;
+      if (role === 'student' && studentDetails) {
+        const rollNumber = String(studentDetails.rollNumber || entityId || `2025BTECH${Math.floor(100 + Math.random() * 900)}`).trim();
+        const sectionId = studentDetails.sectionId ? String(studentDetails.sectionId).trim() : undefined;
+        const batchId = studentDetails.batchId ? String(studentDetails.batchId).trim() : undefined;
+        const electiveGroupId = studentDetails.electiveGroupId ? String(studentDetails.electiveGroupId).trim() : undefined;
+
+        await repo.runTransaction(async (tx) => {
+          // Check if student with this roll or id exists
+          let student = Array.from(tx.students.values()).find(
+            (s) => s.rollNumber === rollNumber || s.id === entityId || s.email.toLowerCase() === email.toLowerCase()
+          );
+
+          const studentId = student ? student.id : (entityId && !entityId.startsWith('2025') ? entityId : `stud-${Date.now().toString(36)}`);
+          resolvedEntityId = rollNumber;
+
+          if (!student) {
+            student = {
+              id: studentId,
+              rollNumber,
+              name,
+              email: email.toLowerCase().trim(),
+              active: true,
+            };
+            tx.students.set(studentId, student);
+          } else {
+            student.rollNumber = rollNumber;
+            student.name = name;
+            student.email = email.toLowerCase().trim();
+          }
+
+          const effectiveDate = new Date().toISOString().split('T')[0];
+
+          // Enroll into Section
+          if (sectionId) {
+            const secMemId = `sgm-${studentId}-sec-${Date.now().toString(36)}`;
+            tx.studentGroupMemberships.set(secMemId, {
+              id: secMemId,
+              studentId,
+              groupId: sectionId,
+              groupType: 'section',
+              effectiveStartDate: effectiveDate,
+            });
+          }
+
+          // Enroll into Batch
+          if (batchId) {
+            const batchMemId = `sgm-${studentId}-batch-${Date.now().toString(36)}`;
+            tx.studentGroupMemberships.set(batchMemId, {
+              id: batchMemId,
+              studentId,
+              groupId: batchId,
+              groupType: 'batch',
+              effectiveStartDate: effectiveDate,
+            });
+          }
+
+          // Enroll into Elective
+          if (electiveGroupId) {
+            const eaId = `ea-${studentId}-${Date.now().toString(36)}`;
+            tx.electiveAssignments.set(eaId, {
+              id: eaId,
+              studentId,
+              electiveGroupId,
+              assignedBy: actor.id,
+              assignedAt: new Date().toISOString(),
+              status: 'active',
+            });
+          }
+        });
+      }
+
       const provisioned = await authService.provisionUser(actor.role, {
         email,
         name,
         role,
-        entityId,
+        entityId: resolvedEntityId,
         password,
       });
       res.json({ success: true, user: provisioned });
@@ -130,6 +228,20 @@ export function createApp(initialRepo?: TimetableRepository) {
 
   app.get('/api/auth/me', requireAuth, (req: Request, res: Response) => {
     res.json({ success: true, user: (req as any).user });
+  });
+
+  app.post('/api/auth/change-password', requireAuth, async (req: Request, res: Response) => {
+    try {
+      const user = (req as any).user as AuthenticatedUser;
+      const { newPassword } = req.body;
+      const result = await authService.changePassword(user.id, newPassword);
+      res.json(result);
+    } catch (err: any) {
+      if (err.message.startsWith('INVALID_PASSWORD')) {
+        return res.status(400).json({ success: false, error: 'INVALID_PASSWORD', message: err.message });
+      }
+      res.status(400).json({ success: false, error: 'PASSWORD_UPDATE_FAILED', message: err.message });
+    }
   });
 
   app.post('/api/auth/logout', (req: Request, res: Response) => {
@@ -166,12 +278,9 @@ export function createApp(initialRepo?: TimetableRepository) {
   // --------------------------------------------------------------------------
   // 1.1 Modular Entity Management: Academic Hierarchy
   // --------------------------------------------------------------------------
-  app.post('/api/academic/terms', async (req: Request, res: Response) => {
+  app.post('/api/academic/terms', requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
-      if (session.role !== 'admin') {
-        return res.status(403).json({ success: false, error: 'ERR_FORBIDDEN: Only administrators can configure academic terms.' });
-      }
       const { id, yearLabel, semesterNumber, startDate, endDate, cycle, status, gridConfig } = req.body;
       if (!yearLabel || !semesterNumber || !startDate || !endDate) {
         return res.status(400).json({ success: false, error: 'Missing required term fields (yearLabel, semesterNumber, startDate, endDate).' });
@@ -201,12 +310,9 @@ export function createApp(initialRepo?: TimetableRepository) {
     }
   });
 
-  app.post('/api/academic/sections', async (req: Request, res: Response) => {
+  app.post('/api/academic/sections', requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
-      if (session.role !== 'admin') {
-        return res.status(403).json({ success: false, error: 'ERR_FORBIDDEN: Only administrators can create sections.' });
-      }
       const { id, termId, name, expectedCount } = req.body;
       if (!termId || !name) {
         return res.status(400).json({ success: false, error: 'Missing required section fields (termId, name).' });
@@ -239,13 +345,11 @@ export function createApp(initialRepo?: TimetableRepository) {
     }
   });
 
-  app.post('/api/academic/batches', async (req: Request, res: Response) => {
+  app.post('/api/academic/batches', requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
-      if (session.role !== 'admin') {
-        return res.status(403).json({ success: false, error: 'ERR_FORBIDDEN: Only administrators can create batches.' });
-      }
       const { id, sectionId, name, expectedCount } = req.body;
+
       if (!sectionId || !name) {
         return res.status(400).json({ success: false, error: 'Missing required batch fields (sectionId, name).' });
       }
@@ -281,12 +385,9 @@ export function createApp(initialRepo?: TimetableRepository) {
   // --------------------------------------------------------------------------
   // 1.2 Modular Entity Management: Course Catalog & Offerings
   // --------------------------------------------------------------------------
-  app.post('/api/catalog/courses', async (req: Request, res: Response) => {
+  app.post('/api/catalog/courses', requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
-      if (session.role !== 'admin') {
-        return res.status(403).json({ success: false, error: 'ERR_FORBIDDEN: Only administrators can create courses.' });
-      }
       const { id, code, name, termId, department, lectureHours, tutorialHours, practicalHours, requiredRoomType } = req.body;
       if (!code || !name || !termId) {
         return res.status(400).json({ success: false, error: 'Missing required course fields (code, name, termId).' });
@@ -334,15 +435,16 @@ export function createApp(initialRepo?: TimetableRepository) {
     }
   });
 
-  app.post('/api/catalog/offerings', async (req: Request, res: Response) => {
+  app.post('/api/catalog/offerings', requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
-      if (session.role !== 'admin') {
-        return res.status(403).json({ success: false, error: 'ERR_FORBIDDEN: Only administrators can create course offerings.' });
-      }
-      const { id, courseId, termId: reqTermId, teacherId, targetType, targetId } = req.body;
+      const { id, courseId, termId: reqTermId, teacherId, targetType, targetId, component } = req.body;
       if (!courseId || !teacherId || !targetType || !targetId) {
         return res.status(400).json({ success: false, error: 'Missing required offering fields (courseId, teacherId, targetType, targetId).' });
+      }
+
+      if (component && !['L', 'T', 'P'].includes(component)) {
+        return res.status(400).json({ success: false, error: 'Invalid component. Allowed values are L (Lecture), T (Tutorial), or P (Practical).' });
       }
 
       const state = repo.getState();
@@ -364,7 +466,8 @@ export function createApp(initialRepo?: TimetableRepository) {
         return res.status(400).json({ success: false, error: `Target elective group ${targetId} does not exist.` });
       }
 
-      const offeringId = id || `off-${course.code.toLowerCase().replace(/[^a-z0-9]/g, '')}-${targetId.replace(/[^a-zA-Z0-9]/g, '')}-${Date.now().toString().slice(-4)}`;
+      const compSuffix = component ? `-${component.toLowerCase()}` : '';
+      const offeringId = id || `off-${course.code.toLowerCase().replace(/[^a-z0-9]/g, '')}-${targetId.replace(/[^a-zA-Z0-9]/g, '')}${compSuffix}-${Date.now().toString().slice(-4)}`;
       const offering: CourseOffering = {
         id: offeringId,
         courseId: String(courseId),
@@ -372,6 +475,7 @@ export function createApp(initialRepo?: TimetableRepository) {
         teacherId: String(teacherId),
         targetType: targetType as any,
         targetId: String(targetId),
+        ...(component ? { component } : {}),
       };
 
       await repo.runTransaction(async (tx) => {
@@ -387,12 +491,9 @@ export function createApp(initialRepo?: TimetableRepository) {
   // --------------------------------------------------------------------------
   // 1.3 Modular Entity Management: Venues & Faculty
   // --------------------------------------------------------------------------
-  app.post('/api/resources/rooms', async (req: Request, res: Response) => {
+  app.post('/api/resources/rooms', requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
-      if (session.role !== 'admin') {
-        return res.status(403).json({ success: false, error: 'ERR_FORBIDDEN: Only administrators can create rooms.' });
-      }
       const { id, roomNumber, building, floor, capacity, roomType, active } = req.body;
       if (!roomNumber || !building) {
         return res.status(400).json({ success: false, error: 'Missing required room fields (roomNumber, building).' });
@@ -424,12 +525,9 @@ export function createApp(initialRepo?: TimetableRepository) {
     }
   });
 
-  app.post('/api/resources/teachers', async (req: Request, res: Response) => {
+  app.post('/api/resources/teachers', requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
-      if (session.role !== 'admin') {
-        return res.status(403).json({ success: false, error: 'ERR_FORBIDDEN: Only administrators can create faculty.' });
-      }
       const { id, empId, name, email, department, active } = req.body;
       if (!empId || !name || !email) {
         return res.status(400).json({ success: false, error: 'Missing required teacher fields (empId, name, email).' });
@@ -455,12 +553,9 @@ export function createApp(initialRepo?: TimetableRepository) {
     }
   });
 
-  app.post('/api/resources/teachers/:id/availability', async (req: Request, res: Response) => {
+  app.post('/api/resources/teachers/:id/availability', requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
-      if (session.role !== 'admin') {
-        return res.status(403).json({ success: false, error: 'ERR_FORBIDDEN: Only administrators can configure faculty availability.' });
-      }
       const teacherId = String(req.params.id);
       const { dayOfWeek, slotIndex, isAvailable } = req.body;
       const dow = Number(dayOfWeek);
@@ -498,6 +593,7 @@ export function createApp(initialRepo?: TimetableRepository) {
     }
   });
 
+
   // --------------------------------------------------------------------------
   // 2. Regular Class Endpoints
   // --------------------------------------------------------------------------
@@ -506,6 +602,8 @@ export function createApp(initialRepo?: TimetableRepository) {
       const session = getSession(req);
       const { reason } = req.body;
       const occ = await regularService.cancelOccurrence(session, String(req.params.id), reason);
+      repo.emitPostCommit('OCCURRENCE_MUTATED', occ);
+      persistOccurrenceToDb(occ).catch((e) => console.warn('[Supabase DB] Failed to persist cancellation:', e.message));
       res.json({ success: true, occurrence: occ });
     } catch (err: any) {
       if (err.message.includes('ERR_FORBIDDEN') || err.message.includes('FORBIDDEN') || err.message.includes('Teachers can only') || err.message.includes('Only teachers or admins')) {
@@ -525,6 +623,8 @@ export function createApp(initialRepo?: TimetableRepository) {
         startSlot: Number(startSlot),
         roomId,
       });
+      repo.emitPostCommit('OCCURRENCE_MUTATED', occ);
+      persistOccurrenceToDb(occ).catch((e) => console.warn('[Supabase DB] Failed to persist reschedule:', e.message));
       res.json({ success: true, occurrence: occ });
     } catch (err: any) {
       if (err.message.includes('ERR_FORBIDDEN') || err.message.includes('FORBIDDEN') || err.message.includes('Teachers can only') || err.message.includes('Only teachers or admins')) {
@@ -555,7 +655,7 @@ export function createApp(initialRepo?: TimetableRepository) {
     }
   });
 
-  app.post('/api/classes/extra/book', async (req: Request, res: Response) => {
+  app.post('/api/classes/extra/book', requireRole(['teacher', 'admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
       const occ = await extraService.bookExtraClass(session, {
@@ -570,18 +670,41 @@ export function createApp(initialRepo?: TimetableRepository) {
         targetId: req.body.targetId,
         expectedGroupSize: req.body.expectedGroupSize ? Number(req.body.expectedGroupSize) : undefined,
       });
+      repo.emitPostCommit('OCCURRENCE_MUTATED', occ);
+      persistOccurrenceToDb(occ).catch((e) => console.warn('[Supabase DB] Failed to persist extra class occurrence:', e.message));
+      persistExtraClassToDb({
+        id: occ.id,
+        date: occ.date,
+        courseOfferingId: occ.courseOfferingId,
+        activityType: occ.activityType,
+        teacherId: occ.teacherId,
+        roomId: occ.roomId,
+        startSlot: occ.startSlot,
+        duration: occ.duration,
+        targetType: occ.targetType,
+        targetId: occ.targetId,
+        status: occ.status,
+      }).catch((e) => console.warn('[Supabase DB] Failed to persist extra class:', e.message));
       res.json({ success: true, occurrence: occ });
     } catch (err: any) {
+      if (err.message.includes('ERR_FORBIDDEN') || err.message.includes('FORBIDDEN') || err.message.includes('Only teachers or admins')) {
+        return res.status(403).json({ success: false, error: 'FORBIDDEN', message: err.message });
+      }
       res.status(400).json({ success: false, error: err.message });
     }
   });
 
-  app.post('/api/classes/extra/:id/cancel', async (req: Request, res: Response) => {
+  app.post('/api/classes/extra/:id/cancel', requireRole(['teacher', 'admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
       const occ = await extraService.cancelExtraClass(session, String(req.params.id), req.body.reason);
+      repo.emitPostCommit('OCCURRENCE_MUTATED', occ);
+      persistOccurrenceToDb(occ).catch((e) => console.warn('[Supabase DB] Failed to persist extra class cancellation:', e.message));
       res.json({ success: true, occurrence: occ });
     } catch (err: any) {
+      if (err.message.includes('ERR_FORBIDDEN') || err.message.includes('FORBIDDEN') || err.message.includes('Teachers can only') || err.message.includes('Insufficient permissions')) {
+        return res.status(403).json({ success: false, error: 'FORBIDDEN', message: err.message });
+      }
       res.status(400).json({ success: false, error: err.message });
     }
   });
@@ -589,7 +712,7 @@ export function createApp(initialRepo?: TimetableRepository) {
   // --------------------------------------------------------------------------
   // 4. Teacher Unavailability Endpoints
   // --------------------------------------------------------------------------
-  app.post('/api/teachers/unavailability/request', async (req: Request, res: Response) => {
+  app.post('/api/teachers/unavailability/request', requireRole(['teacher', 'admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
       const result = await extraService.submitUnavailabilityRequest(session, {
@@ -604,7 +727,7 @@ export function createApp(initialRepo?: TimetableRepository) {
     }
   });
 
-  app.post('/api/teachers/unavailability/:id/confirm', async (req: Request, res: Response) => {
+  app.post('/api/teachers/unavailability/:id/confirm', requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
       const result = await extraService.confirmUnavailabilityRequest(session, String(req.params.id));
@@ -617,7 +740,7 @@ export function createApp(initialRepo?: TimetableRepository) {
   // --------------------------------------------------------------------------
   // 5. Student Transfer Endpoints
   // --------------------------------------------------------------------------
-  app.post('/api/students/transfer', async (req: Request, res: Response) => {
+  app.post('/api/students/transfer', requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
       const result = await transferService.transferStudentGroup(session, {
@@ -632,15 +755,13 @@ export function createApp(initialRepo?: TimetableRepository) {
     }
   });
 
+
   // --------------------------------------------------------------------------
   // 6. Generation Contract & Fallback Endpoints
   // --------------------------------------------------------------------------
-  app.post('/api/generation/compile-package', (req: Request, res: Response) => {
+  app.post('/api/generation/compile-package', requireRole(['admin']), (req: Request, res: Response) => {
     try {
       const session = getSession(req);
-      if (session.role !== 'admin') {
-        return res.status(403).json({ success: false, error: 'ERR_FORBIDDEN: Only administrators can compile generation packages.' });
-      }
       const { termIds, scope } = req.body;
       const { package: pkg, runId } = genAdapter.exportGenerationInputPackage(session, termIds, scope);
 
@@ -709,7 +830,7 @@ export function createApp(initialRepo?: TimetableRepository) {
     }
   });
 
-  app.post('/api/generation/request', async (req: Request, res: Response) => {
+  app.post('/api/generation/request', requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
       const result = await genAdapter.requestGeneration(session, req.body.termIds, req.body.scope);
@@ -719,7 +840,7 @@ export function createApp(initialRepo?: TimetableRepository) {
     }
   });
 
-  app.get('/api/generation/package/download', (req: Request, res: Response) => {
+  app.get('/api/generation/package/download', requireRole(['admin']), (req: Request, res: Response) => {
     try {
       const session = getSession(req);
       const termIds = req.query.termIds ? String(req.query.termIds).split(',').filter(Boolean) : undefined;
@@ -767,6 +888,7 @@ export function createApp(initialRepo?: TimetableRepository) {
     try {
       const session = getSession(req);
       const result = await pubService.publishDraft(session, String(req.params.id));
+      repo.emitPostCommit('TIMETABLE_PUBLISHED', result);
       res.json({ success: true, ...result });
     } catch (err: any) {
       if (err.message.includes('ERR_FORBIDDEN') || err.message.includes('FORBIDDEN') || err.message.includes('Only administrators')) {
@@ -776,12 +898,16 @@ export function createApp(initialRepo?: TimetableRepository) {
     }
   });
 
-  app.post('/api/timetable/versions/:id/restore', async (req: Request, res: Response) => {
+  app.post('/api/timetable/versions/:id/restore', requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
       const result = await pubService.restoreVersion(session, String(req.params.id));
+      repo.emitPostCommit('TIMETABLE_PUBLISHED', result);
       res.json({ success: true, version: result });
     } catch (err: any) {
+      if (err.message.includes('ERR_FORBIDDEN') || err.message.includes('FORBIDDEN') || err.message.includes('Only administrators')) {
+        return res.status(403).json({ success: false, error: 'FORBIDDEN', message: err.message });
+      }
       res.status(400).json({ success: false, error: err.message });
     }
   });
@@ -790,15 +916,47 @@ export function createApp(initialRepo?: TimetableRepository) {
   // 8. Notifications Endpoints
   // --------------------------------------------------------------------------
   app.get('/api/notifications/inbox', (req: Request, res: Response) => {
-    const studentId = (req.query.studentId as string) || 'stud-1';
+    const session = getSession(req);
+    let studentId = req.query.studentId as string;
+    if (session.role === 'student') {
+      studentId = session.linkedId || 'stud-1';
+    } else {
+      studentId = studentId || 'stud-1';
+    }
     const notices = repo.getState().notificationOutbox.filter((n) => n.recipientStudentId === studentId);
     res.json({ notices });
   });
 
   // --------------------------------------------------------------------------
-  // 9. Demo Setup & Seeding Helper (Phase Zero UI Verification)
+  // 9. Real-Time Subscriptions SSE Stream (Post-Commit Invariant)
   // --------------------------------------------------------------------------
-  app.post('/api/demo/seed-and-publish', async (req: Request, res: Response) => {
+  app.get('/api/realtime/stream', (req: Request, res: Response) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders?.();
+
+    // Handshake
+    res.write(`data: ${JSON.stringify({ type: 'CONNECTED', timestamp: new Date().toISOString() })}\n\n`);
+
+    const unsubscribe = repo.onPostCommit((event) => {
+      res.write(`data: ${JSON.stringify(event)}\n\n`);
+    });
+
+    const keepAlive = setInterval(() => {
+      res.write(': keepalive\n\n');
+    }, 20000);
+
+    req.on('close', () => {
+      clearInterval(keepAlive);
+      unsubscribe();
+    });
+  });
+
+  // --------------------------------------------------------------------------
+  // 10. Demo Setup & Seeding Helper (Phase Zero UI Verification)
+  // --------------------------------------------------------------------------
+  app.post('/api/demo/seed-and-publish', requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
       const { package: pkg } = genAdapter.exportGenerationInputPackage(session);
@@ -873,6 +1031,8 @@ export function createApp(initialRepo?: TimetableRepository) {
         // Ignored if duplicate or not applicable
       }
 
+      repo.emitPostCommit('TIMETABLE_PUBLISHED', { versionId: publishResult.publishedVersion.id });
+
       res.json({
         success: true,
         version: publishResult.publishedVersion,
@@ -883,9 +1043,37 @@ export function createApp(initialRepo?: TimetableRepository) {
     }
   });
 
+  app.post('/api/demo/reset-to-simple', requireRole(['admin']), async (req: Request, res: Response) => {
+    try {
+      await repo.resetToSimpleMockData();
+      repo.emitPostCommit('STATE_RESET', { type: 'SIMPLE_MOCK_DATA' });
+      res.json({
+        success: true,
+        message: 'University data removed and reset to simple, clean mock dataset with 0 published timetables. Ready for Solver execution!',
+      });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  });
+
   // Minimal SPA UI serving
-  app.use((req: Request, res: Response) => {
-    res.send(renderHtmlUI());
+  app.get('/', (req: Request, res: Response) => {
+    res.send(renderHtmlUI({
+      supabaseUrl: process.env.SUPABASE_URL,
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+    }));
+  });
+
+
+  // Centralized Error Handling & Sanitization Middleware
+  // Invariant: Never leak raw database stack traces or internal errors to clients
+  app.use((err: any, req: Request, res: Response, _next: any) => {
+    const status = typeof err.status === 'number' ? err.status : 500;
+    const cleanMessage = err.message ? String(err.message).replace(/\n.*$/s, '') : 'An internal server error occurred.';
+    res.status(status).json({
+      success: false,
+      error: cleanMessage,
+    });
   });
 
   return app;

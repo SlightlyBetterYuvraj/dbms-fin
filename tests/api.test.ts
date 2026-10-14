@@ -43,18 +43,24 @@ describe('Phase 7 — HTTP API & Workflow Integration', () => {
   });
 
   it('POST /api/generation/request reports hosted unavailable and provides local solver instructions when GENERATOR_SERVICE_URL is not set', async () => {
-    const res = await fetch(`${testServer.url}/api/generation/request`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-user-role': 'admin' },
-      body: JSON.stringify({ termIds: ['term-3'] }),
-    });
-    expect(res.status).toBe(200);
-    const data = await res.json();
-    expect(data.hostedAvailable).toBe(false);
-    expect(data.status).toBe('unavailable');
-    expect(data.message).toContain('Hosted generator is unconfigured');
-    expect(data.package).toBeDefined();
-    expect(data.package.packageId).toBeDefined();
+    const origUrl = process.env.GENERATOR_SERVICE_URL;
+    delete process.env.GENERATOR_SERVICE_URL;
+    try {
+      const res = await fetch(`${testServer.url}/api/generation/request`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-user-role': 'admin' },
+        body: JSON.stringify({ termIds: ['term-3'] }),
+      });
+      expect(res.status).toBe(200);
+      const data = await res.json();
+      expect(data.hostedAvailable).toBe(false);
+      expect(data.status).toBe('unavailable');
+      expect(data.message).toContain('Hosted generator is unconfigured');
+      expect(data.package).toBeDefined();
+      expect(data.package.packageId).toBeDefined();
+    } finally {
+      process.env.GENERATOR_SERVICE_URL = origUrl;
+    }
   });
 
   it('GET /api/generation/package/download downloads valid generation package JSON', async () => {

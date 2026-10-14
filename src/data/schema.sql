@@ -396,3 +396,39 @@ CREATE POLICY ec_admin_all ON extra_classes
 DROP POLICY IF EXISTS audit_select_admin ON audit_events;
 CREATE POLICY audit_select_admin ON audit_events
     FOR SELECT USING (get_auth_role() = 'admin');
+
+-- 6. Notification Outbox Policies (D05, D22)
+-- Enforce row-level security for student notification inbox
+ALTER TABLE notification_outbox ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS outbox_student_policy ON notification_outbox;
+CREATE POLICY outbox_student_policy ON notification_outbox
+    FOR SELECT USING (
+        (get_auth_role() = 'student' AND (recipient_student_id = get_auth_entity_id() OR recipient_student_id = auth.uid()::text))
+        OR get_auth_role() = 'admin'
+    );
+
+DROP POLICY IF EXISTS outbox_admin_all ON notification_outbox;
+CREATE POLICY outbox_admin_all ON notification_outbox
+    FOR ALL USING (get_auth_role() = 'admin') WITH CHECK (get_auth_role() = 'admin');
+
+-- 7. Supabase Realtime Publication Replication (D05, D22, Phase 1 Real-Time)
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM pg_publication WHERE pubname = 'supabase_realtime') THEN
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_publication_tables 
+            WHERE pubname = 'supabase_realtime' AND tablename = 'class_occurrences'
+        ) THEN
+            ALTER PUBLICATION supabase_realtime ADD TABLE class_occurrences;
+        END IF;
+
+        IF NOT EXISTS (
+            SELECT 1 FROM pg_publication_tables 
+            WHERE pubname = 'supabase_realtime' AND tablename = 'notification_outbox'
+        ) THEN
+            ALTER PUBLICATION supabase_realtime ADD TABLE notification_outbox;
+        END IF;
+    END IF;
+END $$;
+

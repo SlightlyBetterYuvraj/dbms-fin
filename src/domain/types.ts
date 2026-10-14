@@ -6,7 +6,7 @@
 export type RoomType = 'LT' | 'P';
 export type ActivityType = 'L' | 'T' | 'P';
 export type TargetGroupType = 'section' | 'batch' | 'elective_group';
-export type OccurrenceStatus = 'scheduled' | 'cancelled' | 'rescheduled' | 'completed';
+export type OccurrenceStatus = 'scheduled' | 'cancelled' | 'rescheduled' | 'completed' | 'superseded';
 export type VersionStatus = 'draft' | 'published' | 'superseded' | 'archived';
 export type RequestStatus = 'pending' | 'confirmed' | 'rejected';
 export type UserRole = 'student' | 'teacher' | 'admin';
@@ -124,6 +124,7 @@ export interface CourseOffering {
   teacherId: string;
   targetType: TargetGroupType;
   targetId: string;
+  component?: ActivityType; // optional: 'L' (Lecture), 'T' (Tutorial), or 'P' (Practical). Undefined means all components.
 }
 
 export interface TeacherAvailability {

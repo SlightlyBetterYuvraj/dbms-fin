@@ -139,7 +139,8 @@
           "termId": { "type": "string" },
           "teacherId": { "type": "string" },
           "targetType": { "type": "string", "enum": ["section", "batch", "elective_group"] },
-          "targetId": { "type": "string" }
+          "targetId": { "type": "string" },
+          "component": { "type": "string", "enum": ["L", "T", "P"] }
         }
       }
     }

@@ -93,57 +93,62 @@ def solve_timetable(package: Dict[str, Any], time_limit_seconds: int = 20) -> Di
         elif off["targetType"] == "batch" and off["targetId"] in batch_by_id:
             group_size = batch_by_id[off["targetId"]].get("expectedCount", 30)
 
+        off_comp = off.get("component")
+
         # Lecture sessions
-        for i in range(course["lectureHours"]):
-            sessions.append({
-                "id": f"sess-{session_id_counter}",
-                "offeringId": off["id"],
-                "courseId": cid,
-                "termId": off["termId"],
-                "activityType": "L",
-                "duration": 1,
-                "teacherId": off["teacherId"],
-                "targetType": off["targetType"],
-                "targetId": off["targetId"],
-                "expectedGroupSize": group_size,
-                "requiredRoomType": "LT"
-            })
-            session_id_counter += 1
+        if not off_comp or off_comp == "L":
+            for i in range(course["lectureHours"]):
+                sessions.append({
+                    "id": f"sess-{session_id_counter}",
+                    "offeringId": off["id"],
+                    "courseId": cid,
+                    "termId": off["termId"],
+                    "activityType": "L",
+                    "duration": 1,
+                    "teacherId": off["teacherId"],
+                    "targetType": off["targetType"],
+                    "targetId": off["targetId"],
+                    "expectedGroupSize": group_size,
+                    "requiredRoomType": "LT"
+                })
+                session_id_counter += 1
 
         # Tutorial sessions
-        for i in range(course["tutorialHours"]):
-            sessions.append({
-                "id": f"sess-{session_id_counter}",
-                "offeringId": off["id"],
-                "courseId": cid,
-                "termId": off["termId"],
-                "activityType": "T",
-                "duration": 1,
-                "teacherId": off["teacherId"],
-                "targetType": off["targetType"],
-                "targetId": off["targetId"],
-                "expectedGroupSize": group_size,
-                "requiredRoomType": "LT"
-            })
-            session_id_counter += 1
+        if not off_comp or off_comp == "T":
+            for i in range(course["tutorialHours"]):
+                sessions.append({
+                    "id": f"sess-{session_id_counter}",
+                    "offeringId": off["id"],
+                    "courseId": cid,
+                    "termId": off["termId"],
+                    "activityType": "T",
+                    "duration": 1,
+                    "teacherId": off["teacherId"],
+                    "targetType": off["targetType"],
+                    "targetId": off["targetId"],
+                    "expectedGroupSize": group_size,
+                    "requiredRoomType": "LT"
+                })
+                session_id_counter += 1
 
         # Practical sessions (each duration 2)
-        lab_count = course["practicalHours"] // 2
-        for i in range(lab_count):
-            sessions.append({
-                "id": f"sess-{session_id_counter}",
-                "offeringId": off["id"],
-                "courseId": cid,
-                "termId": off["termId"],
-                "activityType": "P",
-                "duration": 2,
-                "teacherId": off["teacherId"],
-                "targetType": off["targetType"],
-                "targetId": off["targetId"],
-                "expectedGroupSize": group_size,
-                "requiredRoomType": "P"
-            })
-            session_id_counter += 1
+        if not off_comp or off_comp == "P":
+            lab_count = course["practicalHours"] // 2
+            for i in range(lab_count):
+                sessions.append({
+                    "id": f"sess-{session_id_counter}",
+                    "offeringId": off["id"],
+                    "courseId": cid,
+                    "termId": off["termId"],
+                    "activityType": "P",
+                    "duration": 2,
+                    "teacherId": off["teacherId"],
+                    "targetType": off["targetType"],
+                    "targetId": off["targetId"],
+                    "expectedGroupSize": group_size,
+                    "requiredRoomType": "P"
+                })
+                session_id_counter += 1
 
     # 3. Build CP-SAT Model
     model = cp_model.CpModel()
