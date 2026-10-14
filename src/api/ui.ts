@@ -1011,12 +1011,12 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           <div class="vp-title">View Timetable</div>
           <div class="vp-desc">Personalized calendars for students and teachers with color-coded classes, practical lab spans, and instant venue guidance.</div>
         </div>
-        <div class="value-prop-card" onclick="selectRole('admin'); switchView('dashboard'); switchAdminTab('solver');">
+        <div class="value-prop-card" onclick="handleExploreDashboard('admin', 'solver')">
           <div class="vp-icon-bubble" style="background:#EDE9FE; color:#6C5CE7;">⚡</div>
           <div class="vp-title">Smart Generation</div>
           <div class="vp-desc">OR-Tools CP-SAT constraint optimization generates clash-free schedules across concurrent semesters in under 300ms.</div>
         </div>
-        <div class="value-prop-card" onclick="selectRole('student'); switchView('dashboard');">
+        <div class="value-prop-card" onclick="handleExploreDashboard('student')">
           <div class="vp-icon-bubble" style="background:#DCFCE7; color:#059669;">🔔</div>
           <div class="vp-title">Real-Time Updates</div>
           <div class="vp-desc">Post-commit live subscriptions deliver immediate alerts for cancellations, venue relocations, and extra classes.</div>
@@ -1047,7 +1047,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
                 View your section lectures, practical lab groups, elective subjects, and real-time alerts for room changes or cancellations.
               </div>
             </div>
-            <button class="btn btn-secondary" onclick="selectRole('student'); switchView('dashboard');" style="width: 100%;">
+            <button class="btn btn-secondary" onclick="handleRoleGateClick('student')" style="width: 100%;">
               Enter as Student ➔
             </button>
           </div>
@@ -1061,7 +1061,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
                 Review your assigned lectures and labs, cancel/reschedule individual occurrences, claim free teaching slots, and submit unavailability.
               </div>
             </div>
-            <button class="btn btn-secondary" onclick="selectRole('teacher'); switchView('dashboard');" style="width: 100%;">
+            <button class="btn btn-secondary" onclick="handleRoleGateClick('teacher')" style="width: 100%;">
               Enter as Teacher ➔
             </button>
           </div>
@@ -1075,7 +1075,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
                 Configure curriculum, manage venues and instructors, run CP-SAT generation, stage drafts, publish timetables, and provision users.
               </div>
             </div>
-            <button class="btn btn-primary" onclick="selectRole('admin'); switchView('dashboard');" style="width: 100%;">
+            <button class="btn btn-primary" onclick="handleRoleGateClick('admin')" style="width: 100%;">
               Enter as Administrator ➔
             </button>
           </div>
@@ -1102,15 +1102,20 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           📅 Monday • September 7, 2026
         </div>
 
-        <!-- Role simulator quick switcher for testing -->
-        <div style="display: flex; gap: 6px; align-items: center;">
-          <span style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Active View:</span>
-          <select id="quickRoleSelect" onchange="selectRole(this.value)" style="padding: 5px 10px; border-radius: 8px; border: 1px solid var(--border); font-size: 12px; background: #fff; font-weight: 600; color: var(--primary);">
-            <option value="student">🎓 Student View</option>
-            <option value="teacher">🧑‍🏫 Teacher View</option>
-            <option value="admin">👑 Admin Center</option>
-          </select>
+        <!-- Verified User Identity Display -->
+        <div id="activeUserBadge" style="display: flex; gap: 8px; align-items: center;">
+          <span id="activeUserRoleTag" class="status-badge" style="background:#F1F5F9; color:#64748B; font-size: 11px; padding: 4px 10px;">🔒 Guest / Read-Only</span>
+          <span id="activeUserEmailTag" style="font-size: 12px; color: var(--text-muted); font-weight: 500;">(Unauthenticated)</span>
         </div>
+      </div>
+
+      <!-- Unauthenticated Guest Banner -->
+      <div id="guestNotice" class="card-box" style="padding: 12px 18px; margin-bottom: 20px; background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; font-size: 13px; display: none; justify-content: space-between; align-items: center; border-radius: 12px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>🔒</span>
+          <span><strong>Guest Mode:</strong> You are viewing academic timetables in read-only guest mode. Sign in with institutional credentials for role-specific workflows.</span>
+        </div>
+        <button class="btn btn-primary" style="padding: 6px 14px; font-size: 12px;" onclick="openLoginModal()">🔑 Sign In</button>
       </div>
 
       <!-- Admin Filters Toolbar (Only visible when Admin) -->
@@ -1728,13 +1733,21 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         <div id="modalAlertBox" style="display: none; padding: 10px; border-radius: 8px; margin-bottom: 14px; font-size: 12px; font-weight: 600;"></div>
 
         <div id="loginFormPane">
+          <div style="margin-bottom: 14px; background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; padding: 10px;">
+            <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Institutional Accounts:</div>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="prefillAuth('admin')">👑 Patient Zero Admin</button>
+              <button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="prefillAuth('teacher')">🧑‍🏫 Faculty</button>
+              <button type="button" class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="prefillAuth('student')">🎓 Student</button>
+            </div>
+          </div>
           <div class="form-group" style="margin-bottom: 12px;">
             <label>Institutional Email</label>
             <input type="email" id="loginEmail" class="form-control" value="admin@university.edu" placeholder="name@university.edu">
           </div>
           <div class="form-group" style="margin-bottom: 16px;">
             <label>Password</label>
-            <input type="password" id="loginPassword" class="form-control" value="AdminPassword123!" placeholder="••••••••">
+            <input type="password" id="loginPassword" class="form-control" value="AdminPass#2026!" placeholder="••••••••">
           </div>
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
             <a href="javascript:void(0)" onclick="switchAuthPane('forgot')" style="font-size: 12px; color: var(--primary); text-decoration: none; font-weight: 600;">Forgot Password?</a>
@@ -1836,7 +1849,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
 
     let currentUser = null;
     let authToken = localStorage.getItem('timetable_auth_token') || '';
-    let currentRole = 'admin';
+    let currentRole = 'student';
     let currentMainView = 'landing'; // 'landing', 'roles', 'dashboard'
     let currentState = {};
     let activeDayIndex = 0;
@@ -1938,9 +1951,18 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
 
     // Role Switching
     function selectRole(role) {
+      if (currentUser && authToken) {
+        if (currentUser.role !== 'admin' && currentUser.role !== role) {
+          showMsg('Your verified session role is ' + currentUser.role + '. You cannot switch roles without logging in with those credentials.', true);
+          return;
+        }
+      } else {
+        if (role !== 'student') {
+          openLoginModal(role);
+          return;
+        }
+      }
       currentRole = role;
-      const select = document.getElementById('quickRoleSelect');
-      if (select) select.value = role;
 
       document.getElementById('roleCardStudent')?.classList.toggle('active', role === 'student');
       document.getElementById('roleCardTeacher')?.classList.toggle('active', role === 'teacher');
@@ -1950,20 +1972,69 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       renderSingleDayGrid();
     }
 
+    function handleRoleGateClick(role) {
+      if (currentUser && authToken) {
+        if (currentUser.role === role || currentUser.role === 'admin') {
+          selectRole(role);
+          switchView('dashboard');
+        } else {
+          showMsg('You are currently signed in as ' + currentUser.role + '. Sign out to access the ' + role + ' portal.', true);
+        }
+      } else {
+        openLoginModal(role);
+      }
+    }
+
+    function handleExploreDashboard(targetRole, tab) {
+      if (currentUser && authToken) {
+        if (targetRole === 'admin' && currentUser.role !== 'admin') {
+          showMsg('Administrator credentials required to access this feature.', true);
+          return;
+        }
+        selectRole(currentUser.role);
+        switchView('dashboard');
+        if (tab && currentUser.role === 'admin') switchAdminTab(tab);
+      } else {
+        if (targetRole === 'admin' || targetRole === 'teacher') {
+          openLoginModal(targetRole);
+        } else {
+          selectRole('student');
+          switchView('dashboard');
+        }
+      }
+    }
+
+    function prefillAuth(role) {
+      const emailEl = document.getElementById('loginEmail');
+      const passEl = document.getElementById('loginPassword');
+      if (role === 'admin') {
+        if (emailEl) emailEl.value = 'admin@university.edu';
+        if (passEl) passEl.value = 'AdminPass#2026!';
+      } else if (role === 'teacher') {
+        if (emailEl) emailEl.value = 'teacher@university.edu';
+        if (passEl) passEl.value = 'TeacherPass#2026!';
+      } else if (role === 'student') {
+        if (emailEl) emailEl.value = 'student@university.edu';
+        if (passEl) passEl.value = 'StudentPass#2026!';
+      }
+    }
+
     function updateRoleViews() {
       const studentPanels = document.getElementById('studentViewPanels');
       const teacherPanels = document.getElementById('teacherViewPanels');
       const adminPanels = document.getElementById('adminViewPanels');
       const adminToolbar = document.getElementById('adminFiltersToolbar');
 
-      if (studentPanels) studentPanels.style.display = currentRole === 'student' ? 'block' : 'none';
-      if (teacherPanels) teacherPanels.style.display = currentRole === 'teacher' ? 'block' : 'none';
-      if (adminPanels) adminPanels.style.display = currentRole === 'admin' ? 'block' : 'none';
-      if (adminToolbar) adminToolbar.style.display = currentRole === 'admin' ? 'block' : 'none';
+      const effectiveRole = (currentUser && authToken) ? currentRole : 'student';
 
-      if (currentRole === 'student') renderStudentInbox();
-      if (currentRole === 'teacher') runEmptyRoomFinder();
-      if (currentRole === 'admin') renderRoomMatrix();
+      if (studentPanels) studentPanels.style.display = effectiveRole === 'student' ? 'block' : 'none';
+      if (teacherPanels) teacherPanels.style.display = effectiveRole === 'teacher' ? 'block' : 'none';
+      if (adminPanels) adminPanels.style.display = effectiveRole === 'admin' ? 'block' : 'none';
+      if (adminToolbar) adminToolbar.style.display = effectiveRole === 'admin' ? 'block' : 'none';
+
+      if (effectiveRole === 'student') renderStudentInbox();
+      if (effectiveRole === 'teacher') runEmptyRoomFinder();
+      if (effectiveRole === 'admin') renderRoomMatrix();
     }
 
     // Day Cycling
@@ -2396,7 +2467,8 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     }
 
     // Auth & Login Modal
-    function openLoginModal() {
+    function openLoginModal(role) {
+      if (role) prefillAuth(role);
       const modal = document.getElementById('loginModal');
       if (modal) { modal.style.display = 'flex'; switchAuthPane('login'); }
     }
@@ -2436,6 +2508,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
 
         authToken = data.token;
         currentUser = data.user;
+        currentRole = currentUser.role;
         localStorage.setItem('timetable_auth_token', authToken);
 
         closeLoginModal();
@@ -2457,8 +2530,10 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     function handleLogout() {
       authToken = '';
       currentUser = null;
+      currentRole = 'student';
       localStorage.removeItem('timetable_auth_token');
       updateAuthNav();
+      updateRoleViews();
       switchView('landing');
       showMsg('Logged out successfully.', false);
     }
@@ -2480,18 +2555,39 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       const auth = document.getElementById('authNav');
       const roleBadge = document.getElementById('navRoleBadge');
       const userName = document.getElementById('navUserName');
+      const activeRoleTag = document.getElementById('activeUserRoleTag');
+      const activeEmailTag = document.getElementById('activeUserEmailTag');
+      const guestNotice = document.getElementById('guestNotice');
 
       if (currentUser && authToken) {
         if (unauth) unauth.style.display = 'none';
         if (auth) auth.style.display = 'flex';
+        if (guestNotice) guestNotice.style.display = 'none';
+        const icons = { admin: '👑 Administrator', teacher: '🧑‍🏫 Faculty', student: '🎓 Student' };
         if (roleBadge) {
-          const icons = { admin: '👑 Admin', teacher: '🧑‍🏫 Faculty', student: '🎓 Student' };
           roleBadge.textContent = icons[currentUser.role] || currentUser.role;
         }
         if (userName) userName.textContent = currentUser.fullName || currentUser.email;
+        if (activeRoleTag) {
+          activeRoleTag.textContent = icons[currentUser.role] || currentUser.role;
+          activeRoleTag.style.background = currentUser.role === 'admin' ? 'var(--primary-light)' : (currentUser.role === 'teacher' ? '#FCE8F3' : '#E0F2FE');
+          activeRoleTag.style.color = currentUser.role === 'admin' ? 'var(--primary)' : (currentUser.role === 'teacher' ? '#E05697' : '#0284C7');
+        }
+        if (activeEmailTag) {
+          activeEmailTag.textContent = currentUser.email;
+        }
       } else {
         if (unauth) unauth.style.display = 'flex';
         if (auth) auth.style.display = 'none';
+        if (guestNotice) guestNotice.style.display = 'flex';
+        if (activeRoleTag) {
+          activeRoleTag.textContent = '🔒 Unauthenticated • Read-Only';
+          activeRoleTag.style.background = '#F1F5F9';
+          activeRoleTag.style.color = '#64748B';
+        }
+        if (activeEmailTag) {
+          activeEmailTag.textContent = '(Guest)';
+        }
       }
     }
 
@@ -3045,12 +3141,19 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
             currentRole = currentUser.role;
           } else {
             authToken = '';
+            currentUser = null;
+            currentRole = 'student';
             localStorage.removeItem('timetable_auth_token');
           }
         } catch {
           authToken = '';
+          currentUser = null;
+          currentRole = 'student';
           localStorage.removeItem('timetable_auth_token');
         }
+      } else {
+        currentUser = null;
+        currentRole = 'student';
       }
 
       updateAuthNav();

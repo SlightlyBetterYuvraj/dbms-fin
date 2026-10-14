@@ -382,25 +382,30 @@ export function createAuthMiddleware(authService: AuthService) {
       }
     }
 
-    // Backward compatibility for existing automated tests using x-user-role headers
-    const legacyRole = req.headers['x-user-role'] as UserRole;
-    if (legacyRole) {
-      const legacyId = (req.headers['x-user-id'] as string) || 'test-user-id';
-      const linkedId = req.headers['x-linked-id'] as string;
-      const legacyUser: AuthenticatedUser = {
-        id: legacyId,
-        email: `${legacyId}@university.edu`,
-        role: legacyRole,
-        fullName: 'Test User',
-        entityId: linkedId || (legacyRole === 'teacher' ? 't-1' : legacyRole === 'student' ? 'stud-1' : null),
-      };
-      (req as any).user = legacyUser;
-      (req as any).session = {
-        userId: legacyUser.id,
-        email: legacyUser.email,
-        role: legacyUser.role,
-        linkedId: legacyUser.entityId,
-      };
+    // Backward compatibility for existing automated test suites using x-user-role headers.
+    // In production and live environments (NODE_ENV !== 'test' && APP_ENV !== 'test'),
+    // x-user-role headers are strictly ignored and requests must supply valid Bearer JWTs.
+    const isTestEnv = process.env.NODE_ENV === 'test' || process.env.APP_ENV === 'test';
+    if (isTestEnv) {
+      const legacyRole = req.headers['x-user-role'] as UserRole;
+      if (legacyRole) {
+        const legacyId = (req.headers['x-user-id'] as string) || 'test-user-id';
+        const linkedId = req.headers['x-linked-id'] as string;
+        const legacyUser: AuthenticatedUser = {
+          id: legacyId,
+          email: `${legacyId}@university.edu`,
+          role: legacyRole,
+          fullName: 'Test User',
+          entityId: linkedId || (legacyRole === 'teacher' ? 't-1' : legacyRole === 'student' ? 'stud-1' : null),
+        };
+        (req as any).user = legacyUser;
+        (req as any).session = {
+          userId: legacyUser.id,
+          email: legacyUser.email,
+          role: legacyUser.role,
+          linkedId: legacyUser.entityId,
+        };
+      }
     }
 
     next();

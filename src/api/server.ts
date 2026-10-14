@@ -77,17 +77,20 @@ export function createApp(initialRepo?: TimetableRepository) {
       };
     }
 
-    const roleHeader = req.headers['x-user-role'] as string;
-    const userIdHeader = req.headers['x-user-id'] as string;
-    const linkedIdHeader = req.headers['x-linked-id'] as string;
+    const isTestEnv = process.env.NODE_ENV === 'test' || process.env.APP_ENV === 'test';
+    if (isTestEnv) {
+      const roleHeader = req.headers['x-user-role'] as string;
+      const userIdHeader = req.headers['x-user-id'] as string;
+      const linkedIdHeader = req.headers['x-linked-id'] as string;
 
-    if (roleHeader) {
-      return {
-        userId: userIdHeader || 'test-user-id',
-        email: `${userIdHeader || 'test-user'}@university.edu`,
-        role: (roleHeader as any),
-        linkedId: linkedIdHeader || (roleHeader === 'teacher' ? 't-1' : (roleHeader === 'student' ? 'stud-1' : undefined)),
-      };
+      if (roleHeader) {
+        return {
+          userId: userIdHeader || 'test-user-id',
+          email: `${userIdHeader || 'test-user'}@university.edu`,
+          role: (roleHeader as any),
+          linkedId: linkedIdHeader || (roleHeader === 'teacher' ? 't-1' : (roleHeader === 'student' ? 'stud-1' : undefined)),
+        };
+      }
     }
 
     // Zero-trust default: anonymous unauthenticated requests receive read-only student context
