@@ -3953,7 +3953,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           '<td><span class="status-badge" style="background:#FCE8F3; color:#E05697;">' + batchLabel + '</span></td>' +
           '<td><span class="status-badge status-badge-published">Enrolled</span></td>' +
           '<td>' +
-            '<button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="prefillResetPasswordModal(\'student\', \'' + email + '\')">🔑 Reset Pass</button>' +
+            '<button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="prefillResetPasswordModal(\\'student\\', \\'' + email + '\\')">🔑 Reset Pass</button>' +
           '</td>' +
         '</tr>';
       });
@@ -4072,7 +4072,9 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     function prefillSampleStudentCsv() {
       const area = document.getElementById('bulkStudentCsvArea');
       if (area) {
-        area.value = "2025BTECH401, Aarush Verma, aarush@university.edu, sec-A, batch-A1, Student#2026\n2025BTECH402, Ananya Roy, ananya@university.edu, sec-A, batch-A2, Student#2026\n2025BTECH403, Devendra Seth, dev@university.edu, sec-A, batch-A1, Student#2026";
+        area.value = '2025BTECH401, Aarush Verma, aarush@university.edu, sec-A, batch-A1, Student#2026\\n' +
+          '2025BTECH402, Ananya Roy, ananya@university.edu, sec-A, batch-A2, Student#2026\\n' +
+          '2025BTECH403, Devendra Seth, dev@university.edu, sec-A, batch-A1, Student#2026';
       }
     }
 
@@ -4083,7 +4085,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         return;
       }
 
-      const lines = area.value.trim().split('\n').filter(l => l.trim().length > 0);
+      const lines = area.value.trim().split(String.fromCharCode(10)).map(l => l.trim()).filter(l => l.length > 0);
       let countSuccess = 0;
       let countFail = 0;
 
@@ -4187,7 +4189,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           '<td>' + t.email + '</td>' +
           '<td><span class="status-badge" style="background:#EDE9FE; color:#5842E3;">4 Hours/Day</span></td>' +
           '<td>' +
-            '<button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="prefillResetPasswordModal(\'faculty\', \'' + t.email + '\')">🔑 Reset Pass</button>' +
+            '<button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="prefillResetPasswordModal(\\'faculty\\', \\'' + t.email + '\\')">🔑 Reset Pass</button>' +
           '</td>' +
         '</tr>';
       });
@@ -4250,7 +4252,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       leaves.forEach(l => {
         html += '<div style="background:#FFFFFF; border:1px solid var(--border); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">' +
           '<div><strong>' + l.teacherId + '</strong>: ' + l.date + ' (Slots ' + l.startSlot + '–' + l.endSlot + ')<div style="font-size:11px; color:var(--text-muted);">' + l.reason + ' • Status: ' + l.status + '</div></div>' +
-          (l.status === 'pending' ? '<button class="btn btn-primary" style="padding:4px 10px; font-size:11px;" onclick="approveLeaveRequest(\'' + l.id + '\')">Approve Leave</button>' : '<span class="status-badge status-badge-published">Approved</span>') +
+          (l.status === 'pending' ? '<button class="btn btn-primary" style="padding:4px 10px; font-size:11px;" onclick="approveLeaveRequest(\\'' + l.id + '\\')">Approve Leave</button>' : '<span class="status-badge status-badge-published">Approved</span>') +
         '</div>';
       });
       html += '</div>';
@@ -4373,15 +4375,17 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         });
         showMsg('Package compiled successfully: Revision ' + data.package.inputRevision, false);
         const log = document.getElementById('solverLogConsole');
-        if (log) log.innerHTML += '\n[PACKAGE] Compiled input revision ' + data.package.inputRevision + ' with ' + (data.package.courseOfferings || []).length + ' offerings.';
+        const nl = String.fromCharCode(10);
+        if (log) log.innerHTML += nl + '[PACKAGE] Compiled input revision ' + data.package.inputRevision + ' with ' + (data.package.courseOfferings || []).length + ' offerings.';
       } catch (err) { showMsg(err.message, true); }
     }
 
     async function handleTriggerSolver() {
       const badge = document.getElementById('solverStatusBadge');
       const log = document.getElementById('solverLogConsole');
+      const nl = String.fromCharCode(10);
       if (badge) { badge.textContent = 'Solving...'; badge.className = 'status-badge status-badge-superseded'; }
-      if (log) log.innerHTML += '\n[SOLVER] Dispatching CP-SAT generation request to port 5001...';
+      if (log) log.innerHTML += nl + '[SOLVER] Dispatching CP-SAT generation request to port 5001...';
 
       try {
         const termId = document.getElementById('compileTermSelect')?.value;
@@ -4390,12 +4394,12 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           body: JSON.stringify({ termIds: termId ? [termId] : undefined })
         });
         if (badge) { badge.textContent = 'Complete'; badge.className = 'status-badge status-badge-published'; }
-        if (log) log.innerHTML += '\n[SOLVER] Result: ' + data.status + ' (' + (data.solveTimeMs || 200) + 'ms). Generated ' + data.classesCount + ' classes as Draft Version ' + data.draftVersionNumber + '.';
+        if (log) log.innerHTML += nl + '[SOLVER] Result: ' + data.status + ' (' + (data.solveTimeMs || 200) + 'ms). Generated ' + data.classesCount + ' classes as Draft Version ' + data.draftVersionNumber + '.';
         showMsg('Solver succeeded! Draft Version ' + data.draftVersionNumber + ' staged.', false);
         await loadState();
       } catch (err) {
         if (badge) { badge.textContent = 'Failed'; badge.className = 'status-badge'; }
-        if (log) log.innerHTML += '\n[ERROR] Generation failed: ' + err.message;
+        if (log) log.innerHTML += nl + '[ERROR] Generation failed: ' + err.message;
         showMsg(err.message, true);
       }
     }
