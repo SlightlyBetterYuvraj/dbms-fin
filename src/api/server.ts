@@ -32,6 +32,7 @@ import {
 } from '../domain/types.js';
 import { renderHtmlUI } from './ui.js';
 import { persistOccurrenceToDb, persistExtraClassToDb, persistNotificationToDb } from '../data/dbSync.js';
+import { getSupabaseAdminClient } from '../data/supabase.js';
 
 export function createApp(initialRepo?: TimetableRepository) {
   const app = express();
@@ -244,6 +245,42 @@ export function createApp(initialRepo?: TimetableRepository) {
         return res.status(400).json({ success: false, error: 'INVALID_PASSWORD', message: err.message });
       }
       res.status(400).json({ success: false, error: 'PASSWORD_UPDATE_FAILED', message: err.message });
+    }
+  });
+
+  app.post('/api/auth/admin/reset-password', requireRole(['admin']), async (req: Request, res: Response) => {
+    try {
+      const { targetUserId, targetEmail, newPassword } = req.body;
+      if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ success: false, error: 'INVALID_PASSWORD', message: 'Password must be at least 6 characters long.' });
+      }
+
+      let userId = targetUserId;
+      if (!userId && targetEmail) {
+        const adminClient = getSupabaseAdminClient();
+        const { data: profile } = await adminClient
+          .from('profiles')
+          .select('id')
+          .eq('email', targetEmail.trim().toLowerCase())
+          .maybeSingle();
+
+        if (profile) {
+          userId = profile.id;
+        } else {
+          const { data: userList } = await adminClient.auth.admin.listUsers();
+          const found = userList?.users?.find((u) => u.email?.toLowerCase() === targetEmail.trim().toLowerCase());
+          if (found) userId = found.id;
+        }
+      }
+
+      if (!userId) {
+        return res.status(404).json({ success: false, error: 'USER_NOT_FOUND', message: 'Target user could not be found.' });
+      }
+
+      const result = await authService.changePassword(userId, newPassword);
+      res.json({ success: true, message: `Password for ${targetEmail || userId} was updated successfully.` });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: 'RESET_FAILED', message: err.message });
     }
   });
 

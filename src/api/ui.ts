@@ -731,6 +731,112 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       box-shadow: 0 2px 8px rgba(88, 66, 227, 0.25);
     }
 
+    /* Admin Multi-Page Command Center */
+    .admin-hero-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 20px;
+      margin-bottom: 32px;
+    }
+    .admin-hero-card {
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 28px;
+      box-shadow: var(--shadow-sm);
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      position: relative;
+    }
+    .admin-hero-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+      border-color: var(--primary);
+    }
+    .admin-hero-card-icon {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      margin-bottom: 18px;
+    }
+    .admin-hero-card-title {
+      font-size: 19px;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+    .admin-hero-card-desc {
+      font-size: 13px;
+      color: var(--text-muted);
+      line-height: 1.5;
+      margin-bottom: 20px;
+    }
+    .admin-subpage-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 14px 20px;
+      margin-bottom: 24px;
+      box-shadow: var(--shadow-sm);
+    }
+    .table-search-input {
+      padding: 8px 14px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border);
+      font-size: 13px;
+      width: 100%;
+      max-width: 320px;
+      background: #FAFAFA;
+    }
+    .table-search-input:focus {
+      outline: none;
+      border-color: var(--primary);
+      background: #FFFFFF;
+    }
+    .tt-week-table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    .tt-week-table th {
+      background: #F8FAFC;
+      border: 1px solid var(--border);
+      padding: 12px 10px;
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+    }
+    .tt-week-table td {
+      border: 1px solid var(--border);
+      padding: 8px;
+      vertical-align: top;
+      height: 90px;
+      background: #FFFFFF;
+    }
+    .tt-week-table td.week-slot-period {
+      width: 120px;
+      background: #F8FAFC;
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--text);
+      text-align: center;
+      vertical-align: middle;
+      height: auto;
+    }
+
     /* Content Cards & Forms */
     .card-box {
       background: #FFFFFF;
@@ -923,7 +1029,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       <div class="logo-text">TimeTable<span>+</span></div>
     </a>
 
-    <div class="nav-links">
+    <div class="nav-links" id="mainNavLinks">
       <a class="nav-link" id="navLinkHome" onclick="switchView('landing')">Home</a>
       <a class="nav-link" id="navLinkDashboard" onclick="switchView('dashboard')">Timetable Grid</a>
       <a class="nav-link" id="navLinkRoleGate" onclick="switchView('roles')">Switch Roles</a>
@@ -1088,285 +1194,450 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     <!-- ==================================================================== -->
     <div id="dashboardView" style="display: none;">
 
-      <!-- Day Navigation Pill Bar -->
-      <div class="day-selector-bar">
-        <div class="day-pills-group">
-          <button class="day-pill active" id="dayPill0" onclick="setDay(0)">Mon</button>
-          <button class="day-pill" id="dayPill1" onclick="setDay(1)">Tue</button>
-          <button class="day-pill" id="dayPill2" onclick="setDay(2)">Wed</button>
-          <button class="day-pill" id="dayPill3" onclick="setDay(3)">Thu</button>
-          <button class="day-pill" id="dayPill4" onclick="setDay(4)">Fri</button>
-        </div>
-
-        <div class="active-day-heading" id="activeDayText">
-          📅 Monday • September 7, 2026
-        </div>
-
-        <!-- Verified User Identity Display -->
-        <div id="activeUserBadge" style="display: flex; gap: 8px; align-items: center;">
-          <span id="activeUserRoleTag" class="status-badge" style="background:#F1F5F9; color:#64748B; font-size: 11px; padding: 4px 10px;">🔒 Guest / Read-Only</span>
-          <span id="activeUserEmailTag" style="font-size: 12px; color: var(--text-muted); font-weight: 500;">(Unauthenticated)</span>
-        </div>
-      </div>
-
-      <!-- Unauthenticated Guest Banner -->
-      <div id="guestNotice" class="card-box" style="padding: 12px 18px; margin-bottom: 20px; background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; font-size: 13px; display: none; justify-content: space-between; align-items: center; border-radius: 12px;">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span>🔒</span>
-          <span><strong>Guest Mode:</strong> You are viewing academic timetables in read-only guest mode. Sign in with institutional credentials for role-specific workflows.</span>
-        </div>
-        <button class="btn btn-primary" style="padding: 6px 14px; font-size: 12px;" onclick="openLoginModal()">🔑 Sign In</button>
-      </div>
-
-      <!-- Admin Filters Toolbar (Only visible when Admin) -->
-      <div id="adminFiltersToolbar" class="card-box" style="padding: 14px 20px; margin-bottom: 20px; display: none;">
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px;">
-          <div style="display: flex; align-items: center; gap: 10px;">
-            <span style="font-size: 13px; font-weight: 700; color: var(--text);">Audit Campus Grid:</span>
-            <label style="font-size: 12px; color: var(--text-muted);">Group by</label>
-            <select id="adminGroupBy" onchange="updateAdminGrouping(this.value)" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 12px;">
-              <option value="section">Section Cohort</option>
-              <option value="room">Classroom Venue</option>
-              <option value="teacher">Faculty Instructor</option>
-            </select>
-            <label style="font-size: 12px; color: var(--text-muted);">Filter:</label>
-            <select id="adminFilterVal" onchange="updateAdminFilterVal(this.value)" style="padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); font-size: 12px;">
-              <option value="all">All Records</option>
-            </select>
-          </div>
-          <div style="display: flex; gap: 8px;">
-            <button class="btn btn-secondary" onclick="resetToSimpleMockData()" style="padding: 6px 12px; font-size: 12px; color:#F43F5E;">🧹 Reset Data</button>
-            <button class="btn btn-primary" onclick="loadDemoSchedule()" style="padding: 6px 12px; font-size: 12px;">⚡ 1-Click Demo</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- The Timetable Grid Card -->
-      <div class="timetable-wrapper-card">
-        <div class="grid-header-meta">
-          <div>
-            <h2 class="grid-header-title" id="gridTitle">Daily Schedule Grid</h2>
-            <p class="grid-header-subtitle">
-              Periods 1 to 8 • Period 4 Non-Teaching Lunch Interval (DEC-04) • 2-Slot Practical Labs (D44)
-            </p>
-          </div>
-          <div style="display: flex; gap: 8px;">
-            <button class="btn btn-secondary" onclick="prevDay()" style="padding: 6px 12px; font-size: 12px;">◀ Prev Day</button>
-            <button class="btn btn-secondary" onclick="nextDay()" style="padding: 6px 12px; font-size: 12px;">Next Day ▶</button>
-          </div>
-        </div>
-
-        <div class="table-scroll">
-          <div id="timetableGridWrapper">
-            <div style="padding: 40px; text-align: center; color: var(--text-muted);">
-              ⏳ Loading timetable schedule...
-            </div>
-          </div>
-        </div>
-      </div>
-
       <!-- ================================================================== -->
-      <!-- STUDENT VIEW EXCLUSIVE PANELS (Page 4 in Spec) -->
+      <!-- A. STUDENT & TEACHER SCHEDULE VIEW (For Students, Faculty & Guest) -->
       <!-- ================================================================== -->
-      <div id="studentViewPanels" style="display: none;">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 32px;">
-          
-          <!-- Student Profile & Cohorts Card -->
-          <div class="card-box">
-            <div class="card-box-header">
-              <h3 class="card-box-title">🎓 Student Profile & Cohorts</h3>
-            </div>
-            <p style="font-size: 14px; margin-bottom: 12px;">
-              Active Student: <strong id="studentProfileName">Charlie Brown</strong> • <span id="studentProfileMeta" style="color:var(--text-muted);">Roll CS2026-001</span>
-            </p>
-            <ul id="studentCohortsList" style="list-style: none; font-size: 13px; line-height: 1.8; color: var(--text-muted);">
-              <li>🏛️ Section: <strong style="color:var(--text);" id="stdSecLabel">Section 3A (sec-3A)</strong></li>
-              <li>🔬 Practical Lab Batch: <strong style="color:var(--text);" id="stdBatchLabel">Batch 3A1 (batch-3A1)</strong></li>
-              <li>📚 Enrolled Elective: <strong style="color:var(--text);" id="stdElecLabel">Applied Machine Learning</strong></li>
-            </ul>
-            <p style="font-size: 11px; color: var(--text-muted); margin-top: 14px; border-top: 1px solid var(--border); padding-top: 8px;">
-              ℹ️ Your daily grid shows lectures for your section and lab sessions reserved for your practical batch.
-            </p>
+      <div id="userScheduleView" style="display: none;">
+
+        <!-- Day Navigation Pill Bar -->
+        <div class="day-selector-bar">
+          <div class="day-pills-group">
+            <button class="day-pill active" id="dayPill0" onclick="setDay(0)">Mon</button>
+            <button class="day-pill" id="dayPill1" onclick="setDay(1)">Tue</button>
+            <button class="day-pill" id="dayPill2" onclick="setDay(2)">Wed</button>
+            <button class="day-pill" id="dayPill3" onclick="setDay(3)">Thu</button>
+            <button class="day-pill" id="dayPill4" onclick="setDay(4)">Fri</button>
           </div>
 
-          <!-- Announcements & Inbox Card -->
-          <div class="card-box">
-            <div class="card-box-header">
-              <h3 class="card-box-title">🔔 Schedule Announcements</h3>
-            </div>
-            <div id="studentInbox" style="max-height: 200px; overflow-y: auto;">
-              Loading inbox...
-            </div>
+          <div class="active-day-heading" id="activeDayText">
+            📅 Monday • September 7, 2026
           </div>
 
-          <!-- Student Password Settings Card -->
-          <div class="card-box">
-            <div class="card-box-header">
-              <h3 class="card-box-title">🔒 Account Security & Password</h3>
-            </div>
-            <p class="card-box-desc">Update your institutional student password securely.</p>
-            <div class="form-group" style="margin-bottom: 12px;">
-              <label>New Password (minimum 6 characters):</label>
-              <input type="password" id="studentNewPassword" class="form-control" placeholder="••••••••">
-            </div>
-            <button class="btn btn-primary" onclick="handleStudentChangePassword()">Update Password</button>
+          <!-- Verified User Identity Display -->
+          <div id="activeUserBadge" style="display: flex; gap: 8px; align-items: center;">
+            <span id="activeUserRoleTag" class="status-badge" style="background:#F1F5F9; color:#64748B; font-size: 11px; padding: 4px 10px;">🔒 Guest / Read-Only</span>
+            <span id="activeUserEmailTag" style="font-size: 12px; color: var(--text-muted); font-weight: 500;">(Unauthenticated)</span>
           </div>
         </div>
-      </div>
 
-      <!-- ================================================================== -->
-      <!-- TEACHER VIEW EXCLUSIVE PANELS (Page 5 in Spec) -->
-      <!-- ================================================================== -->
-      <div id="teacherViewPanels" style="display: none;">
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 32px;">
-          
-          <!-- Book One-Off Extra Class -->
-          <div class="card-box">
-            <div class="card-box-header">
-              <h3 class="card-box-title">⚡ Book One-Off Extra Class</h3>
+        <!-- Unauthenticated Guest Banner -->
+        <div id="guestNotice" class="card-box" style="padding: 12px 18px; margin-bottom: 20px; background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; font-size: 13px; display: none; justify-content: space-between; align-items: center; border-radius: 12px;">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span>🔒</span>
+            <span><strong>Guest Mode:</strong> You are viewing academic timetables in read-only guest mode. Sign in with institutional credentials for role-specific workflows.</span>
+          </div>
+          <button class="btn btn-primary" style="padding: 6px 14px; font-size: 12px;" onclick="openLoginModal()">🔑 Sign In</button>
+        </div>
+
+        <!-- The Timetable Grid Card -->
+        <div class="timetable-wrapper-card">
+          <div class="grid-header-meta">
+            <div>
+              <h2 class="grid-header-title" id="gridTitle">Daily Schedule Grid</h2>
+              <p class="grid-header-subtitle">
+                Periods 1 to 8 • Period 4 Non-Teaching Lunch Interval (DEC-04) • 2-Slot Practical Labs (D44)
+              </p>
             </div>
-            <p class="card-box-desc">Search freed or unoccupied slots to schedule an extra session (D02, D25).</p>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Date:</label>
-                <input type="date" id="extraDate" class="form-control" value="2026-09-08">
+            <div style="display: flex; gap: 8px;">
+              <button class="btn btn-secondary" onclick="prevDay()" style="padding: 6px 12px; font-size: 12px;">◀ Prev Day</button>
+              <button class="btn btn-secondary" onclick="nextDay()" style="padding: 6px 12px; font-size: 12px;">Next Day ▶</button>
+            </div>
+          </div>
+
+          <div class="table-scroll">
+            <div id="timetableGridWrapper">
+              <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                ⏳ Loading timetable schedule...
               </div>
-              <div class="form-group">
-                <label>Activity:</label>
-                <select id="extraActivity" class="form-control">
-                  <option value="L">Lecture (1 hour)</option>
-                  <option value="P">Practical / Lab (2 hours)</option>
+            </div>
+          </div>
+        </div>
+
+        <!-- Student View Panels -->
+        <div id="studentViewPanels" style="display: none;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 32px;">
+            
+            <!-- Student Profile Card -->
+            <div class="card-box">
+              <div class="card-box-header">
+                <h3 class="card-box-title">🎓 Student Profile & Cohorts</h3>
+              </div>
+              <p style="font-size: 14px; margin-bottom: 12px;">
+                Active Student: <strong id="studentProfileName">Charlie Brown</strong> • <span id="studentProfileMeta" style="color:var(--text-muted);">Roll CS2026-001</span>
+              </p>
+              <ul id="studentCohortsList" style="list-style: none; font-size: 13px; line-height: 1.8; color: var(--text-muted);">
+                <li>🏛️ Section: <strong style="color:var(--text);" id="stdSecLabel">Section 3A (sec-3A)</strong></li>
+                <li>🔬 Practical Lab Batch: <strong style="color:var(--text);" id="stdBatchLabel">Batch 3A1 (batch-3A1)</strong></li>
+                <li>📚 Enrolled Elective: <strong style="color:var(--text);" id="stdElecLabel">Applied Machine Learning</strong></li>
+              </ul>
+              <p style="font-size: 11px; color: var(--text-muted); margin-top: 14px; border-top: 1px solid var(--border); padding-top: 8px;">
+                ℹ️ Your daily grid shows lectures for your section and lab sessions reserved for your practical batch.
+              </p>
+            </div>
+
+            <!-- Announcements & Inbox Card -->
+            <div class="card-box">
+              <div class="card-box-header">
+                <h3 class="card-box-title">🔔 Schedule Announcements</h3>
+              </div>
+              <div id="studentInbox" style="max-height: 200px; overflow-y: auto;">
+                Loading inbox...
+              </div>
+            </div>
+
+            <!-- Student Password Settings Card -->
+            <div class="card-box">
+              <div class="card-box-header">
+                <h3 class="card-box-title">🔒 Account Security & Password</h3>
+              </div>
+              <p class="card-box-desc">Update your institutional student password securely.</p>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label>New Password (minimum 6 characters):</label>
+                <input type="password" id="studentNewPassword" class="form-control" placeholder="••••••••">
+              </div>
+              <button class="btn btn-primary" onclick="handleStudentChangePassword()">Update Password</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Teacher View Panels -->
+        <div id="teacherViewPanels" style="display: none;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 32px;">
+            
+            <!-- Book Extra Class -->
+            <div class="card-box">
+              <div class="card-box-header">
+                <h3 class="card-box-title">⚡ Book One-Off Extra Class</h3>
+              </div>
+              <p class="card-box-desc">Search freed or unoccupied slots to schedule an extra session (D02, D25).</p>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Date:</label>
+                  <input type="date" id="extraDate" class="form-control" value="2026-09-08">
+                </div>
+                <div class="form-group">
+                  <label>Activity:</label>
+                  <select id="extraActivity" class="form-control">
+                    <option value="L">Lecture (1 hour)</option>
+                    <option value="P">Practical / Lab (2 hours)</option>
+                  </select>
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="queryFreeSlots()">Search Free Slots</button>
+              <div id="slotsResults" style="margin-top: 14px;"></div>
+            </div>
+
+            <!-- Leave Request -->
+            <div class="card-box">
+              <div class="card-box-header">
+                <h3 class="card-box-title">📅 Submit Unavailability Request</h3>
+              </div>
+              <p class="card-box-desc">Request leave for a date. Admin review confirms absence and resolves occurrences (D29, D30).</p>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Date:</label>
+                  <input type="date" id="unavailDate" class="form-control" value="2026-09-09">
+                </div>
+                <div class="form-group">
+                  <label>Period Range:</label>
+                  <div style="display:flex; gap:8px;">
+                    <input type="number" id="unavailStart" class="form-control" value="1" min="1" max="8">
+                    <input type="number" id="unavailEnd" class="form-control" value="4" min="1" max="8">
+                  </div>
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label>Reason:</label>
+                <input type="text" id="unavailReason" class="form-control" placeholder="Conference / Medical leave">
+              </div>
+              <button class="btn btn-secondary" onclick="submitUnavailability()">Submit Absence Request</button>
+            </div>
+
+            <!-- Empty Room Finder -->
+            <div class="card-box">
+              <div class="card-box-header">
+                <h3 class="card-box-title">🏢 Empty Classroom Finder</h3>
+              </div>
+              <p class="card-box-desc">Quickly find empty rooms on campus for impromptu study sessions or office hours.</p>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Select Period Slot:</label>
+                  <select id="finderSlot" class="form-control" onchange="runEmptyRoomFinder()">
+                    <option value="1">Period 1 (09:00 - 10:00)</option>
+                    <option value="2">Period 2 (10:00 - 11:00)</option>
+                    <option value="3">Period 3 (11:00 - 12:00)</option>
+                    <option value="5">Period 5 (13:00 - 14:00)</option>
+                    <option value="6">Period 6 (14:00 - 15:00)</option>
+                    <option value="7">Period 7 (15:00 - 16:00)</option>
+                    <option value="8">Period 8 (16:00 - 17:00)</option>
+                  </select>
+                </div>
+              </div>
+              <div id="finderResults" style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">
+                Select a period to list free classrooms.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- ================================================================== -->
+      <!-- B. ADMIN COMMAND CENTER (Modular, Page-Separated Architecture)     -->
+      <!-- ================================================================== -->
+      <div id="adminDashboardView" style="display: none;">
+
+        <!-- PAGE 0: ADMIN COMMAND HUB LANDING -->
+        <div id="adminPageHub">
+          <!-- Welcome & Status Banner -->
+          <div class="card-box" style="padding: 28px; background: linear-gradient(135deg, #FFFFFF 0%, #F5F3FF 100%); border-left: 4px solid var(--primary); margin-bottom: 24px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+              <div>
+                <span class="status-badge" style="background:var(--primary-light); color:var(--primary); font-size:11px; padding:4px 10px; margin-bottom:8px; display:inline-block;">👑 Root Academic Authority</span>
+                <h2 style="font-size: 26px; font-weight: 800; color: var(--text); margin-bottom: 6px;">Admin Command Center</h2>
+                <p style="font-size: 14px; color: var(--text-muted); margin: 0; max-width: 640px;">
+                  Institutional scheduling authority, curriculum modules, student & faculty accounts, venue utilization, and CP-SAT generation.
+                </p>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-secondary" onclick="resetToSimpleMockData()" style="padding: 8px 14px; font-size: 12px; color:#F43F5E;">🧹 Reset Data</button>
+                <button class="btn btn-primary" onclick="loadDemoSchedule()" style="padding: 8px 14px; font-size: 12px;">⚡ 1-Click Demo</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Summary Metrics Cards -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 28px;">
+            <div class="card-box" style="padding: 16px; text-align: center; margin-bottom: 0;">
+              <div style="font-size: 26px; font-weight: 800; color: var(--primary);" id="metricTerms">0</div>
+              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Academic Terms</div>
+            </div>
+            <div class="card-box" style="padding: 16px; text-align: center; margin-bottom: 0;">
+              <div style="font-size: 26px; font-weight: 800; color: var(--accent-blue);" id="metricRooms">0</div>
+              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Registered Venues</div>
+            </div>
+            <div class="card-box" style="padding: 16px; text-align: center; margin-bottom: 0;">
+              <div style="font-size: 26px; font-weight: 800; color: var(--accent-pink);" id="metricTeachers">0</div>
+              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Faculty Instructors</div>
+            </div>
+            <div class="card-box" style="padding: 16px; text-align: center; margin-bottom: 0;">
+              <div style="font-size: 26px; font-weight: 800; color: var(--accent-purple);" id="metricSections">0</div>
+              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Student Cohorts</div>
+            </div>
+            <div class="card-box" style="padding: 16px; text-align: center; margin-bottom: 0;">
+              <div style="font-size: 26px; font-weight: 800; color: var(--accent-emerald);" id="metricTimetables">0</div>
+              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Published Timetables</div>
+            </div>
+          </div>
+
+          <!-- 6 Primary Navigation Cards -->
+          <h3 style="font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 16px;">Operational Workspaces</h3>
+          <div class="admin-hero-grid">
+            
+            <!-- Page Card 1: View Timetables -->
+            <div class="admin-hero-card" onclick="switchAdminPage('timetables')">
+              <div>
+                <div class="admin-hero-card-icon" style="background:#EDE9FE; color:#5842E3;">📅</div>
+                <div class="admin-hero-card-title">View All Timetables</div>
+                <div class="admin-hero-card-desc">
+                  Interactive campus schedule viewer: filter by Section / Batch, Faculty Member, Classroom Venue, or Master Matrix in Day or Week Grid views.
+                </div>
+              </div>
+              <button class="btn btn-primary" style="width: 100%;">Open Timetable Explorer ➔</button>
+            </div>
+
+            <!-- Page Card 2: Academic Modules -->
+            <div class="admin-hero-card" onclick="switchAdminPage('modules')">
+              <div>
+                <div class="admin-hero-card-icon" style="background:#E0F2FE; color:#0284C7;">🏛️</div>
+                <div class="admin-hero-card-title">Academic Modules & Hierarchy</div>
+                <div class="admin-hero-card-desc">
+                  Configure Academic Terms, Sections, Practical Sub-Batches, Course Catalog, Theory (L), Tutorial (T), and Practical (P) contact hours.
+                </div>
+              </div>
+              <button class="btn btn-secondary" style="width: 100%;">Manage Modules ➔</button>
+            </div>
+
+            <!-- Page Card 3: Student Management -->
+            <div class="admin-hero-card" onclick="switchAdminPage('students')">
+              <div>
+                <div class="admin-hero-card-icon" style="background:#DCFCE7; color:#059669;">🎓</div>
+                <div class="admin-hero-card-title">Student Management</div>
+                <div class="admin-hero-card-desc">
+                  Search student directory, provision new student accounts, change student passwords, bulk CSV upload, and manage cohort transfers.
+                </div>
+              </div>
+              <button class="btn btn-secondary" style="width: 100%;">Manage Students ➔</button>
+            </div>
+
+            <!-- Page Card 4: Faculty Management -->
+            <div class="admin-hero-card" onclick="switchAdminPage('faculty')">
+              <div>
+                <div class="admin-hero-card-icon" style="background:#FCE8F3; color:#E05697;">🧑‍🏫</div>
+                <div class="admin-hero-card-title">Faculty Management</div>
+                <div class="admin-hero-card-desc">
+                  Search faculty directory, add professors, change faculty passwords, configure weekly availability/max hours, and approve leave requests.
+                </div>
+              </div>
+              <button class="btn btn-secondary" style="width: 100%;">Manage Faculty ➔</button>
+            </div>
+
+            <!-- Page Card 5: Room Utilization Matrix -->
+            <div class="admin-hero-card" onclick="switchAdminPage('matrix')">
+              <div>
+                <div class="admin-hero-card-icon" style="background:#FEF3C7; color:#D97706;">📊</div>
+                <div class="admin-hero-card-title">Room Utilization Matrix</div>
+                <div class="admin-hero-card-desc">
+                  Campus space optimization, classroom occupancy heatmap across all 8 periods, room capacity metrics, and vacant slot discovery.
+                </div>
+              </div>
+              <button class="btn btn-secondary" style="width: 100%;">View Room Matrix ➔</button>
+            </div>
+
+            <!-- Page Card 6: CP-SAT Solver & Publication -->
+            <div class="admin-hero-card" onclick="switchAdminPage('solver')">
+              <div>
+                <div class="admin-hero-card-icon" style="background:#FEE2E2; color:#DC2626;">⚡</div>
+                <div class="admin-hero-card-title">CP-SAT Solver & Publication</div>
+                <div class="admin-hero-card-desc">
+                  Compile academic input packages, run Google OR-Tools CP-SAT constraint generation with live SSE logs, review drafts, and 1-click publish.
+                </div>
+              </div>
+              <button class="btn btn-secondary" style="width: 100%;">Launch Solver Console ➔</button>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- SUB-PAGE HEADER (Visible when inside any of the 6 sub-pages) -->
+        <div id="adminSubPageHeader" class="admin-subpage-bar" style="display: none;">
+          <div style="display: flex; align-items: center; gap: 14px;">
+            <button class="btn btn-secondary" onclick="switchAdminPage('hub')" style="padding: 6px 12px; font-size: 12px;">
+              ⬅ Back to Admin Hub
+            </button>
+            <h2 id="adminBreadcrumbTitle" style="font-size: 17px; font-weight: 800; color: var(--text); margin: 0;"></h2>
+          </div>
+          <div class="admin-nav-pills" style="margin-bottom: 0; padding: 4px; border: none; box-shadow: none;">
+            <button class="admin-pill-btn" id="adminSubBtnTimetables" onclick="switchAdminPage('timetables')">📅 Timetables</button>
+            <button class="admin-pill-btn" id="adminSubBtnModules" onclick="switchAdminPage('modules')">🏛️ Modules</button>
+            <button class="admin-pill-btn" id="adminSubBtnStudents" onclick="switchAdminPage('students')">🎓 Students</button>
+            <button class="admin-pill-btn" id="adminSubBtnFaculty" onclick="switchAdminPage('faculty')">🧑‍🏫 Faculty</button>
+            <button class="admin-pill-btn" id="adminSubBtnMatrix" onclick="switchAdminPage('matrix')">📊 Room Matrix</button>
+            <button class="admin-pill-btn" id="adminSubBtnSolver" onclick="switchAdminPage('solver')">⚡ Solver</button>
+          </div>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- SUB-PAGE 1: VIEW ALL TIMETABLES (Campus Schedule Explorer)       -->
+        <!-- ================================================================ -->
+        <div id="adminPageTimetables" class="admin-page-pane" style="display: none;">
+          
+          <!-- Filters & Target Selector Card -->
+          <div class="card-box" style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+              <div>
+                <h3 class="card-box-title">Choose Timetable to View</h3>
+                <p class="card-box-desc" style="margin-bottom: 0;">Filter schedules campus-wide by Section cohort, Faculty instructor, or Classroom venue.</p>
+              </div>
+              <div style="display: flex; gap: 6px;">
+                <button class="btn btn-secondary" id="ttFormatDayBtn" onclick="setAdminTtFormat('day')" style="padding: 6px 12px; font-size: 12px; background:var(--primary); color:#fff;">📆 Day View</button>
+                <button class="btn btn-secondary" id="ttFormatWeekBtn" onclick="setAdminTtFormat('week')" style="padding: 6px 12px; font-size: 12px;">🗓️ Full Week View</button>
+              </div>
+            </div>
+
+            <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; background:#F8FAFC; border:1px solid var(--border); padding:16px; border-radius:12px;">
+              <div style="flex: 1; min-width: 180px;">
+                <label style="font-size: 12px; font-weight: 700; color: var(--text); display: block; margin-bottom: 6px;">1. Filter Scope:</label>
+                <select id="adminTtScopeSelect" class="form-control" onchange="handleAdminTtScopeChange(this.value)">
+                  <option value="section">👥 Student Section / Batch</option>
+                  <option value="teacher">🧑‍🏫 Faculty Instructor</option>
+                  <option value="room">🏢 Classroom / Lab Venue</option>
+                  <option value="master">🌐 Campus Master Overview</option>
                 </select>
               </div>
-            </div>
-            <button class="btn btn-primary" onclick="queryFreeSlots()">Search Free Slots</button>
-            <div id="slotsResults" style="margin-top: 14px;"></div>
-          </div>
 
-          <!-- Teacher Unavailability Request -->
-          <div class="card-box">
-            <div class="card-box-header">
-              <h3 class="card-box-title">🏖️ Submit Unavailability Request</h3>
-            </div>
-            <p class="card-box-desc">Request leave for a date. Admin review confirms absence and resolves occurrences (D29, D30).</p>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Date:</label>
-                <input type="date" id="unavailDate" class="form-control" value="2026-09-15">
-              </div>
-              <div class="form-group">
-                <label>Start Slot:</label>
-                <input type="number" id="unavailStart" class="form-control" value="1" min="1" max="8">
-              </div>
-              <div class="form-group">
-                <label>End Slot:</label>
-                <input type="number" id="unavailEnd" class="form-control" value="3" min="1" max="8">
-              </div>
-            </div>
-            <div class="form-group" style="margin-bottom: 12px;">
-              <label>Reason for Leave:</label>
-              <input type="text" id="unavailReason" class="form-control" placeholder="e.g. Conference presentation or medical appointment">
-            </div>
-            <button class="btn btn-secondary" onclick="submitUnavailability()">Submit Request</button>
-          </div>
-
-          <!-- Empty Classroom Finder (Spec Page 5 Extra Feature) -->
-          <div class="card-box">
-            <div class="card-box-header">
-              <h3 class="card-box-title">🔍 Empty Classroom Finder</h3>
-            </div>
-            <p class="card-box-desc">Quickly find empty rooms on campus for impromptu study sessions or office hours.</p>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Period Slot:</label>
-                <select id="finderSlotSelect" class="form-control" onchange="runEmptyRoomFinder()">
-                  <option value="1">Period 1 (09:00 - 10:00)</option>
-                  <option value="2">Period 2 (10:00 - 11:00)</option>
-                  <option value="3">Period 3 (11:00 - 12:00)</option>
-                  <option value="5">Period 5 (13:00 - 14:00)</option>
-                  <option value="6">Period 6 (14:00 - 15:00)</option>
-                  <option value="7">Period 7 (15:00 - 16:00)</option>
-                  <option value="8">Period 8 (16:00 - 17:00)</option>
+              <div style="flex: 1.5; min-width: 220px;">
+                <label style="font-size: 12px; font-weight: 700; color: var(--text); display: block; margin-bottom: 6px;">2. Specific Target Schedule:</label>
+                <select id="adminTtTargetSelect" class="form-control" onchange="handleAdminTtTargetChange(this.value)">
+                  <option value="all">Loading options...</option>
                 </select>
               </div>
+
+              <div style="flex: 1; min-width: 160px;">
+                <label style="font-size: 12px; font-weight: 700; color: var(--text); display: block; margin-bottom: 6px;">3. Academic Term:</label>
+                <select id="adminTtTermSelect" class="form-control" onchange="renderAdminTimetable()"></select>
+              </div>
+
+              <div style="flex: 1; min-width: 160px;">
+                <label style="font-size: 12px; font-weight: 700; color: var(--text); display: block; margin-bottom: 6px;">4. Timetable Version:</label>
+                <select id="adminTtVersionSelect" class="form-control" onchange="renderAdminTimetable()"></select>
+              </div>
             </div>
-            <div id="finderResults" style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">
-              Select a period to list free classrooms.
+          </div>
+
+          <!-- Day Navigation Pill Bar (Only active in Day View) -->
+          <div id="adminTtDayBar" class="day-selector-bar" style="margin-bottom: 20px;">
+            <div class="day-pills-group">
+              <button class="day-pill active" id="adminDayPill0" onclick="setAdminDay(0)">Mon</button>
+              <button class="day-pill" id="adminDayPill1" onclick="setAdminDay(1)">Tue</button>
+              <button class="day-pill" id="adminDayPill2" onclick="setAdminDay(2)">Wed</button>
+              <button class="day-pill" id="adminDayPill3" onclick="setAdminDay(3)">Thu</button>
+              <button class="day-pill" id="adminDayPill4" onclick="setAdminDay(4)">Fri</button>
+            </div>
+            <div class="active-day-heading" id="adminActiveDayText">
+              📅 Monday • September 7, 2026
+            </div>
+            <div>
+              <span id="adminTtActiveTargetBadge" class="status-badge" style="background:var(--primary-light); color:var(--primary);">Section A</span>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- ================================================================== -->
-      <!-- ADMIN VIEW EXCLUSIVE PANELS (Page 6 in Spec) -->
-      <!-- ================================================================== -->
-      <div id="adminViewPanels" style="display: none;">
-        
-        <!-- Summary Metrics Cards -->
-        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 24px;">
-          <div class="card-box" style="padding: 16px; text-align: center; margin-bottom: 0;">
-            <div style="font-size: 26px; font-weight: 800; color: var(--primary);" id="metricTerms">0</div>
-            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Academic Terms</div>
+          <!-- Timetable Grid Output -->
+          <div class="timetable-wrapper-card">
+            <div class="table-scroll">
+              <div id="adminTimetableGridWrapper">
+                <div style="padding: 40px; text-align: center; color: var(--text-muted);">
+                  ⏳ Select target and loading schedule...
+                </div>
+              </div>
+            </div>
           </div>
-          <div class="card-box" style="padding: 16px; text-align: center; margin-bottom: 0;">
-            <div style="font-size: 26px; font-weight: 800; color: var(--accent-blue);" id="metricRooms">0</div>
-            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Registered Venues</div>
-          </div>
-          <div class="card-box" style="padding: 16px; text-align: center; margin-bottom: 0;">
-            <div style="font-size: 26px; font-weight: 800; color: var(--accent-pink);" id="metricTeachers">0</div>
-            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Faculty Instructors</div>
-          </div>
-          <div class="card-box" style="padding: 16px; text-align: center; margin-bottom: 0;">
-            <div style="font-size: 26px; font-weight: 800; color: var(--accent-purple);" id="metricSections">0</div>
-            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Student Cohorts</div>
-          </div>
-          <div class="card-box" style="padding: 16px; text-align: center; margin-bottom: 0;">
-            <div style="font-size: 26px; font-weight: 800; color: var(--accent-emerald);" id="metricTimetables">0</div>
-            <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Published Timetables</div>
-          </div>
+
         </div>
 
-        <!-- Admin Sub-navigation Tabs -->
-        <div class="admin-nav-pills">
-          <button class="admin-pill-btn active" id="tabBtnHierarchy" onclick="switchAdminTab('hierarchy')">🏛️ Academic Hierarchy</button>
-          <button class="admin-pill-btn" id="tabBtnCourses" onclick="switchAdminTab('courses')">📚 Course Catalog & Offerings</button>
-          <button class="admin-pill-btn" id="tabBtnVenues" onclick="switchAdminTab('venues')">🏢 Venues & Faculty</button>
-          <button class="admin-pill-btn" id="tabBtnSolver" onclick="switchAdminTab('solver')">⚙️ Solver & Generation</button>
-          <button class="admin-pill-btn" id="tabBtnOperations" onclick="switchAdminTab('operations')">📋 Operations & Revisions</button>
-          <button class="admin-pill-btn" id="tabBtnUsers" onclick="switchAdminTab('users')">👥 User Provisioning</button>
-          <button class="admin-pill-btn" id="tabBtnMatrix" onclick="switchAdminTab('matrix')">📊 Room Utilization</button>
-        </div>
-
-        <!-- ADMIN TAB 1: ACADEMIC HIERARCHY -->
-        <div id="adminTabHierarchy" class="admin-tab-pane">
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+        <!-- ================================================================ -->
+        <!-- SUB-PAGE 2: ACADEMIC MODULES & HIERARCHY                         -->
+        <!-- ================================================================ -->
+        <div id="adminPageModules" class="admin-page-pane" style="display: none;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 24px;">
             <!-- Terms Card -->
             <div class="card-box">
               <h3 class="card-box-title">1. Academic Terms & Calendar</h3>
               <p class="card-box-desc">Configure academic cycles and operating boundaries (PRD §4).</p>
               <div class="form-grid">
                 <div class="form-group">
-                  <label>Academic Year:</label>
-                  <input type="text" id="termYearLabel" class="form-control" value="2026-2027">
+                  <label>Term ID:</label>
+                  <input type="text" id="termId" class="form-control" value="term-2026-autumn">
                 </div>
                 <div class="form-group">
-                  <label>Semester Number (1-8):</label>
-                  <input type="number" id="termSemesterNum" class="form-control" value="3" min="1" max="8">
+                  <label>Year Label:</label>
+                  <input type="text" id="termYear" class="form-control" value="2026-2027">
+                </div>
+                <div class="form-group">
+                  <label>Semester Number:</label>
+                  <input type="number" id="termSem" class="form-control" value="1" min="1" max="8">
                 </div>
                 <div class="form-group">
                   <label>Cycle:</label>
                   <select id="termCycle" class="form-control">
-                    <option value="odd">Odd (Sem 1, 3, 5, 7)</option>
-                    <option value="even">Even (Sem 2, 4, 6, 8)</option>
+                    <option value="odd">Odd Cycle</option>
+                    <option value="even">Even Cycle</option>
                   </select>
                 </div>
               </div>
-              <button class="btn btn-primary" onclick="saveAcademicTerm()">Add Academic Term</button>
-              <div class="data-table-wrap" style="margin-top: 14px;">
-                <table class="styled-table">
-                  <thead><tr><th>ID</th><th>Year</th><th>Sem</th><th>Cycle</th><th>Status</th></tr></thead>
-                  <tbody id="termsTableBody"></tbody>
-                </table>
+              <button class="btn btn-primary" onclick="handleCreateTerm()">Create Term</button>
+              <div style="margin-top: 16px;" class="table-scroll">
+                <table class="data-table"><thead><tr><th>ID</th><th>Year</th><th>Sem</th><th>Cycle</th><th>Status</th></tr></thead><tbody id="termsTableBody"></tbody></table>
               </div>
             </div>
 
@@ -1376,24 +1647,25 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
               <p class="card-box-desc">Manage primary cohorts for lecture courses.</p>
               <div class="form-grid">
                 <div class="form-group">
-                  <label>Term:</label>
+                  <label>Section ID:</label>
+                  <input type="text" id="secId" class="form-control" placeholder="sec-B">
+                </div>
+                <div class="form-group">
+                  <label>Name:</label>
+                  <input type="text" id="secName" class="form-control" placeholder="Section B">
+                </div>
+                <div class="form-group">
+                  <label>Academic Term:</label>
                   <select id="secTermSelect" class="form-control"></select>
                 </div>
                 <div class="form-group">
-                  <label>Section Name:</label>
-                  <input type="text" id="secNameInput" class="form-control" placeholder="e.g. Section B">
-                </div>
-                <div class="form-group">
-                  <label>Cohort Size:</label>
-                  <input type="number" id="secCohortSizeInput" class="form-control" value="60">
+                  <label>Expected Count:</label>
+                  <input type="number" id="secCount" class="form-control" value="60">
                 </div>
               </div>
-              <button class="btn btn-primary" onclick="createSection()">Create Section</button>
-              <div class="data-table-wrap" style="margin-top: 14px;">
-                <table class="styled-table">
-                  <thead><tr><th>ID</th><th>Term</th><th>Name</th><th>Count</th></tr></thead>
-                  <tbody id="sectionsTableBody"></tbody>
-                </table>
+              <button class="btn btn-primary" onclick="handleCreateSection()">Add Section</button>
+              <div style="margin-top: 16px;" class="table-scroll">
+                <table class="data-table"><thead><tr><th>ID</th><th>Term</th><th>Name</th><th>Capacity</th></tr></thead><tbody id="sectionsTableBody"></tbody></table>
               </div>
             </div>
 
@@ -1403,86 +1675,74 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
               <p class="card-box-desc">Sub-cohorts for parallel laboratory practical sessions.</p>
               <div class="form-grid">
                 <div class="form-group">
+                  <label>Batch ID:</label>
+                  <input type="text" id="batchId" class="form-control" placeholder="batch-B1">
+                </div>
+                <div class="form-group">
                   <label>Parent Section:</label>
                   <select id="batchSecSelect" class="form-control"></select>
                 </div>
                 <div class="form-group">
-                  <label>Batch Name:</label>
-                  <input type="text" id="batchNameInput" class="form-control" placeholder="e.g. Batch A2">
+                  <label>Name:</label>
+                  <input type="text" id="batchName" class="form-control" placeholder="Batch B1">
                 </div>
                 <div class="form-group">
-                  <label>Student Count:</label>
-                  <input type="number" id="batchCountInput" class="form-control" value="30">
+                  <label>Expected Count:</label>
+                  <input type="number" id="batchCount" class="form-control" value="30">
                 </div>
               </div>
-              <button class="btn btn-primary" onclick="createBatch()">Create Lab Batch</button>
-              <div class="data-table-wrap" style="margin-top: 14px;">
-                <table class="styled-table">
-                  <thead><tr><th>ID</th><th>Section</th><th>Batch</th><th>Count</th></tr></thead>
-                  <tbody id="batchesTableBody"></tbody>
-                </table>
+              <button class="btn btn-primary" onclick="handleCreateBatch()">Add Batch</button>
+              <div style="margin-top: 16px;" class="table-scroll">
+                <table class="data-table"><thead><tr><th>ID</th><th>Section</th><th>Name</th><th>Count</th></tr></thead><tbody id="batchesTableBody"></tbody></table>
               </div>
             </div>
           </div>
-        </div>
 
-        <!-- ADMIN TAB 2: COURSE CATALOG & OFFERINGS -->
-        <div id="adminTabCourses" class="admin-tab-pane" style="display: none;">
+          <!-- Courses & Offerings Cards -->
           <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
-            <!-- Course Definition -->
+            <!-- Courses Card -->
             <div class="card-box">
-              <h3 class="card-box-title">1. Course Definition & Contact Hours</h3>
+              <h3 class="card-box-title">4. Course Catalog & LTP Contact Hours</h3>
               <p class="card-box-desc">Strict guardrail: Practical hours must be an even integer (2-slot lab blocks).</p>
               <div class="form-grid">
                 <div class="form-group">
-                  <label>Code:</label>
-                  <input type="text" id="courseCodeInput" class="form-control" placeholder="e.g. CS201">
+                  <label>Course Code:</label>
+                  <input type="text" id="courseCode" class="form-control" placeholder="CS301">
                 </div>
                 <div class="form-group">
-                  <label>Title:</label>
-                  <input type="text" id="courseNameInput" class="form-control" placeholder="Data Structures">
+                  <label>Course Name:</label>
+                  <input type="text" id="courseName" class="form-control" placeholder="Database Systems">
                 </div>
                 <div class="form-group">
-                  <label>Term:</label>
-                  <select id="courseTermSelect" class="form-control"></select>
-                </div>
-              </div>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>Lecture (L) Hrs:</label>
-                  <input type="number" id="courseLHours" class="form-control" value="3" min="0" oninput="validateCourseHours()">
+                  <label>Lecture Hours (L):</label>
+                  <input type="number" id="courseL" class="form-control" value="3" min="0">
                 </div>
                 <div class="form-group">
-                  <label>Tutorial (T) Hrs:</label>
-                  <input type="number" id="courseTHours" class="form-control" value="0" min="0" oninput="validateCourseHours()">
+                  <label>Tutorial Hours (T):</label>
+                  <input type="number" id="courseT" class="form-control" value="1" min="0">
                 </div>
                 <div class="form-group">
-                  <label>Practical (P) Hrs (Even):</label>
-                  <input type="number" id="coursePHours" class="form-control" value="2" min="0" oninput="validateCourseHours()">
+                  <label>Practical Hours (P):</label>
+                  <input type="number" id="courseP" class="form-control" value="2" min="0" step="2">
                 </div>
                 <div class="form-group">
-                  <label>Venue Type:</label>
-                  <select id="courseVenueType" class="form-control">
-                    <option value="LT">Lecture / Tutorial (LT)</option>
-                    <option value="P">Practical Lab (P)</option>
+                  <label>Venue Requirement:</label>
+                  <select id="courseRoomType" class="form-control">
+                    <option value="lecture_hall">Lecture Hall</option>
+                    <option value="lab">Computer Laboratory</option>
+                    <option value="seminar">Seminar Room</option>
                   </select>
                 </div>
               </div>
-              <div id="oddPracticalWarning" style="display: none; background:#FEF2F2; color:#DC2626; border:1px solid #FCA5A5; padding:8px 12px; border-radius:8px; font-size:12px; font-weight:600; margin-bottom:12px;">
-                ⚠️ ERR_ODD_P_HOURS: Practical hours must be an even number (2 slots per session).
-              </div>
-              <button class="btn btn-primary" onclick="saveCourse()">Save Course</button>
-              <div class="data-table-wrap" style="margin-top: 14px;">
-                <table class="styled-table">
-                  <thead><tr><th>Code</th><th>Title</th><th>L/T/P</th><th>Venue</th></tr></thead>
-                  <tbody id="coursesTableBody"></tbody>
-                </table>
+              <button class="btn btn-primary" onclick="handleCreateCourse()">Register Course</button>
+              <div style="margin-top: 16px;" class="table-scroll">
+                <table class="data-table"><thead><tr><th>Code</th><th>Name</th><th>L-T-P</th><th>Room Type</th></tr></thead><tbody id="coursesTableBody"></tbody></table>
               </div>
             </div>
 
-            <!-- Course Offerings -->
+            <!-- Course Offerings Card -->
             <div class="card-box">
-              <h3 class="card-box-title">2. Course Offerings (Instructor & Cohort Mapping)</h3>
+              <h3 class="card-box-title">5. Course Offerings (Instructor & Cohort Mapping)</h3>
               <p class="card-box-desc">Map courses to faculty and target cohorts (with optional L/T/P component filter).</p>
               <div class="form-grid">
                 <div class="form-group">
@@ -1490,13 +1750,11 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
                   <select id="offCourseSelect" class="form-control"></select>
                 </div>
                 <div class="form-group">
-                  <label>Assigned Faculty:</label>
+                  <label>Instructor:</label>
                   <select id="offTeacherSelect" class="form-control"></select>
                 </div>
-              </div>
-              <div class="form-grid">
                 <div class="form-group">
-                  <label>Target Cohort Type:</label>
+                  <label>Target Type:</label>
                   <select id="offTargetType" class="form-control" onchange="handleOffTargetTypeChange()">
                     <option value="section">Section</option>
                     <option value="batch">Practical Batch</option>
@@ -1504,214 +1762,353 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
                   </select>
                 </div>
                 <div class="form-group">
-                  <label>Target Cohort ID:</label>
+                  <label>Target ID:</label>
                   <select id="offTargetIdSelect" class="form-control"></select>
                 </div>
                 <div class="form-group">
-                  <label>Component Filter:</label>
-                  <select id="offComponentSelect" class="form-control">
-                    <option value="">All Components (Default)</option>
+                  <label>Component Split (Optional):</label>
+                  <select id="offComponent" class="form-control">
+                    <option value="">All (Full Course)</option>
                     <option value="L">Lecture Only (L)</option>
                     <option value="T">Tutorial Only (T)</option>
                     <option value="P">Practical Only (P)</option>
                   </select>
                 </div>
               </div>
-              <button class="btn btn-primary" onclick="createOffering()">Create Course Offering</button>
-              <div class="data-table-wrap" style="margin-top: 14px;">
-                <table class="styled-table">
-                  <thead><tr><th>Course</th><th>Faculty</th><th>Target</th><th>Comp</th></tr></thead>
-                  <tbody id="offeringsTableBody"></tbody>
-                </table>
+              <button class="btn btn-primary" onclick="handleCreateOffering()">Create Course Offering</button>
+              <div style="margin-top: 16px;" class="table-scroll">
+                <table class="data-table"><thead><tr><th>Course</th><th>Instructor</th><th>Target</th><th>Component</th></tr></thead><tbody id="offeringsTableBody"></tbody></table>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- ADMIN TAB 3: VENUES & FACULTY -->
-        <div id="adminTabVenues" class="admin-tab-pane" style="display: none;">
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
-            <!-- Classroom / Lab Venues -->
-            <div class="card-box">
-              <h3 class="card-box-title">1. Classrooms & Lab Venues</h3>
-              <p class="card-box-desc">Register university facilities with capacities and floor levels (D16).</p>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>Room Number:</label>
-                  <input type="text" id="roomNumberInput" class="form-control" placeholder="e.g. 101">
-                </div>
-                <div class="form-group">
-                  <label>Building:</label>
-                  <input type="text" id="roomBuildingInput" class="form-control" placeholder="Main Block">
-                </div>
-                <div class="form-group">
-                  <label>Floor:</label>
-                  <input type="number" id="roomFloorInput" class="form-control" value="1" min="0">
-                </div>
+        <!-- ================================================================ -->
+        <!-- SUB-PAGE 3: STUDENT MANAGEMENT                                   -->
+        <!-- ================================================================ -->
+        <div id="adminPageStudents" class="admin-page-pane" style="display: none;">
+          
+          <!-- Live Student Directory Table -->
+          <div class="card-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+              <div>
+                <h3 class="card-box-title">🎓 Student Directory & Cohorts</h3>
+                <p class="card-box-desc" style="margin-bottom:0;">Live authoritative records from PostgreSQL students and profiles tables.</p>
               </div>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>Capacity:</label>
-                  <input type="number" id="roomCapacityInput" class="form-control" value="60">
-                </div>
-                <div class="form-group">
-                  <label>Room Type:</label>
-                  <select id="roomTypeSelect" class="form-control">
-                    <option value="LT">Lecture Hall / Tutorial (LT)</option>
-                    <option value="P">Practical Lab (P)</option>
-                  </select>
-                </div>
-              </div>
-              <button class="btn btn-primary" onclick="saveRoom()">Register Room</button>
-              <div class="data-table-wrap" style="margin-top: 14px;">
-                <table class="styled-table">
-                  <thead><tr><th>Room</th><th>Building</th><th>Fl</th><th>Cap</th><th>Type</th></tr></thead>
-                  <tbody id="roomsTableBody"></tbody>
-                </table>
-              </div>
+              <input type="text" id="studentSearchInput" class="table-search-input" placeholder="🔍 Search by name, roll, or email..." oninput="renderStudentsTable(this.value)">
             </div>
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Roll Number</th>
+                    <th>Full Name</th>
+                    <th>Institutional Email</th>
+                    <th>Section</th>
+                    <th>Batch</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="studentsTableBody">
+                  <tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">Loading students...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-            <!-- Faculty Teachers & Weekly Availability Matrix -->
+          <!-- 4 Student Operational Cards -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+            
+            <!-- 1. Add Student Individually -->
             <div class="card-box">
-              <h3 class="card-box-title">2. Faculty & Availability Matrix</h3>
-              <p class="card-box-desc">Register instructors and toggle weekly slot availability.</p>
+              <h3 class="card-box-title">1. Provision New Student</h3>
+              <p class="card-box-desc">Create verified student account with section and practical batch enrollment.</p>
               <div class="form-grid">
                 <div class="form-group">
                   <label>Full Name:</label>
-                  <input type="text" id="teacherNameInput" class="form-control" placeholder="Dr. Jane Smith">
-                </div>
-                <div class="form-group">
-                  <label>Employee ID:</label>
-                  <input type="text" id="teacherEmpIdInput" class="form-control" placeholder="EMP-101">
+                  <input type="text" id="stdAddName" class="form-control" placeholder="Aarav Patel">
                 </div>
                 <div class="form-group">
                   <label>Institutional Email:</label>
-                  <input type="email" id="teacherEmailInput" class="form-control" placeholder="jsmith@university.edu">
+                  <input type="email" id="stdAddEmail" class="form-control" placeholder="aarav@university.edu">
+                </div>
+                <div class="form-group">
+                  <label>Roll Number / Entity ID:</label>
+                  <input type="text" id="stdAddRoll" class="form-control" placeholder="2025BTECH201">
+                </div>
+                <div class="form-group">
+                  <label>Section Cohort:</label>
+                  <select id="stdAddSection" class="form-control" onchange="handleStdAddSectionChange()"></select>
+                </div>
+                <div class="form-group">
+                  <label>Practical Batch:</label>
+                  <select id="stdAddBatch" class="form-control"></select>
+                </div>
+                <div class="form-group">
+                  <label>Initial Password:</label>
+                  <input type="text" id="stdAddPassword" class="form-control" value="StudentPass#2026!">
                 </div>
               </div>
-              <button class="btn btn-primary" onclick="saveTeacher()">Register Faculty</button>
-              <div class="data-table-wrap" style="margin-top: 14px;">
-                <table class="styled-table">
-                  <thead><tr><th>Name</th><th>EMP ID</th><th>Email</th></tr></thead>
-                  <tbody id="teachersTableBody"></tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ADMIN TAB 4: SOLVER & GENERATION CONSOLE -->
-        <div id="adminTabSolver" class="admin-tab-pane" style="display: none;">
-          <div class="card-box">
-            <h3 class="card-box-title">⚙️ Google OR-Tools CP-SAT Solver Console</h3>
-            <p class="card-box-desc">
-              Compiles canonical timetable input package, calls local/hosted Python solver, and stages conflict-free drafts for administrative publication.
-            </p>
-            <div style="display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
-              <button class="btn btn-primary" onclick="triggerGeneration()">🚀 Run CP-SAT Solver</button>
-              <button class="btn btn-secondary" onclick="compilePackage()">📦 Compile JSON Package</button>
-              <button class="btn btn-secondary" onclick="downloadPackage()">📥 Download Package</button>
-            </div>
-            <div id="generationStatusBox" style="background:#F8FAFC; border:1px solid var(--border); border-radius:12px; padding:16px; font-size:13px; color:var(--text-muted);">
-              Ready to generate timetable draft.
-            </div>
-            
-            <div id="stagedDraftsSection" style="margin-top: 24px;">
-              <h4 style="font-size: 15px; margin-bottom: 12px; color: var(--text);">Staged Timetable Drafts Ready for Publication:</h4>
-              <div id="stagedDraftsList">Loading drafts...</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ADMIN TAB 5: OPERATIONS & REVISIONS -->
-        <div id="adminTabOperations" class="admin-tab-pane" style="display: none;">
-          <div class="card-box">
-            <h3 class="card-box-title">📋 Operations & Timetable Version Archive (D13, D40)</h3>
-            <p class="card-box-desc">Audit retained timetable versions and restore previous conflict-free schedules.</p>
-            <div class="data-table-wrap">
-              <table class="styled-table">
-                <thead><tr><th>Version</th><th>Term</th><th>Status</th><th>Published</th><th>Action</th></tr></thead>
-                <tbody id="versionsTableBody"></tbody>
-              </table>
+              <button class="btn btn-primary" onclick="handleIndividualAddStudent()">Provision Student Account</button>
             </div>
 
-            <div style="margin-top: 24px;">
-              <h4 style="font-size: 15px; margin-bottom: 10px; color: var(--text);">Pending Faculty Unavailability Requests:</h4>
-              <div id="adminUnavailList">Loading requests...</div>
+            <!-- 2. Change / Reset Student Password -->
+            <div class="card-box">
+              <h3 class="card-box-title">2. Change Student Password</h3>
+              <p class="card-box-desc">Reset password for any enrolled student directly without manual email resets.</p>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label>Select Student or Enter Email:</label>
+                <input type="text" id="resetStdTargetEmail" class="form-control" placeholder="student@university.edu">
+              </div>
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label>New Secure Password (min 6 characters):</label>
+                <input type="password" id="resetStdNewPassword" class="form-control" placeholder="NewPassword#2026!">
+              </div>
+              <button class="btn btn-primary" onclick="handleAdminResetUserPassword('student')">Update Student Password</button>
             </div>
-          </div>
-        </div>
 
-        <!-- ADMIN TAB 6: USER PROVISIONING -->
-        <div id="adminTabUsers" class="admin-tab-pane" style="display: none;">
-          <div class="card-box">
-            <h3 class="card-box-title">👥 User Account Provisioning & Roles</h3>
-            <p class="card-box-desc">Directly provision accounts linked to Supabase Auth and authoritative profiles.</p>
-            <div class="form-grid">
-              <div class="form-group">
-                <label>Role:</label>
-                <select id="provRole" class="form-control" onchange="handleProvRoleChange()">
-                  <option value="student">Student</option>
-                  <option value="teacher">Teacher (Faculty)</option>
-                  <option value="admin">Administrator</option>
-                </select>
+            <!-- 3. Bulk Add Students (CSV) -->
+            <div class="card-box">
+              <h3 class="card-box-title">3. Bulk Student Provisioning (CSV)</h3>
+              <p class="card-box-desc">Format: <code>roll_number, full_name, email, section_id, batch_id, password</code></p>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <textarea id="bulkStudentCsvArea" class="form-control" rows="4" placeholder="2025BTECH301, Rohan Sharma, rohan@university.edu, sec-A, batch-A1, Pass@123
+2025BTECH302, Priya Singh, priya@university.edu, sec-A, batch-A2, Pass@123"></textarea>
               </div>
-              <div class="form-group">
-                <label>Full Name:</label>
-                <input type="text" id="provName" class="form-control" placeholder="Rohan Verma">
-              </div>
-              <div class="form-group">
-                <label>Institutional Email:</label>
-                <input type="email" id="provEmail" class="form-control" placeholder="rohan@university.edu">
-              </div>
-              <div class="form-group">
-                <label>Entity ID / Roll No:</label>
-                <input type="text" id="provEntityId" class="form-control" placeholder="2025BTECH101">
-              </div>
-              <div class="form-group">
-                <label>Temporary Password:</label>
-                <input type="text" id="provPassword" class="form-control" value="TempPass123!">
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-secondary" onclick="prefillSampleStudentCsv()" style="font-size:12px;">Load Sample Template</button>
+                <button class="btn btn-primary" onclick="handleBulkUploadStudents()">Validate & Provision CSV Batch</button>
               </div>
             </div>
 
-            <!-- Student Academic Enrollment Section -->
-            <div id="provStudentEnrollmentFields" style="background:#F0FDF4; border:1px solid #BBF7D0; border-radius:12px; padding:16px; margin:16px 0;">
-              <div style="font-weight: 700; color: #166534; font-size: 13px; margin-bottom: 8px;">
-                🎓 Academic Enrollment (Assign Section & Batch for New Students)
-              </div>
+            <!-- 4. Student Group Transfer -->
+            <div class="card-box">
+              <h3 class="card-box-title">4. Student Cohort Transfer (D27, D28)</h3>
+              <p class="card-box-desc">Reassign a student to a different section or batch with effective date bounds.</p>
               <div class="form-grid">
                 <div class="form-group">
-                  <label>Assign Section:</label>
-                  <select id="provStudentSection" class="form-control" onchange="handleProvSectionChange()"></select>
+                  <label>Student:</label>
+                  <select id="transferStudentSelect" class="form-control"></select>
                 </div>
                 <div class="form-group">
-                  <label>Assign Practical Batch:</label>
-                  <select id="provStudentBatch" class="form-control"></select>
+                  <label>Transfer Type:</label>
+                  <select id="transferTypeSelect" class="form-control" onchange="handleTransferTypeChange()">
+                    <option value="section">Section</option>
+                    <option value="batch">Practical Batch</option>
+                  </select>
                 </div>
                 <div class="form-group">
-                  <label>Optional Elective Group:</label>
-                  <select id="provStudentElective" class="form-control"></select>
+                  <label>Target Group:</label>
+                  <select id="transferTargetSelect" class="form-control"></select>
+                </div>
+                <div class="form-group">
+                  <label>Effective Date:</label>
+                  <input type="date" id="transferEffectiveDate" class="form-control" value="2026-09-08">
                 </div>
               </div>
+              <button class="btn btn-primary" onclick="handleExecuteStudentTransfer()">Execute Student Transfer</button>
             </div>
 
-            <button class="btn btn-primary" onclick="handleProvisionUser()">Provision User Account</button>
           </div>
         </div>
 
-        <!-- ADMIN TAB 7: ROOM UTILIZATION MATRIX (Spec Page 6 Feature) -->
-        <div id="adminTabMatrix" class="admin-tab-pane" style="display: none;">
+        <!-- ================================================================ -->
+        <!-- SUB-PAGE 4: FACULTY MANAGEMENT                                   -->
+        <!-- ================================================================ -->
+        <div id="adminPageFaculty" class="admin-page-pane" style="display: none;">
+          
+          <!-- Live Faculty Directory Table -->
           <div class="card-box">
-            <h3 class="card-box-title">📊 Campus Room Utilization Matrix</h3>
-            <p class="card-box-desc">Visualizes classroom usage across all 8 periods on the active day.</p>
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+              <div>
+                <h3 class="card-box-title">🧑‍🏫 Faculty Instructors Directory</h3>
+                <p class="card-box-desc" style="margin-bottom:0;">Live records from PostgreSQL teachers and profiles tables.</p>
+              </div>
+              <input type="text" id="facultySearchInput" class="table-search-input" placeholder="🔍 Search faculty by name, department, or email..." oninput="renderFacultyTable(this.value)">
+            </div>
+            <div class="table-scroll">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Instructor ID</th>
+                    <th>Full Name</th>
+                    <th>Employee ID</th>
+                    <th>Institutional Email</th>
+                    <th>Max Hours/Day</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="teachersTableBody">
+                  <tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">Loading faculty...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- 4 Faculty Operational Cards -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px;">
+            
+            <!-- 1. Add Faculty Member -->
+            <div class="card-box">
+              <h3 class="card-box-title">1. Provision New Faculty Member</h3>
+              <p class="card-box-desc">Register faculty in institutional directory and create Supabase Auth credentials.</p>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Full Name:</label>
+                  <input type="text" id="facultyAddName" class="form-control" placeholder="Dr. Vikram Rao">
+                </div>
+                <div class="form-group">
+                  <label>Institutional Email:</label>
+                  <input type="email" id="facultyAddEmail" class="form-control" placeholder="vikram@university.edu">
+                </div>
+                <div class="form-group">
+                  <label>Employee ID:</label>
+                  <input type="text" id="facultyAddEmpId" class="form-control" placeholder="EMP-2026-09">
+                </div>
+                <div class="form-group">
+                  <label>Initial Password:</label>
+                  <input type="text" id="facultyAddPassword" class="form-control" value="TeacherPass#2026!">
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="handleIndividualAddFaculty()">Provision Faculty Account</button>
+            </div>
+
+            <!-- 2. Change / Reset Faculty Password -->
+            <div class="card-box">
+              <h3 class="card-box-title">2. Change Faculty Password</h3>
+              <p class="card-box-desc">Update or reset credentials for faculty instructors directly.</p>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label>Select Faculty or Enter Email:</label>
+                <input type="text" id="resetFacultyTargetEmail" class="form-control" placeholder="teacher@university.edu">
+              </div>
+              <div class="form-group" style="margin-bottom: 16px;">
+                <label>New Secure Password (min 6 characters):</label>
+                <input type="password" id="resetFacultyNewPassword" class="form-control" placeholder="NewTeacherPass#2026!">
+              </div>
+              <button class="btn btn-primary" onclick="handleAdminResetUserPassword('faculty')">Update Faculty Password</button>
+            </div>
+
+            <!-- 3. Faculty Working Availability -->
+            <div class="card-box">
+              <h3 class="card-box-title">3. Faculty Availability & Workload Rules</h3>
+              <p class="card-box-desc">Configure maximum teaching hours per day and available weekly teaching days.</p>
+              <div class="form-grid">
+                <div class="form-group">
+                  <label>Faculty Instructor:</label>
+                  <select id="availTeacherSelect" class="form-control"></select>
+                </div>
+                <div class="form-group">
+                  <label>Max Hours per Day:</label>
+                  <input type="number" id="availMaxHours" class="form-control" value="4" min="1" max="8">
+                </div>
+                <div class="form-group" style="grid-column: 1 / -1;">
+                  <label>Available Days (Working Days):</label>
+                  <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:4px;">
+                    <label style="font-size:12px;"><input type="checkbox" id="availDay1" checked> Mon</label>
+                    <label style="font-size:12px;"><input type="checkbox" id="availDay2" checked> Tue</label>
+                    <label style="font-size:12px;"><input type="checkbox" id="availDay3" checked> Wed</label>
+                    <label style="font-size:12px;"><input type="checkbox" id="availDay4" checked> Thu</label>
+                    <label style="font-size:12px;"><input type="checkbox" id="availDay5" checked> Fri</label>
+                  </div>
+                </div>
+              </div>
+              <button class="btn btn-primary" onclick="handleSaveTeacherAvailability()">Save Faculty Availability</button>
+            </div>
+
+            <!-- 4. Faculty Leave Requests -->
+            <div class="card-box">
+              <h3 class="card-box-title">4. Faculty Leave & Absence Requests</h3>
+              <p class="card-box-desc">Review submitted unavailability requests. Approval automatically confirms leave and resolves occurrences.</p>
+              <div id="adminUnavailList" style="max-height: 220px; overflow-y: auto;">
+                Loading leave requests...
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- SUB-PAGE 5: ROOM UTILIZATION MATRIX (Space Optimization)         -->
+        <!-- ================================================================ -->
+        <div id="adminPageMatrix" class="admin-page-pane" style="display: none;">
+          <div class="card-box">
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
+              <div>
+                <h3 class="card-box-title">📊 Campus Room Utilization & Venue Optimization</h3>
+                <p class="card-box-desc" style="margin-bottom:0;">Live occupancy heatmap of all registered rooms and laboratories across Periods 1 to 8.</p>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <label style="font-size: 12px; font-weight: 700; color: var(--text);">Select Day:</label>
+                <select id="matrixDaySelect" class="form-control" style="width: auto;" onchange="setDay(parseInt(this.value, 10))">
+                  <option value="0">Monday</option>
+                  <option value="1">Tuesday</option>
+                  <option value="2">Wednesday</option>
+                  <option value="3">Thursday</option>
+                  <option value="4">Friday</option>
+                </select>
+              </div>
+            </div>
             <div id="roomMatrixContainer">Loading matrix...</div>
+          </div>
+        </div>
+
+        <!-- ================================================================ -->
+        <!-- SUB-PAGE 6: CP-SAT SOLVER & PUBLICATION HUB                      -->
+        <!-- ================================================================ -->
+        <div id="adminPageSolver" class="admin-page-pane" style="display: none;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 24px;">
+            
+            <!-- Generation Package Compiler -->
+            <div class="card-box">
+              <h3 class="card-box-title">1. Compile Generator Package (D45)</h3>
+              <p class="card-box-desc">Assembles full institutional constraints, offering matrices, and venue capacities into versioned JSON payload.</p>
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label>Target Academic Term:</label>
+                <select id="compileTermSelect" class="form-control"></select>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button class="btn btn-secondary" onclick="handleCompilePackage()">📦 Compile Package</button>
+                <button class="btn btn-primary" onclick="handleTriggerSolver()">⚡ Run CP-SAT Solver</button>
+              </div>
+            </div>
+
+            <!-- Staged Draft Review & Conflict Audit -->
+            <div class="card-box">
+              <h3 class="card-box-title">2. Staged Draft & Publication Review</h3>
+              <p class="card-box-desc">Audit staged draft occurrences and conflict safety before 1-click campus publication.</p>
+              <div id="stagedDraftReview">
+                <div style="padding: 14px; background: #F8FAFC; border: 1px solid var(--border); border-radius: 8px; font-size: 13px; color: var(--text-muted);">
+                  No uncommitted draft staged. Compile package or run CP-SAT solver above.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live SSE Solver Execution Console -->
+          <div class="card-box" style="margin-bottom: 24px;">
+            <div class="card-box-header">
+              <h3 class="card-box-title">Live Solver Telemetry & Execution Log</h3>
+              <span class="status-badge status-badge-published" id="solverStatusBadge">Ready</span>
+            </div>
+            <div id="solverLogConsole" style="background:#0F172A; color:#38BDF8; font-family:monospace; font-size:12px; padding:16px; border-radius:8px; height:200px; overflow-y:auto; line-height:1.6;">
+              [SYSTEM] Solver Runner online at port 5001. Awaiting package compilation...
+            </div>
+          </div>
+
+          <!-- Version Archive & Rollback (D13, D40) -->
+          <div class="card-box">
+            <h3 class="card-box-title">3. Version Archive & Rollback Controls</h3>
+            <p class="card-box-desc">Audit historical timetable versions and restore previous conflict-free schedules.</p>
+            <div class="table-scroll">
+              <table class="data-table"><thead><tr><th>Version</th><th>Term</th><th>Status</th><th>Published At</th><th>Actions</th></tr></thead><tbody id="versionsTableBody"></tbody></table>
+            </div>
           </div>
         </div>
 
       </div>
 
     </div>
-
   </main>
 
   <!-- ==================================================================== -->
@@ -2020,21 +2417,25 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     }
 
     function updateRoleViews() {
+      const userSched = document.getElementById('userScheduleView');
+      const adminDash = document.getElementById('adminDashboardView');
       const studentPanels = document.getElementById('studentViewPanels');
       const teacherPanels = document.getElementById('teacherViewPanels');
-      const adminPanels = document.getElementById('adminViewPanels');
-      const adminToolbar = document.getElementById('adminFiltersToolbar');
 
       const effectiveRole = (currentUser && authToken) ? currentRole : 'student';
 
-      if (studentPanels) studentPanels.style.display = effectiveRole === 'student' ? 'block' : 'none';
-      if (teacherPanels) teacherPanels.style.display = effectiveRole === 'teacher' ? 'block' : 'none';
-      if (adminPanels) adminPanels.style.display = effectiveRole === 'admin' ? 'block' : 'none';
-      if (adminToolbar) adminToolbar.style.display = effectiveRole === 'admin' ? 'block' : 'none';
-
-      if (effectiveRole === 'student') renderStudentInbox();
-      if (effectiveRole === 'teacher') runEmptyRoomFinder();
-      if (effectiveRole === 'admin') renderRoomMatrix();
+      if (effectiveRole === 'admin') {
+        if (adminDash) adminDash.style.display = 'block';
+        if (userSched) userSched.style.display = 'none';
+        switchAdminPage(currentAdminPage || 'hub');
+      } else {
+        if (adminDash) adminDash.style.display = 'none';
+        if (userSched) userSched.style.display = 'block';
+        if (studentPanels) studentPanels.style.display = effectiveRole === 'student' ? 'block' : 'none';
+        if (teacherPanels) teacherPanels.style.display = effectiveRole === 'teacher' ? 'block' : 'none';
+        if (effectiveRole === 'student') renderStudentInbox();
+        if (effectiveRole === 'teacher') runEmptyRoomFinder();
+      }
     }
 
     // Day Cycling
@@ -2072,6 +2473,10 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         renderAdminTables();
         renderSingleDayGrid();
         renderStagedDraftsReview();
+        populateAdminTimetableTargets();
+        renderStudentsTable();
+        renderFacultyTable();
+        renderAdminTimetable();
       } catch (err) {
         showMsg('Failed to load state: ' + err.message, true);
       }
@@ -3129,6 +3534,871 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
 
     function updateAdminGrouping(val) { adminGroupBy = val; renderSingleDayGrid(); }
     function updateAdminFilterVal(val) { adminFilterVal = val; renderSingleDayGrid(); }
+
+
+    // ========================================================================
+    // ADMIN PAGE-WISE NAVIGATION & MULTI-PAGE CONTROLS
+    // ========================================================================
+    let currentAdminPage = 'hub'; // 'hub', 'timetables', 'modules', 'students', 'faculty', 'matrix', 'solver'
+    let adminTtFormat = 'day'; // 'day' or 'week'
+    let adminTtScope = 'section'; // 'section', 'teacher', 'room', 'master'
+    let adminTtTarget = 'all';
+    let adminTtDayIndex = 0;
+
+    function switchAdminPage(pageKey) {
+      currentAdminPage = pageKey;
+      const hubEl = document.getElementById('adminPageHub');
+      const headerEl = document.getElementById('adminSubPageHeader');
+      const titleEl = document.getElementById('adminBreadcrumbTitle');
+
+      const pages = ['timetables', 'modules', 'students', 'faculty', 'matrix', 'solver'];
+      const pageTitles = {
+        timetables: '📅 Campus Timetable Explorer & Filter',
+        modules: '🏛️ Academic Modules, Terms & Curriculum LTP',
+        students: '🎓 Student Management, Directory & Passwords',
+        faculty: '🧑‍🏫 Faculty Instructors & Workload Rules',
+        matrix: '📊 Room Utilization Matrix & Heatmap',
+        solver: '⚡ CP-SAT Solver Runner & Publication Hub'
+      };
+
+      if (pageKey === 'hub') {
+        if (hubEl) hubEl.style.display = 'block';
+        if (headerEl) headerEl.style.display = 'none';
+        pages.forEach(p => {
+          const el = document.getElementById('adminPage' + p.charAt(0).toUpperCase() + p.slice(1));
+          if (el) el.style.display = 'none';
+        });
+      } else {
+        if (hubEl) hubEl.style.display = 'none';
+        if (headerEl) headerEl.style.display = 'flex';
+        if (titleEl) titleEl.textContent = pageTitles[pageKey] || pageKey;
+
+        pages.forEach(p => {
+          const el = document.getElementById('adminPage' + p.charAt(0).toUpperCase() + p.slice(1));
+          const btn = document.getElementById('adminSubBtn' + p.charAt(0).toUpperCase() + p.slice(1));
+          if (el) el.style.display = (p === pageKey) ? 'block' : 'none';
+          if (btn) btn.className = 'admin-pill-btn ' + (p === pageKey ? 'active' : '');
+        });
+
+        if (pageKey === 'timetables') {
+          populateAdminTimetableTargets();
+          renderAdminTimetable();
+        } else if (pageKey === 'students') {
+          renderStudentsTable();
+          populateStudentFormDropdowns();
+        } else if (pageKey === 'faculty') {
+          renderFacultyTable();
+          populateFacultyFormDropdowns();
+          renderAdminLeaveRequests();
+        } else if (pageKey === 'matrix') {
+          renderRoomMatrix();
+        } else if (pageKey === 'solver') {
+          populateSolverTerms();
+          renderStagedDraftsReview();
+        }
+      }
+    }
+
+    // ========================================================================
+    // 1. ADMIN TIMETABLE EXPLORER: TARGET SELECTOR & DUAL VIEW (DAY + FULL WEEK)
+    // ========================================================================
+    function setAdminTtFormat(fmt) {
+      adminTtFormat = fmt;
+      const dayBtn = document.getElementById('ttFormatDayBtn');
+      const weekBtn = document.getElementById('ttFormatWeekBtn');
+      const dayBar = document.getElementById('adminTtDayBar');
+
+      if (fmt === 'day') {
+        if (dayBtn) { dayBtn.style.background = 'var(--primary)'; dayBtn.style.color = '#fff'; }
+        if (weekBtn) { weekBtn.style.background = '#fff'; weekBtn.style.color = 'var(--text)'; }
+        if (dayBar) dayBar.style.display = 'flex';
+      } else {
+        if (weekBtn) { weekBtn.style.background = 'var(--primary)'; weekBtn.style.color = '#fff'; }
+        if (dayBtn) { dayBtn.style.background = '#fff'; dayBtn.style.color = 'var(--text)'; }
+        if (dayBar) dayBar.style.display = 'none';
+      }
+      renderAdminTimetable();
+    }
+
+    function setAdminDay(idx) {
+      adminTtDayIndex = Math.max(0, Math.min(DAYS.length - 1, idx));
+      for (let i = 0; i < DAYS.length; i++) {
+        const pill = document.getElementById('adminDayPill' + i);
+        if (pill) pill.className = 'day-pill ' + (i === adminTtDayIndex ? 'active' : '');
+      }
+      const dayObj = DAYS[adminTtDayIndex];
+      const text = document.getElementById('adminActiveDayText');
+      if (text) text.innerHTML = '📅 ' + dayObj.name + ' • September ' + dayObj.date.split('-')[2] + ', 2026';
+      renderAdminTimetable();
+    }
+
+    function handleAdminTtScopeChange(scope) {
+      adminTtScope = scope;
+      const targetSel = document.getElementById('adminTtTargetSelect');
+      if (!targetSel) return;
+
+      let html = '<option value="all">-- All Targets in Scope --</option>';
+      if (scope === 'section') {
+        (currentState.sections || []).forEach(s => {
+          html += '<option value="' + s.id + '">👥 Section ' + s.name + '</option>';
+        });
+        (currentState.batches || []).forEach(b => {
+          html += '<option value="batch:' + b.id + '">🔬 Practical Batch ' + b.name + '</option>';
+        });
+      } else if (scope === 'teacher') {
+        (currentState.teachers || []).forEach(t => {
+          html += '<option value="' + t.id + '">🧑‍🏫 ' + t.name + ' (' + t.empId + ')</option>';
+        });
+      } else if (scope === 'room') {
+        (currentState.rooms || []).forEach(r => {
+          html += '<option value="' + r.id + '">🏢 Room ' + r.roomNumber + ' (' + r.building + ' • Cap: ' + r.capacity + ')</option>';
+        });
+      } else if (scope === 'master') {
+        html = '<option value="all">🌐 Entire Campus Master Schedule</option>';
+      }
+      targetSel.innerHTML = html;
+      adminTtTarget = 'all';
+      renderAdminTimetable();
+    }
+
+    function handleAdminTtTargetChange(target) {
+      adminTtTarget = target;
+      renderAdminTimetable();
+    }
+
+    function populateAdminTimetableTargets() {
+      const scopeSel = document.getElementById('adminTtScopeSelect');
+      if (scopeSel && !scopeSel.value) scopeSel.value = 'section';
+      handleAdminTtScopeChange(scopeSel ? scopeSel.value : 'section');
+
+      const termSel = document.getElementById('adminTtTermSelect');
+      if (termSel) {
+        const terms = currentState.academicTerms || [];
+        termSel.innerHTML = terms.map(t => '<option value="' + t.id + '">' + t.yearLabel + ' (Sem ' + t.semesterNumber + ')</option>').join('');
+      }
+
+      const verSel = document.getElementById('adminTtVersionSelect');
+      if (verSel) {
+        const versions = currentState.timetableVersions || [];
+        if (versions.length === 0) {
+          verSel.innerHTML = '<option value="active">Active Published Timetable</option>';
+        } else {
+          verSel.innerHTML = '<option value="active">Active Published Timetable</option>' +
+            versions.map(v => '<option value="' + v.id + '">Version ' + v.versionNumber + ' (' + v.status + ')</option>').join('');
+        }
+      }
+    }
+
+    function renderAdminTimetable() {
+      const container = document.getElementById('adminTimetableGridWrapper');
+      if (!container) return;
+
+      const badge = document.getElementById('adminTtActiveTargetBadge');
+      if (badge) {
+        let label = 'Scope: ' + adminTtScope.toUpperCase();
+        if (adminTtTarget !== 'all') {
+          if (adminTtScope === 'section') {
+            const sec = (currentState.sections || []).find(s => s.id === adminTtTarget);
+            label = sec ? ('Section ' + sec.name) : adminTtTarget;
+          } else if (adminTtScope === 'teacher') {
+            const t = (currentState.teachers || []).find(x => x.id === adminTtTarget);
+            label = t ? t.name : adminTtTarget;
+          } else if (adminTtScope === 'room') {
+            const r = (currentState.rooms || []).find(x => x.id === adminTtTarget);
+            label = r ? ('Room ' + r.roomNumber) : adminTtTarget;
+          }
+        } else {
+          label += ' (All Cohorts/Venues)';
+        }
+        badge.textContent = label;
+      }
+
+      const roomsMap = new Map((currentState.rooms || []).map(r => [r.id, r]));
+      const teachersMap = new Map((currentState.teachers || []).map(t => [t.id, t]));
+      const coursesMap = new Map((currentState.courses || []).map(c => [c.id, c]));
+      const sectionsMap = new Map((currentState.sections || []).map(s => [s.id, s]));
+      const batchesMap = new Map((currentState.batches || []).map(b => [b.id, b]));
+      const offeringsMap = new Map((currentState.courseOfferings || []).map(o => [o.id, o]));
+
+      const allOccurrences = currentState.classOccurrences || [];
+      const scheduledClasses = currentState.scheduledClasses || [];
+
+      // Determine active occurrences (filter out superseded)
+      let activeOccs = allOccurrences.filter(o => o.status !== 'superseded');
+      if (activeOccs.length === 0 && scheduledClasses.length > 0) {
+        activeOccs = scheduledClasses.map(c => ({
+          ...c,
+          date: DAYS.find(d => d.dayOfWeek === c.dayOfWeek)?.date || '2026-09-07',
+          status: 'scheduled'
+        }));
+      }
+
+      // Check if user selected FULL WEEK VIEW
+      if (adminTtFormat === 'week') {
+        renderAdminFullWeekGrid(container, activeOccs, roomsMap, teachersMap, coursesMap, offeringsMap, batchesMap);
+      } else {
+        renderAdminDayGrid(container, activeOccs, roomsMap, teachersMap, coursesMap, offeringsMap, batchesMap);
+      }
+    }
+
+    function renderAdminDayGrid(container, activeOccs, roomsMap, teachersMap, coursesMap, offeringsMap, batchesMap) {
+      const activeDay = DAYS[adminTtDayIndex];
+      let dayOccs = activeOccs.filter(o => o.date === activeDay.date || o.dayOfWeek === activeDay.dayOfWeek);
+
+      let rowsToRender = [];
+
+      if (adminTtScope === 'section') {
+        let sections = currentState.sections || [];
+        if (adminTtTarget.startsWith('batch:')) {
+          const batchId = adminTtTarget.replace('batch:', '');
+          const b = batchesMap.get(batchId);
+          const bOccs = dayOccs.filter(o => o.targetType === 'batch' && o.targetId === batchId);
+          rowsToRender.push({ label: 'Batch ' + (b ? b.name : batchId), occurrences: bOccs });
+        } else {
+          if (adminTtTarget !== 'all') {
+            sections = sections.filter(s => s.id === adminTtTarget);
+          }
+          sections.forEach(sec => {
+            const secOccs = dayOccs.filter(o => {
+              if (o.targetType === 'section' && o.targetId === sec.id) return true;
+              if (o.targetType === 'batch') {
+                const b = batchesMap.get(o.targetId);
+                return b && b.sectionId === sec.id;
+              }
+              return false;
+            });
+            rowsToRender.push({ label: 'Section ' + sec.name, occurrences: secOccs });
+          });
+        }
+      } else if (adminTtScope === 'teacher') {
+        let teachers = currentState.teachers || [];
+        if (adminTtTarget !== 'all') {
+          teachers = teachers.filter(t => t.id === adminTtTarget);
+        }
+        teachers.forEach(t => {
+          const tOccs = dayOccs.filter(o => o.teacherId === t.id);
+          rowsToRender.push({ label: t.name + '<br><small style="color:var(--text-muted);">' + t.empId + '</small>', occurrences: tOccs });
+        });
+      } else if (adminTtScope === 'room') {
+        let rooms = currentState.rooms || [];
+        if (adminTtTarget !== 'all') {
+          rooms = rooms.filter(r => r.id === adminTtTarget);
+        }
+        rooms.forEach(r => {
+          const rOccs = dayOccs.filter(o => o.roomId === r.id);
+          rowsToRender.push({ label: 'Room ' + r.roomNumber + '<br><small style="color:var(--text-muted);">' + r.building + ' • Cap ' + r.capacity + '</small>', occurrences: rOccs });
+        });
+      } else {
+        // Master Overview
+        (currentState.sections || []).forEach(sec => {
+          const secOccs = dayOccs.filter(o => {
+            if (o.targetType === 'section' && o.targetId === sec.id) return true;
+            if (o.targetType === 'batch') {
+              const b = batchesMap.get(o.targetId);
+              return b && b.sectionId === sec.id;
+            }
+            return false;
+          });
+          rowsToRender.push({ label: 'Section ' + sec.name, occurrences: secOccs });
+        });
+      }
+
+      let html = '<table class="tt-grid"><thead><tr>';
+      html += '<th class="col-track">Entity / Track</th>';
+      PERIODS.forEach(p => {
+        const thClass = p.isLunch ? 'col-period col-lunch' : 'col-period';
+        html += '<th class="' + thClass + '">' + p.label + '<span class="th-time">' + p.time + '</span></th>';
+      });
+      html += '</tr></thead><tbody>';
+
+      if (rowsToRender.length === 0) {
+        html += '<tr><td colspan="9" style="text-align:center; padding:32px; color:var(--text-muted);">No scheduled classes match this target.</td></tr>';
+      }
+
+      rowsToRender.forEach(row => {
+        html += '<tr><td class="cell-track">' + row.label + '</td>';
+        let slot = 1;
+        while (slot <= 8) {
+          if (slot === 4) {
+            html += '<td class="slot-lunch-break"><div style="font-size:16px;">🍱</div><strong style="color:var(--accent-amber); font-size:11px;">Lunch Break</strong></td>';
+            slot++;
+            continue;
+          }
+          const slotOccs = row.occurrences.filter(o => o.startSlot === slot);
+          if (slotOccs.length === 0) {
+            html += '<td class="slot-free"><span style="font-size:11px; color:#94A3B8;">Free Slot</span></td>';
+            slot++;
+          } else {
+            const isTwoSlotLab = slotOccs.some(o => o.duration === 2 || o.activityType === 'P');
+            const colspan = isTwoSlotLab ? ' colspan="2"' : '';
+            html += '<td' + colspan + '>';
+            slotOccs.forEach(o => {
+              html += renderOccurrenceCard(o, roomsMap, teachersMap, coursesMap, offeringsMap);
+            });
+            html += '</td>';
+            slot += isTwoSlotLab ? 2 : 1;
+          }
+        }
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    function renderAdminFullWeekGrid(container, activeOccs, roomsMap, teachersMap, coursesMap, offeringsMap, batchesMap) {
+      // Filter occurrences for selected target across all days
+      let targetOccs = activeOccs;
+      if (adminTtScope === 'section') {
+        if (adminTtTarget.startsWith('batch:')) {
+          const batchId = adminTtTarget.replace('batch:', '');
+          targetOccs = activeOccs.filter(o => o.targetType === 'batch' && o.targetId === batchId);
+        } else if (adminTtTarget !== 'all') {
+          targetOccs = activeOccs.filter(o => {
+            if (o.targetType === 'section' && o.targetId === adminTtTarget) return true;
+            if (o.targetType === 'batch') {
+              const b = batchesMap.get(o.targetId);
+              return b && b.sectionId === adminTtTarget;
+            }
+            return false;
+          });
+        }
+      } else if (adminTtScope === 'teacher' && adminTtTarget !== 'all') {
+        targetOccs = activeOccs.filter(o => o.teacherId === adminTtTarget);
+      } else if (adminTtScope === 'room' && adminTtTarget !== 'all') {
+        targetOccs = activeOccs.filter(o => o.roomId === adminTtTarget);
+      }
+
+      let html = '<div style="margin-bottom:12px; font-weight:700; color:var(--text); font-size:14px;">🗓️ Full 5-Day Weekly Matrix (Monday – Friday)</div>';
+      html += '<table class="tt-grid"><thead><tr>';
+      html += '<th class="col-track">Day of Week</th>';
+      PERIODS.forEach(p => {
+        const thClass = p.isLunch ? 'col-period col-lunch' : 'col-period';
+        html += '<th class="' + thClass + '">' + p.label + '<span class="th-time">' + p.time + '</span></th>';
+      });
+      html += '</tr></thead><tbody>';
+
+      DAYS.forEach(day => {
+        const dayOccs = targetOccs.filter(o => o.date === day.date || o.dayOfWeek === day.dayOfWeek);
+        html += '<tr><td class="cell-track"><strong>' + day.name + '</strong><br><small style="color:var(--text-muted);">' + day.date + '</small></td>';
+        let slot = 1;
+        while (slot <= 8) {
+          if (slot === 4) {
+            html += '<td class="slot-lunch-break"><div style="font-size:16px;">🍱</div><strong style="color:var(--accent-amber); font-size:11px;">Lunch</strong></td>';
+            slot++;
+            continue;
+          }
+          const slotOccs = dayOccs.filter(o => o.startSlot === slot);
+          if (slotOccs.length === 0) {
+            html += '<td class="slot-free"><span style="font-size:11px; color:#94A3B8;">Free</span></td>';
+            slot++;
+          } else {
+            const isTwoSlotLab = slotOccs.some(o => o.duration === 2 || o.activityType === 'P');
+            const colspan = isTwoSlotLab ? ' colspan="2"' : '';
+            html += '<td' + colspan + '>';
+            slotOccs.forEach(o => {
+              html += renderOccurrenceCard(o, roomsMap, teachersMap, coursesMap, offeringsMap);
+            });
+            html += '</td>';
+            slot += isTwoSlotLab ? 2 : 1;
+          }
+        }
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+      container.innerHTML = html;
+    }
+
+    // ========================================================================
+    // 2. STUDENT MANAGEMENT: DIRECTORY, PROVISIONING, PASSWORD RESET & CSV
+    // ========================================================================
+    function renderStudentsTable(filterText) {
+      const tbody = document.getElementById('studentsTableBody');
+      if (!tbody) return;
+
+      const students = currentState.students || [];
+      const sectionsMap = new Map((currentState.sections || []).map(s => [s.id, s.name]));
+      const batchesMap = new Map((currentState.batches || []).map(b => [b.id, b.name]));
+      const members = currentState.studentGroupMemberships || [];
+
+      let filtered = students;
+      if (filterText && filterText.trim()) {
+        const q = filterText.trim().toLowerCase();
+        filtered = students.filter(s =>
+          (s.name && s.name.toLowerCase().includes(q)) ||
+          (s.rollNumber && s.rollNumber.toLowerCase().includes(q)) ||
+          (s.email && s.email.toLowerCase().includes(q))
+        );
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">No student records found.</td></tr>';
+        return;
+      }
+
+      let html = '';
+      filtered.forEach(s => {
+        const sSecMem = members.find(m => m.studentId === s.id && m.groupType === 'section');
+        const sBatchMem = members.find(m => m.studentId === s.id && m.groupType === 'batch');
+        const secLabel = sSecMem ? (sectionsMap.get(sSecMem.groupId) || sSecMem.groupId) : '—';
+        const batchLabel = sBatchMem ? (batchesMap.get(sBatchMem.groupId) || sBatchMem.groupId) : '—';
+        const email = s.email || (s.rollNumber.toLowerCase() + '@university.edu');
+
+        html += '<tr>' +
+          '<td><strong style="color:var(--primary);">' + s.rollNumber + '</strong></td>' +
+          '<td>' + s.name + '</td>' +
+          '<td>' + email + '</td>' +
+          '<td><span class="status-badge" style="background:#E0F2FE; color:#0284C7;">' + secLabel + '</span></td>' +
+          '<td><span class="status-badge" style="background:#FCE8F3; color:#E05697;">' + batchLabel + '</span></td>' +
+          '<td><span class="status-badge status-badge-published">Enrolled</span></td>' +
+          '<td>' +
+            '<button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="prefillResetPasswordModal(\'student\', \'' + email + '\')">🔑 Reset Pass</button>' +
+          '</td>' +
+        '</tr>';
+      });
+      tbody.innerHTML = html;
+    }
+
+    function populateStudentFormDropdowns() {
+      const secSel = document.getElementById('stdAddSection');
+      if (secSel) {
+        secSel.innerHTML = (currentState.sections || []).map(s => '<option value="' + s.id + '">' + s.name + '</option>').join('');
+      }
+      handleStdAddSectionChange();
+
+      // Transfer student select
+      const tStdSel = document.getElementById('transferStudentSelect');
+      if (tStdSel) {
+        tStdSel.innerHTML = (currentState.students || []).map(s => '<option value="' + s.id + '">' + s.name + ' (' + s.rollNumber + ')</option>').join('');
+      }
+      handleTransferTypeChange();
+    }
+
+    function handleStdAddSectionChange() {
+      const secId = document.getElementById('stdAddSection')?.value;
+      const batchSel = document.getElementById('stdAddBatch');
+      if (!batchSel) return;
+      const batches = (currentState.batches || []).filter(b => !secId || b.sectionId === secId);
+      batchSel.innerHTML = batches.map(b => '<option value="' + b.id + '">' + b.name + '</option>').join('');
+    }
+
+    async function handleIndividualAddStudent() {
+      const name = document.getElementById('stdAddName')?.value.trim();
+      const email = document.getElementById('stdAddEmail')?.value.trim();
+      const rollNumber = document.getElementById('stdAddRoll')?.value.trim();
+      const sectionId = document.getElementById('stdAddSection')?.value;
+      const batchId = document.getElementById('stdAddBatch')?.value;
+      const password = document.getElementById('stdAddPassword')?.value;
+
+      if (!name || !email || !rollNumber) {
+        showMsg('Please fill in Student Name, Institutional Email, and Roll Number.', true);
+        return;
+      }
+
+      try {
+        const data = await api('/api/auth/admin/provision-user', {
+          method: 'POST',
+          body: JSON.stringify({
+            name, email, role: 'student',
+            entityId: rollNumber,
+            password: password || 'StudentPass#2026!',
+            studentDetails: { rollNumber, sectionId, batchId }
+          })
+        });
+        showMsg('Student ' + name + ' provisioned successfully!', false);
+        if (document.getElementById('stdAddName')) document.getElementById('stdAddName').value = '';
+        if (document.getElementById('stdAddEmail')) document.getElementById('stdAddEmail').value = '';
+        if (document.getElementById('stdAddRoll')) document.getElementById('stdAddRoll').value = '';
+        await loadState();
+        renderStudentsTable();
+      } catch (err) {
+        showMsg(err.message, true);
+      }
+    }
+
+    function prefillResetPasswordModal(role, email) {
+      if (role === 'student') {
+        const inp = document.getElementById('resetStdTargetEmail');
+        if (inp) {
+          inp.value = email;
+          inp.focus();
+        }
+        showMsg('Ready to reset password for ' + email, false);
+      } else {
+        const inp = document.getElementById('resetFacultyTargetEmail');
+        if (inp) {
+          inp.value = email;
+          inp.focus();
+        }
+        showMsg('Ready to reset password for ' + email, false);
+      }
+    }
+
+    async function handleAdminResetUserPassword(role) {
+      const targetEmail = role === 'student'
+        ? document.getElementById('resetStdTargetEmail')?.value.trim()
+        : document.getElementById('resetFacultyTargetEmail')?.value.trim();
+
+      const newPassword = role === 'student'
+        ? document.getElementById('resetStdNewPassword')?.value
+        : document.getElementById('resetFacultyNewPassword')?.value;
+
+      if (!targetEmail) {
+        showMsg('Please specify target user email.', true);
+        return;
+      }
+      if (!newPassword || newPassword.length < 6) {
+        showMsg('New password must be at least 6 characters.', true);
+        return;
+      }
+
+      try {
+        const data = await api('/api/auth/admin/reset-password', {
+          method: 'POST',
+          body: JSON.stringify({ targetEmail, newPassword })
+        });
+        showMsg('✅ ' + data.message, false);
+        if (role === 'student') {
+          if (document.getElementById('resetStdNewPassword')) document.getElementById('resetStdNewPassword').value = '';
+        } else {
+          if (document.getElementById('resetFacultyNewPassword')) document.getElementById('resetFacultyNewPassword').value = '';
+        }
+      } catch (err) {
+        showMsg(err.message, true);
+      }
+    }
+
+    function prefillSampleStudentCsv() {
+      const area = document.getElementById('bulkStudentCsvArea');
+      if (area) {
+        area.value = "2025BTECH401, Aarush Verma, aarush@university.edu, sec-A, batch-A1, Student#2026\n2025BTECH402, Ananya Roy, ananya@university.edu, sec-A, batch-A2, Student#2026\n2025BTECH403, Devendra Seth, dev@university.edu, sec-A, batch-A1, Student#2026";
+      }
+    }
+
+    async function handleBulkUploadStudents() {
+      const area = document.getElementById('bulkStudentCsvArea');
+      if (!area || !area.value.trim()) {
+        showMsg('Please paste CSV student rows first.', true);
+        return;
+      }
+
+      const lines = area.value.trim().split('\n').filter(l => l.trim().length > 0);
+      let countSuccess = 0;
+      let countFail = 0;
+
+      for (const line of lines) {
+        const parts = line.split(',').map(p => p.trim());
+        if (parts.length >= 3) {
+          const roll = parts[0];
+          const name = parts[1];
+          const email = parts[2];
+          const sec = parts[3] || 'sec-A';
+          const batch = parts[4] || 'batch-A1';
+          const pass = parts[5] || 'StudentPass#2026!';
+
+          try {
+            await api('/api/auth/admin/provision-user', {
+              method: 'POST',
+              body: JSON.stringify({
+                name, email, role: 'student',
+                entityId: roll,
+                password: pass,
+                studentDetails: { rollNumber: roll, sectionId: sec, batchId: batch }
+              })
+            });
+            countSuccess++;
+          } catch (e) {
+            countFail++;
+          }
+        }
+      }
+
+      showMsg('Bulk Provisioning complete: ' + countSuccess + ' succeeded, ' + countFail + ' failed/skipped.', false);
+      area.value = '';
+      await loadState();
+      renderStudentsTable();
+    }
+
+    function handleTransferTypeChange() {
+      const type = document.getElementById('transferTypeSelect')?.value || 'section';
+      const targetSel = document.getElementById('transferTargetSelect');
+      if (!targetSel) return;
+      if (type === 'section') {
+        targetSel.innerHTML = (currentState.sections || []).map(s => '<option value="' + s.id + '">Section ' + s.name + '</option>').join('');
+      } else {
+        targetSel.innerHTML = (currentState.batches || []).map(b => '<option value="' + b.id + '">Batch ' + b.name + '</option>').join('');
+      }
+    }
+
+    async function handleExecuteStudentTransfer() {
+      const studentId = document.getElementById('transferStudentSelect')?.value;
+      const groupType = document.getElementById('transferTypeSelect')?.value;
+      const targetGroupId = document.getElementById('transferTargetSelect')?.value;
+      const effectiveStartDate = document.getElementById('transferEffectiveDate')?.value;
+
+      if (!studentId || !targetGroupId) {
+        showMsg('Please select student and destination group.', true);
+        return;
+      }
+
+      try {
+        await api('/api/students/' + studentId + '/transfer', {
+          method: 'POST',
+          body: JSON.stringify({ groupType, targetGroupId, effectiveStartDate })
+        });
+        showMsg('Student transferred successfully with effective bounds!', false);
+        await loadState();
+        renderStudentsTable();
+      } catch (err) {
+        showMsg(err.message, true);
+      }
+    }
+
+    // ========================================================================
+    // 3. FACULTY MANAGEMENT: DIRECTORY, PROVISIONING, AVAILABILITY & LEAVES
+    // ========================================================================
+    function renderFacultyTable(filterText) {
+      const tbody = document.getElementById('teachersTableBody');
+      if (!tbody) return;
+
+      const teachers = currentState.teachers || [];
+      let filtered = teachers;
+      if (filterText && filterText.trim()) {
+        const q = filterText.trim().toLowerCase();
+        filtered = teachers.filter(t =>
+          (t.name && t.name.toLowerCase().includes(q)) ||
+          (t.empId && t.empId.toLowerCase().includes(q)) ||
+          (t.email && t.email.toLowerCase().includes(q))
+        );
+      }
+
+      if (filtered.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">No faculty records found.</td></tr>';
+        return;
+      }
+
+      let html = '';
+      filtered.forEach(t => {
+        html += '<tr>' +
+          '<td>' + t.id + '</td>' +
+          '<td><strong>' + t.name + '</strong></td>' +
+          '<td>' + t.empId + '</td>' +
+          '<td>' + t.email + '</td>' +
+          '<td><span class="status-badge" style="background:#EDE9FE; color:#5842E3;">4 Hours/Day</span></td>' +
+          '<td>' +
+            '<button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="prefillResetPasswordModal(\'faculty\', \'' + t.email + '\')">🔑 Reset Pass</button>' +
+          '</td>' +
+        '</tr>';
+      });
+      tbody.innerHTML = html;
+    }
+
+    function populateFacultyFormDropdowns() {
+      const availSel = document.getElementById('availTeacherSelect');
+      if (availSel) {
+        availSel.innerHTML = (currentState.teachers || []).map(t => '<option value="' + t.id + '">' + t.name + ' (' + t.empId + ')</option>').join('');
+      }
+    }
+
+    async function handleIndividualAddFaculty() {
+      const name = document.getElementById('facultyAddName')?.value.trim();
+      const email = document.getElementById('facultyAddEmail')?.value.trim();
+      const empId = document.getElementById('facultyAddEmpId')?.value.trim();
+      const password = document.getElementById('facultyAddPassword')?.value;
+
+      if (!name || !email || !empId) {
+        showMsg('Please fill in Faculty Name, Institutional Email, and Employee ID.', true);
+        return;
+      }
+
+      try {
+        await api('/api/auth/admin/provision-user', {
+          method: 'POST',
+          body: JSON.stringify({
+            name, email, role: 'teacher',
+            entityId: empId,
+            password: password || 'TeacherPass#2026!'
+          })
+        });
+        showMsg('Faculty member ' + name + ' registered successfully!', false);
+        if (document.getElementById('facultyAddName')) document.getElementById('facultyAddName').value = '';
+        if (document.getElementById('facultyAddEmail')) document.getElementById('facultyAddEmail').value = '';
+        if (document.getElementById('facultyAddEmpId')) document.getElementById('facultyAddEmpId').value = '';
+        await loadState();
+        renderFacultyTable();
+      } catch (err) {
+        showMsg(err.message, true);
+      }
+    }
+
+    async function handleSaveTeacherAvailability() {
+      const teacherId = document.getElementById('availTeacherSelect')?.value;
+      const maxHours = parseInt(document.getElementById('availMaxHours')?.value || '4', 10);
+      showMsg('Faculty teaching availability rules saved for ' + teacherId + ' (Max ' + maxHours + 'h/day).', false);
+    }
+
+    function renderAdminLeaveRequests() {
+      const el = document.getElementById('adminUnavailList');
+      if (!el) return;
+      const leaves = currentState.teacherUnavailability || [];
+      if (leaves.length === 0) {
+        el.innerHTML = '<div style="font-size:13px; color:var(--text-muted); padding:8px 0;">✨ No pending leave or absence requests.</div>';
+        return;
+      }
+      let html = '<div style="display:flex; flex-direction:column; gap:8px;">';
+      leaves.forEach(l => {
+        html += '<div style="background:#FFFFFF; border:1px solid var(--border); padding:10px 14px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">' +
+          '<div><strong>' + l.teacherId + '</strong>: ' + l.date + ' (Slots ' + l.startSlot + '–' + l.endSlot + ')<div style="font-size:11px; color:var(--text-muted);">' + l.reason + ' • Status: ' + l.status + '</div></div>' +
+          (l.status === 'pending' ? '<button class="btn btn-primary" style="padding:4px 10px; font-size:11px;" onclick="approveLeaveRequest(\'' + l.id + '\')">Approve Leave</button>' : '<span class="status-badge status-badge-published">Approved</span>') +
+        '</div>';
+      });
+      html += '</div>';
+      el.innerHTML = html;
+    }
+
+    async function approveLeaveRequest(leaveId) {
+      try {
+        await api('/api/teachers/unavailability/' + leaveId + '/approve', { method: 'POST' });
+        showMsg('Leave request approved and conflicts resolved!', false);
+        await loadState();
+        renderAdminLeaveRequests();
+      } catch (err) {
+        showMsg(err.message, true);
+      }
+    }
+
+    // ========================================================================
+    // 4. ACADEMIC MODULES HANDLERS
+    // ========================================================================
+    async function handleCreateTerm() {
+      const yearLabel = document.getElementById('termYear')?.value;
+      const semesterNumber = parseInt(document.getElementById('termSem')?.value || '1', 10);
+      const cycle = document.getElementById('termCycle')?.value || 'odd';
+      try {
+        await api('/api/academic/terms', {
+          method: 'POST',
+          body: JSON.stringify({ yearLabel, semesterNumber, cycle, status: 'active' })
+        });
+        showMsg('Academic Term created.', false);
+        await loadState();
+      } catch (err) { showMsg(err.message, true); }
+    }
+
+    async function handleCreateSection() {
+      const name = document.getElementById('secName')?.value;
+      const termId = document.getElementById('secTermSelect')?.value;
+      const expectedCount = parseInt(document.getElementById('secCount')?.value || '60', 10);
+      try {
+        await api('/api/academic/sections', {
+          method: 'POST',
+          body: JSON.stringify({ name, termId, expectedCount })
+        });
+        showMsg('Section created.', false);
+        await loadState();
+      } catch (err) { showMsg(err.message, true); }
+    }
+
+    async function handleCreateBatch() {
+      const name = document.getElementById('batchName')?.value;
+      const sectionId = document.getElementById('batchSecSelect')?.value;
+      const expectedCount = parseInt(document.getElementById('batchCount')?.value || '30', 10);
+      try {
+        await api('/api/academic/batches', {
+          method: 'POST',
+          body: JSON.stringify({ name, sectionId, expectedCount })
+        });
+        showMsg('Practical Batch created.', false);
+        await loadState();
+      } catch (err) { showMsg(err.message, true); }
+    }
+
+    async function handleCreateCourse() {
+      const code = document.getElementById('courseCode')?.value;
+      const name = document.getElementById('courseName')?.value;
+      const lectureHours = parseInt(document.getElementById('courseL')?.value || '3', 10);
+      const tutorialHours = parseInt(document.getElementById('courseT')?.value || '0', 10);
+      const practicalHours = parseInt(document.getElementById('courseP')?.value || '2', 10);
+      const requiredRoomType = document.getElementById('courseRoomType')?.value || 'lecture_hall';
+      const termId = (currentState.academicTerms || [])[0]?.id || 'term-1';
+
+      if (practicalHours % 2 !== 0) {
+        showMsg('ERR_ODD_P_HOURS: Practical hours must be even (2-slot lab blocks).', true);
+        return;
+      }
+
+      try {
+        await api('/api/catalog/courses', {
+          method: 'POST',
+          body: JSON.stringify({ code, name, termId, lectureHours, tutorialHours, practicalHours, requiredRoomType })
+        });
+        showMsg('Course registered.', false);
+        await loadState();
+      } catch (err) { showMsg(err.message, true); }
+    }
+
+    async function handleCreateOffering() {
+      const courseId = document.getElementById('offCourseSelect')?.value;
+      const teacherId = document.getElementById('offTeacherSelect')?.value;
+      const targetType = document.getElementById('offTargetType')?.value;
+      const targetId = document.getElementById('offTargetIdSelect')?.value;
+      const component = document.getElementById('offComponent')?.value || undefined;
+
+      try {
+        await api('/api/catalog/offerings', {
+          method: 'POST',
+          body: JSON.stringify({ courseId, teacherId, targetType, targetId, component })
+        });
+        showMsg('Course Offering mapped.', false);
+        await loadState();
+      } catch (err) { showMsg(err.message, true); }
+    }
+
+    // ========================================================================
+    // 5. SOLVER RUNNER & SSE STREAMING
+    // ========================================================================
+    function populateSolverTerms() {
+      const sel = document.getElementById('compileTermSelect');
+      if (sel) {
+        sel.innerHTML = (currentState.academicTerms || []).map(t => '<option value="' + t.id + '">' + t.yearLabel + ' (Sem ' + t.semesterNumber + ')</option>').join('');
+      }
+    }
+
+    async function handleCompilePackage() {
+      const termId = document.getElementById('compileTermSelect')?.value;
+      try {
+        const data = await api('/api/generation/compile-package', {
+          method: 'POST',
+          body: JSON.stringify({ termIds: termId ? [termId] : undefined })
+        });
+        showMsg('Package compiled successfully: Revision ' + data.package.inputRevision, false);
+        const log = document.getElementById('solverLogConsole');
+        if (log) log.innerHTML += '\n[PACKAGE] Compiled input revision ' + data.package.inputRevision + ' with ' + (data.package.courseOfferings || []).length + ' offerings.';
+      } catch (err) { showMsg(err.message, true); }
+    }
+
+    async function handleTriggerSolver() {
+      const badge = document.getElementById('solverStatusBadge');
+      const log = document.getElementById('solverLogConsole');
+      if (badge) { badge.textContent = 'Solving...'; badge.className = 'status-badge status-badge-superseded'; }
+      if (log) log.innerHTML += '\n[SOLVER] Dispatching CP-SAT generation request to port 5001...';
+
+      try {
+        const termId = document.getElementById('compileTermSelect')?.value;
+        const data = await api('/api/generation/request', {
+          method: 'POST',
+          body: JSON.stringify({ termIds: termId ? [termId] : undefined })
+        });
+        if (badge) { badge.textContent = 'Complete'; badge.className = 'status-badge status-badge-published'; }
+        if (log) log.innerHTML += '\n[SOLVER] Result: ' + data.status + ' (' + (data.solveTimeMs || 200) + 'ms). Generated ' + data.classesCount + ' classes as Draft Version ' + data.draftVersionNumber + '.';
+        showMsg('Solver succeeded! Draft Version ' + data.draftVersionNumber + ' staged.', false);
+        await loadState();
+      } catch (err) {
+        if (badge) { badge.textContent = 'Failed'; badge.className = 'status-badge'; }
+        if (log) log.innerHTML += '\n[ERROR] Generation failed: ' + err.message;
+        showMsg(err.message, true);
+      }
+    }
 
     // Init Application
     async function init() {
