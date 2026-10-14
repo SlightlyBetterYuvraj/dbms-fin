@@ -50,6 +50,7 @@ export interface Teacher {
   empId: string;
   name: string;
   email: string;
+  department?: string;
   active: boolean;
 }
 
@@ -113,6 +114,7 @@ export interface Course {
   tutorialHours: number;  // T
   practicalHours: number; // P
   requiredRoomType: RoomType;
+  department?: string;
 }
 
 export interface CourseOffering {

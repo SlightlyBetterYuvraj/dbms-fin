@@ -289,4 +289,732 @@ export class TimetableRepository {
     }
     return pending;
   }
+
+  /**
+   * Seeds realistic university mock data across concurrently active odd semesters (Sem 1, 3, 5).
+   * Fully populates operating grid, venues, faculty, cohorts, course offerings,
+   * and a conflict-free published Version 1 schedule with dated occurrences.
+   */
+  public async seedRealisticUniversityData(): Promise<void> {
+    await this.runTransaction(async (tx) => {
+      populateRealisticUniversityData(tx);
+    });
+  }
+}
+
+/**
+ * Standalone helper to populate realistic university engineering curriculum fixtures.
+ * Supports Semester 1, Semester 3, and Semester 5 running concurrently.
+ */
+export function populateRealisticUniversityData(tx: RepositoryDataState): void {
+  // Prevent duplicate population
+  if (tx.academicTerms.has('term-1') && tx.academicTerms.has('term-3') && tx.academicTerms.has('term-5')) {
+    return;
+  }
+
+  // 1. Operating Grid & Academic Terms
+  tx.academicTerms.set('term-1', {
+    id: 'term-1',
+    yearLabel: '2026-2027',
+    semesterNumber: 1,
+    startDate: '2026-09-01',
+    endDate: '2026-12-20',
+    cycle: 'odd',
+    status: 'active',
+  });
+
+  tx.academicTerms.set('term-3', {
+    id: 'term-3',
+    yearLabel: '2026-2027',
+    semesterNumber: 3,
+    startDate: '2026-09-01',
+    endDate: '2026-12-20',
+    cycle: 'odd',
+    status: 'active',
+  });
+
+  tx.academicTerms.set('term-5', {
+    id: 'term-5',
+    yearLabel: '2026-2027',
+    semesterNumber: 5,
+    startDate: '2026-09-01',
+    endDate: '2026-12-20',
+    cycle: 'odd',
+    status: 'active',
+  });
+
+  // 2. Physical Infrastructure & Rooms (D16, D34)
+  tx.rooms.set('room-lt1', {
+    id: 'room-lt1',
+    roomNumber: '101',
+    building: 'Aryabhata Block',
+    floor: 1,
+    capacity: 75,
+    roomType: 'LT',
+    active: true,
+  });
+  tx.rooms.set('room-lt2', {
+    id: 'room-lt2',
+    roomNumber: '102',
+    building: 'Aryabhata Block',
+    floor: 1,
+    capacity: 75,
+    roomType: 'LT',
+    active: true,
+  });
+  tx.rooms.set('room-cr1', {
+    id: 'room-cr1',
+    roomNumber: '201',
+    building: 'Ramanujan Block',
+    floor: 2,
+    capacity: 60,
+    roomType: 'LT',
+    active: true,
+  });
+  tx.rooms.set('room-cr2', {
+    id: 'room-cr2',
+    roomNumber: '202',
+    building: 'Ramanujan Block',
+    floor: 2,
+    capacity: 60,
+    roomType: 'LT',
+    active: true,
+  });
+
+  tx.rooms.set('room-lab1', {
+    id: 'room-lab1',
+    roomNumber: 'Computing Lab 1',
+    building: 'Turing Wing',
+    floor: 1,
+    capacity: 35,
+    roomType: 'P',
+    active: true,
+  });
+  tx.rooms.set('room-lab2', {
+    id: 'room-lab2',
+    roomNumber: 'Computing Lab 2',
+    building: 'Turing Wing',
+    floor: 1,
+    capacity: 35,
+    roomType: 'P',
+    active: true,
+  });
+  tx.rooms.set('room-lab3', {
+    id: 'room-lab3',
+    roomNumber: 'Systems & Hardware Lab',
+    building: 'Turing Wing',
+    floor: 2,
+    capacity: 35,
+    roomType: 'P',
+    active: true,
+  });
+
+  // Retain legacy rooms for test compatibility
+  tx.rooms.set('r-101', {
+    id: 'r-101',
+    roomNumber: '101',
+    building: 'Engineering Block',
+    floor: 1,
+    capacity: 60,
+    roomType: 'LT',
+    active: true,
+  });
+  tx.rooms.set('r-102', {
+    id: 'r-102',
+    roomNumber: '102',
+    building: 'Engineering Block',
+    floor: 1,
+    capacity: 60,
+    roomType: 'LT',
+    active: true,
+  });
+  tx.rooms.set('r-lab1', {
+    id: 'r-lab1',
+    roomNumber: 'Lab-A',
+    building: 'CS Block',
+    floor: 2,
+    capacity: 35,
+    roomType: 'P',
+    active: true,
+  });
+
+  // 3. Faculty Members (D33)
+  tx.teachers.set('t-1', {
+    id: 't-1',
+    empId: 'EMP-101',
+    name: 'Prof. Rajesh Sharma',
+    email: 'rajesh.sharma@uni.edu',
+    department: 'Mathematics & Theory',
+    active: true,
+  });
+  tx.teachers.set('t-2', {
+    id: 't-2',
+    empId: 'EMP-102',
+    name: 'Dr. Sunita Verma',
+    email: 'sunita.verma@uni.edu',
+    department: 'Computer Science',
+    active: true,
+  });
+  tx.teachers.set('t-3', {
+    id: 't-3',
+    empId: 'EMP-103',
+    name: 'Dr. Amit Patel',
+    email: 'amit.patel@uni.edu',
+    department: 'Computer Science',
+    active: true,
+  });
+  tx.teachers.set('t-4', {
+    id: 't-4',
+    empId: 'EMP-104',
+    name: 'Dr. Neha Kulkarni',
+    email: 'neha.kulkarni@uni.edu',
+    department: 'Computer Science',
+    active: true,
+  });
+  tx.teachers.set('t-5', {
+    id: 't-5',
+    empId: 'EMP-105',
+    name: 'Dr. Vikram Rao',
+    email: 'vikram.rao@uni.edu',
+    department: 'Computer Science',
+    active: true,
+  });
+  tx.teachers.set('t-6', {
+    id: 't-6',
+    empId: 'EMP-106',
+    name: 'Prof. Ananya Sengupta',
+    email: 'ananya.sengupta@uni.edu',
+    department: 'Machine Learning & Data Science',
+    active: true,
+  });
+  tx.teachers.set('t-7', {
+    id: 't-7',
+    empId: 'EMP-107',
+    name: 'Dr. Sandeep Meena',
+    email: 'sandeep.meena@uni.edu',
+    department: 'Electronics & Hardware',
+    active: true,
+  });
+
+  // 4. Cohort Hierarchy (Section -> Batches) & Elective Groups
+  // Semester 1
+  tx.sections.set('sec-1A', {
+    id: 'sec-1A',
+    termId: 'term-1',
+    name: 'Section 1A',
+    expectedCount: 60,
+    active: true,
+  });
+  tx.batches.set('batch-1A1', {
+    id: 'batch-1A1',
+    sectionId: 'sec-1A',
+    name: 'Batch 1A1',
+    expectedCount: 30,
+    active: true,
+  });
+  tx.batches.set('batch-1A2', {
+    id: 'batch-1A2',
+    sectionId: 'sec-1A',
+    name: 'Batch 1A2',
+    expectedCount: 30,
+    active: true,
+  });
+
+  // Semester 3
+  tx.sections.set('sec-3A', {
+    id: 'sec-3A',
+    termId: 'term-3',
+    name: 'Section 3A',
+    expectedCount: 60,
+    active: true,
+  });
+  tx.batches.set('batch-3A1', {
+    id: 'batch-3A1',
+    sectionId: 'sec-3A',
+    name: 'Batch 3A1',
+    expectedCount: 30,
+    active: true,
+  });
+  tx.batches.set('batch-3A2', {
+    id: 'batch-3A2',
+    sectionId: 'sec-3A',
+    name: 'Batch 3A2',
+    expectedCount: 30,
+    active: true,
+  });
+  // Legacy cohorts for backward compatibility with existing tests
+  tx.sections.set('sec-A', {
+    id: 'sec-A',
+    termId: 'term-3',
+    name: 'Section A',
+    expectedCount: 50,
+    active: true,
+  });
+  tx.batches.set('batch-A1', {
+    id: 'batch-A1',
+    sectionId: 'sec-A',
+    name: 'Batch A1',
+    expectedCount: 25,
+    active: true,
+  });
+
+  // Semester 5
+  tx.sections.set('sec-5A', {
+    id: 'sec-5A',
+    termId: 'term-5',
+    name: 'Section 5A',
+    expectedCount: 55,
+    active: true,
+  });
+  tx.batches.set('batch-5A1', {
+    id: 'batch-5A1',
+    sectionId: 'sec-5A',
+    name: 'Batch 5A1',
+    expectedCount: 28,
+    active: true,
+  });
+  tx.batches.set('batch-5A2', {
+    id: 'batch-5A2',
+    sectionId: 'sec-5A',
+    name: 'Batch 5A2',
+    expectedCount: 27,
+    active: true,
+  });
+
+  // Elective Group for Semester 5 (D08, D26)
+  tx.electiveGroups.set('elec-ml', {
+    id: 'elec-ml',
+    termId: 'term-5',
+    courseId: 'c-cs303',
+    name: 'Elective: Applied Machine Learning',
+    expectedCount: 30,
+  });
+  tx.electiveGroups.set('elg-ai', {
+    id: 'elg-ai',
+    termId: 'term-3',
+    courseId: 'c-ds',
+    name: 'Advanced Algorithms (Elective)',
+  });
+
+  // Students & Memberships
+  tx.students.set('stud-1', {
+    id: 'stud-1',
+    rollNumber: 'CS2026-001',
+    name: 'Charlie Brown',
+    email: 'charlie@uni.edu',
+    active: true,
+  });
+  tx.studentGroupMemberships.set('sgm-1', {
+    id: 'sgm-1',
+    studentId: 'stud-1',
+    groupId: 'sec-3A',
+    groupType: 'section',
+    effectiveStartDate: '2026-08-01',
+  });
+  tx.studentGroupMemberships.set('sgm-2', {
+    id: 'sgm-2',
+    studentId: 'stud-1',
+    groupId: 'batch-3A1',
+    groupType: 'batch',
+    effectiveStartDate: '2026-08-01',
+  });
+  tx.studentGroupMemberships.set('sgm-legacy-sec', {
+    id: 'sgm-legacy-sec',
+    studentId: 'stud-1',
+    groupId: 'sec-A',
+    groupType: 'section',
+    effectiveStartDate: '2026-08-01',
+  });
+  tx.studentGroupMemberships.set('sgm-legacy-batch', {
+    id: 'sgm-legacy-batch',
+    studentId: 'stud-1',
+    groupId: 'batch-A1',
+    groupType: 'batch',
+    effectiveStartDate: '2026-08-01',
+  });
+  tx.electiveAssignments.set('ea-1', {
+    id: 'ea-1',
+    studentId: 'stud-1',
+    electiveGroupId: 'elg-ai',
+    assignedBy: 'admin-1',
+    assignedAt: '2026-08-15T00:00:00.000Z',
+    status: 'active',
+  });
+
+  tx.students.set('stud-2', {
+    id: 'stud-2',
+    rollNumber: 'CS2026-101',
+    name: 'Aarav Sharma',
+    email: 'aarav@uni.edu',
+    active: true,
+  });
+  tx.studentGroupMemberships.set('sgm-3', {
+    id: 'sgm-3',
+    studentId: 'stud-2',
+    groupId: 'sec-1A',
+    groupType: 'section',
+    effectiveStartDate: '2026-08-01',
+  });
+  tx.studentGroupMemberships.set('sgm-4', {
+    id: 'sgm-4',
+    studentId: 'stud-2',
+    groupId: 'batch-1A1',
+    groupType: 'batch',
+    effectiveStartDate: '2026-08-01',
+  });
+
+  tx.students.set('stud-3', {
+    id: 'stud-3',
+    rollNumber: 'CS2026-501',
+    name: 'Diya Patel',
+    email: 'diya@uni.edu',
+    active: true,
+  });
+  tx.studentGroupMemberships.set('sgm-5', {
+    id: 'sgm-5',
+    studentId: 'stud-3',
+    groupId: 'sec-5A',
+    groupType: 'section',
+    effectiveStartDate: '2026-08-01',
+  });
+  tx.studentGroupMemberships.set('sgm-6', {
+    id: 'sgm-6',
+    studentId: 'stud-3',
+    groupId: 'batch-5A1',
+    groupType: 'batch',
+    effectiveStartDate: '2026-08-01',
+  });
+  tx.electiveAssignments.set('ea-2', {
+    id: 'ea-2',
+    studentId: 'stud-3',
+    electiveGroupId: 'elec-ml',
+    assignedBy: 'admin-1',
+    assignedAt: '2026-08-15T00:00:00.000Z',
+    status: 'active',
+  });
+
+  // 5. Curriculum, Contact Hours & Offerings (D06, D44)
+  // Semester 1
+  tx.courses.set('c-cs101', {
+    id: 'c-cs101',
+    code: 'CS101',
+    name: 'Introduction to Programming & C',
+    termId: 'term-1',
+    department: 'Computer Science',
+    lectureHours: 3,
+    tutorialHours: 0,
+    practicalHours: 2,
+    requiredRoomType: 'LT',
+  });
+  tx.courseOfferings.set('off-cs101', {
+    id: 'off-cs101',
+    courseId: 'c-cs101',
+    termId: 'term-1',
+    teacherId: 't-2',
+    targetType: 'section',
+    targetId: 'sec-1A',
+  });
+
+  tx.courses.set('c-ma101', {
+    id: 'c-ma101',
+    code: 'MA101',
+    name: 'Calculus & Linear Algebra',
+    termId: 'term-1',
+    department: 'Mathematics & Theory',
+    lectureHours: 3,
+    tutorialHours: 1,
+    practicalHours: 0,
+    requiredRoomType: 'LT',
+  });
+  tx.courseOfferings.set('off-ma101', {
+    id: 'off-ma101',
+    courseId: 'c-ma101',
+    termId: 'term-1',
+    teacherId: 't-1',
+    targetType: 'section',
+    targetId: 'sec-1A',
+  });
+
+  tx.courses.set('c-ec101', {
+    id: 'c-ec101',
+    code: 'EC101',
+    name: 'Digital Electronics',
+    termId: 'term-1',
+    department: 'Electronics & Hardware',
+    lectureHours: 3,
+    tutorialHours: 0,
+    practicalHours: 2,
+    requiredRoomType: 'LT',
+  });
+  tx.courseOfferings.set('off-ec101', {
+    id: 'off-ec101',
+    courseId: 'c-ec101',
+    termId: 'term-1',
+    teacherId: 't-7',
+    targetType: 'section',
+    targetId: 'sec-1A',
+  });
+
+  // Semester 3
+  tx.courses.set('c-cs201', {
+    id: 'c-cs201',
+    code: 'CS201',
+    name: 'Data Structures & Algorithms',
+    termId: 'term-3',
+    department: 'Computer Science',
+    lectureHours: 3,
+    tutorialHours: 1,
+    practicalHours: 2,
+    requiredRoomType: 'LT',
+  });
+  tx.courseOfferings.set('off-cs201', {
+    id: 'off-cs201',
+    courseId: 'c-cs201',
+    termId: 'term-3',
+    teacherId: 't-5',
+    targetType: 'section',
+    targetId: 'sec-3A',
+  });
+
+  tx.courses.set('c-cs202', {
+    id: 'c-cs202',
+    code: 'CS202',
+    name: 'Computer Organization & Architecture',
+    termId: 'term-3',
+    department: 'Computer Science',
+    lectureHours: 3,
+    tutorialHours: 0,
+    practicalHours: 0,
+    requiredRoomType: 'LT',
+  });
+  tx.courseOfferings.set('off-cs202', {
+    id: 'off-cs202',
+    courseId: 'c-cs202',
+    termId: 'term-3',
+    teacherId: 't-3',
+    targetType: 'section',
+    targetId: 'sec-3A',
+  });
+
+  tx.courses.set('c-cs203', {
+    id: 'c-cs203',
+    code: 'CS203',
+    name: 'Database Management Systems',
+    termId: 'term-3',
+    department: 'Computer Science',
+    lectureHours: 3,
+    tutorialHours: 0,
+    practicalHours: 2,
+    requiredRoomType: 'LT',
+  });
+  tx.courseOfferings.set('off-cs203', {
+    id: 'off-cs203',
+    courseId: 'c-cs203',
+    termId: 'term-3',
+    teacherId: 't-4',
+    targetType: 'section',
+    targetId: 'sec-3A',
+  });
+
+  // Legacy course & offering for test backward compatibility
+  tx.courses.set('c-ds', {
+    id: 'c-ds',
+    code: 'CS200',
+    name: 'Data Structures',
+    termId: 'term-3',
+    department: 'Computer Science',
+    lectureHours: 2,
+    tutorialHours: 0,
+    practicalHours: 2,
+    requiredRoomType: 'LT',
+  });
+  tx.courseOfferings.set('off-ds-lec', {
+    id: 'off-ds-lec',
+    courseId: 'c-ds',
+    termId: 'term-3',
+    teacherId: 't-1',
+    targetType: 'section',
+    targetId: 'sec-A',
+  });
+
+  // Semester 5
+  tx.courses.set('c-cs301', {
+    id: 'c-cs301',
+    code: 'CS301',
+    name: 'Operating Systems & Systems Programming',
+    termId: 'term-5',
+    department: 'Computer Science',
+    lectureHours: 3,
+    tutorialHours: 0,
+    practicalHours: 2,
+    requiredRoomType: 'LT',
+  });
+  tx.courseOfferings.set('off-cs301', {
+    id: 'off-cs301',
+    courseId: 'c-cs301',
+    termId: 'term-5',
+    teacherId: 't-3',
+    targetType: 'section',
+    targetId: 'sec-5A',
+  });
+
+  tx.courses.set('c-cs302', {
+    id: 'c-cs302',
+    code: 'CS302',
+    name: 'Theory of Computation',
+    termId: 'term-5',
+    department: 'Computer Science',
+    lectureHours: 3,
+    tutorialHours: 1,
+    practicalHours: 0,
+    requiredRoomType: 'LT',
+  });
+  tx.courseOfferings.set('off-cs302', {
+    id: 'off-cs302',
+    courseId: 'c-cs302',
+    termId: 'term-5',
+    teacherId: 't-1',
+    targetType: 'section',
+    targetId: 'sec-5A',
+  });
+
+  tx.courses.set('c-cs303', {
+    id: 'c-cs303',
+    code: 'CS303-EL',
+    name: 'Elective: Applied Machine Learning',
+    termId: 'term-5',
+    department: 'Machine Learning & Data Science',
+    lectureHours: 3,
+    tutorialHours: 0,
+    practicalHours: 2,
+    requiredRoomType: 'LT',
+  });
+  tx.courseOfferings.set('off-cs303', {
+    id: 'off-cs303',
+    courseId: 'c-cs303',
+    termId: 'term-5',
+    teacherId: 't-6',
+    targetType: 'elective_group',
+    targetId: 'elec-ml',
+  });
+
+  // 6. Seed Timetable Version 1 (Pre-Populated Published Schedule)
+  const v1Id = 'v-published-1';
+  tx.timetableVersions.set(v1Id, {
+    id: v1Id,
+    termId: 'term-3',
+    versionNumber: 1,
+    status: 'published',
+    inputRevision: 'rev-seed-v1',
+    createdBy: 'admin-1',
+    createdAt: '2026-08-25T00:00:00.000Z',
+    publishedAt: '2026-08-25T00:00:00.000Z',
+  });
+
+  // Conflict-free master schedule definitions across Mon-Fri
+  const seedClasses: ScheduledClass[] = [
+    // --- SEMESTER 1 ---
+    // CS101: Dr. Sunita Verma (t-2), room-lt1 (Lectures), room-lab1 (Labs)
+    { id: 'sc-v1-cs101-l1', versionId: v1Id, courseOfferingId: 'off-cs101', termId: 'term-1', dayOfWeek: 1, startSlot: 1, duration: 1, activityType: 'L', teacherId: 't-2', roomId: 'room-lt1', targetType: 'section', targetId: 'sec-1A', status: 'scheduled' },
+    { id: 'sc-v1-cs101-l2', versionId: v1Id, courseOfferingId: 'off-cs101', termId: 'term-1', dayOfWeek: 2, startSlot: 3, duration: 1, activityType: 'L', teacherId: 't-2', roomId: 'room-lt1', targetType: 'section', targetId: 'sec-1A', status: 'scheduled' },
+    { id: 'sc-v1-cs101-l3', versionId: v1Id, courseOfferingId: 'off-cs101', termId: 'term-1', dayOfWeek: 3, startSlot: 1, duration: 1, activityType: 'L', teacherId: 't-2', roomId: 'room-lt1', targetType: 'section', targetId: 'sec-1A', status: 'scheduled' },
+    { id: 'sc-v1-cs101-p1', versionId: v1Id, courseOfferingId: 'off-cs101', termId: 'term-1', dayOfWeek: 1, startSlot: 5, duration: 2, activityType: 'P', teacherId: 't-2', roomId: 'room-lab1', targetType: 'batch', targetId: 'batch-1A1', status: 'scheduled' },
+    { id: 'sc-v1-cs101-p2', versionId: v1Id, courseOfferingId: 'off-cs101', termId: 'term-1', dayOfWeek: 2, startSlot: 5, duration: 2, activityType: 'P', teacherId: 't-2', roomId: 'room-lab1', targetType: 'batch', targetId: 'batch-1A2', status: 'scheduled' },
+
+    // MA101: Prof. Rajesh Sharma (t-1), room-lt1
+    { id: 'sc-v1-ma101-l1', versionId: v1Id, courseOfferingId: 'off-ma101', termId: 'term-1', dayOfWeek: 1, startSlot: 2, duration: 1, activityType: 'L', teacherId: 't-1', roomId: 'room-lt1', targetType: 'section', targetId: 'sec-1A', status: 'scheduled' },
+    { id: 'sc-v1-ma101-l2', versionId: v1Id, courseOfferingId: 'off-ma101', termId: 'term-1', dayOfWeek: 2, startSlot: 1, duration: 1, activityType: 'L', teacherId: 't-1', roomId: 'room-lt1', targetType: 'section', targetId: 'sec-1A', status: 'scheduled' },
+    { id: 'sc-v1-ma101-l3', versionId: v1Id, courseOfferingId: 'off-ma101', termId: 'term-1', dayOfWeek: 3, startSlot: 3, duration: 1, activityType: 'L', teacherId: 't-1', roomId: 'room-lt1', targetType: 'section', targetId: 'sec-1A', status: 'scheduled' },
+    { id: 'sc-v1-ma101-t1', versionId: v1Id, courseOfferingId: 'off-ma101', termId: 'term-1', dayOfWeek: 4, startSlot: 1, duration: 1, activityType: 'T', teacherId: 't-1', roomId: 'room-lt1', targetType: 'section', targetId: 'sec-1A', status: 'scheduled' },
+
+    // EC101: Dr. Sandeep Meena (t-7), room-cr1 (Lectures), room-lab3 (Labs)
+    { id: 'sc-v1-ec101-l1', versionId: v1Id, courseOfferingId: 'off-ec101', termId: 'term-1', dayOfWeek: 1, startSlot: 3, duration: 1, activityType: 'L', teacherId: 't-7', roomId: 'room-cr1', targetType: 'section', targetId: 'sec-1A', status: 'scheduled' },
+    { id: 'sc-v1-ec101-l2', versionId: v1Id, courseOfferingId: 'off-ec101', termId: 'term-1', dayOfWeek: 2, startSlot: 2, duration: 1, activityType: 'L', teacherId: 't-7', roomId: 'room-cr1', targetType: 'section', targetId: 'sec-1A', status: 'scheduled' },
+    { id: 'sc-v1-ec101-l3', versionId: v1Id, courseOfferingId: 'off-ec101', termId: 'term-1', dayOfWeek: 3, startSlot: 2, duration: 1, activityType: 'L', teacherId: 't-7', roomId: 'room-cr1', targetType: 'section', targetId: 'sec-1A', status: 'scheduled' },
+    { id: 'sc-v1-ec101-p1', versionId: v1Id, courseOfferingId: 'off-ec101', termId: 'term-1', dayOfWeek: 1, startSlot: 5, duration: 2, activityType: 'P', teacherId: 't-7', roomId: 'room-lab3', targetType: 'batch', targetId: 'batch-1A2', status: 'scheduled' },
+    { id: 'sc-v1-ec101-p2', versionId: v1Id, courseOfferingId: 'off-ec101', termId: 'term-1', dayOfWeek: 2, startSlot: 5, duration: 2, activityType: 'P', teacherId: 't-7', roomId: 'room-lab3', targetType: 'batch', targetId: 'batch-1A1', status: 'scheduled' },
+
+    // --- SEMESTER 3 ---
+    // CS201: Dr. Vikram Rao (t-5), room-lt2 (Lectures/Tutorial), room-lab1 (Labs)
+    { id: 'sc-v1-cs201-l1', versionId: v1Id, courseOfferingId: 'off-cs201', termId: 'term-3', dayOfWeek: 1, startSlot: 1, duration: 1, activityType: 'L', teacherId: 't-5', roomId: 'room-lt2', targetType: 'section', targetId: 'sec-3A', status: 'scheduled' },
+    { id: 'sc-v1-cs201-l2', versionId: v1Id, courseOfferingId: 'off-cs201', termId: 'term-3', dayOfWeek: 2, startSlot: 2, duration: 1, activityType: 'L', teacherId: 't-5', roomId: 'room-lt2', targetType: 'section', targetId: 'sec-3A', status: 'scheduled' },
+    { id: 'sc-v1-cs201-l3', versionId: v1Id, courseOfferingId: 'off-cs201', termId: 'term-3', dayOfWeek: 3, startSlot: 1, duration: 1, activityType: 'L', teacherId: 't-5', roomId: 'room-lt2', targetType: 'section', targetId: 'sec-3A', status: 'scheduled' },
+    { id: 'sc-v1-cs201-t1', versionId: v1Id, courseOfferingId: 'off-cs201', termId: 'term-3', dayOfWeek: 4, startSlot: 2, duration: 1, activityType: 'T', teacherId: 't-5', roomId: 'room-lt2', targetType: 'section', targetId: 'sec-3A', status: 'scheduled' },
+    { id: 'sc-v1-cs201-p1', versionId: v1Id, courseOfferingId: 'off-cs201', termId: 'term-3', dayOfWeek: 1, startSlot: 7, duration: 2, activityType: 'P', teacherId: 't-5', roomId: 'room-lab1', targetType: 'batch', targetId: 'batch-3A1', status: 'scheduled' },
+    { id: 'sc-v1-cs201-p2', versionId: v1Id, courseOfferingId: 'off-cs201', termId: 'term-3', dayOfWeek: 3, startSlot: 5, duration: 2, activityType: 'P', teacherId: 't-5', roomId: 'room-lab1', targetType: 'batch', targetId: 'batch-3A2', status: 'scheduled' },
+
+    // CS202: Dr. Amit Patel (t-3), room-cr2
+    { id: 'sc-v1-cs202-l1', versionId: v1Id, courseOfferingId: 'off-cs202', termId: 'term-3', dayOfWeek: 1, startSlot: 2, duration: 1, activityType: 'L', teacherId: 't-3', roomId: 'room-cr2', targetType: 'section', targetId: 'sec-3A', status: 'scheduled' },
+    { id: 'sc-v1-cs202-l2', versionId: v1Id, courseOfferingId: 'off-cs202', termId: 'term-3', dayOfWeek: 2, startSlot: 3, duration: 1, activityType: 'L', teacherId: 't-3', roomId: 'room-cr2', targetType: 'section', targetId: 'sec-3A', status: 'scheduled' },
+    { id: 'sc-v1-cs202-l3', versionId: v1Id, courseOfferingId: 'off-cs202', termId: 'term-3', dayOfWeek: 3, startSlot: 2, duration: 1, activityType: 'L', teacherId: 't-3', roomId: 'room-cr2', targetType: 'section', targetId: 'sec-3A', status: 'scheduled' },
+
+    // CS203: Dr. Neha Kulkarni (t-4), room-lt2 (Lectures), room-lab2 (Labs)
+    { id: 'sc-v1-cs203-l1', versionId: v1Id, courseOfferingId: 'off-cs203', termId: 'term-3', dayOfWeek: 1, startSlot: 3, duration: 1, activityType: 'L', teacherId: 't-4', roomId: 'room-lt2', targetType: 'section', targetId: 'sec-3A', status: 'scheduled' },
+    { id: 'sc-v1-cs203-l2', versionId: v1Id, courseOfferingId: 'off-cs203', termId: 'term-3', dayOfWeek: 2, startSlot: 1, duration: 1, activityType: 'L', teacherId: 't-4', roomId: 'room-lt2', targetType: 'section', targetId: 'sec-3A', status: 'scheduled' },
+    { id: 'sc-v1-cs203-l3', versionId: v1Id, courseOfferingId: 'off-cs203', termId: 'term-3', dayOfWeek: 3, startSlot: 3, duration: 1, activityType: 'L', teacherId: 't-4', roomId: 'room-lt2', targetType: 'section', targetId: 'sec-3A', status: 'scheduled' },
+    { id: 'sc-v1-cs203-p1', versionId: v1Id, courseOfferingId: 'off-cs203', termId: 'term-3', dayOfWeek: 1, startSlot: 7, duration: 2, activityType: 'P', teacherId: 't-4', roomId: 'room-lab2', targetType: 'batch', targetId: 'batch-3A2', status: 'scheduled' },
+    { id: 'sc-v1-cs203-p2', versionId: v1Id, courseOfferingId: 'off-cs203', termId: 'term-3', dayOfWeek: 3, startSlot: 5, duration: 2, activityType: 'P', teacherId: 't-4', roomId: 'room-lab2', targetType: 'batch', targetId: 'batch-3A1', status: 'scheduled' },
+
+    // --- SEMESTER 5 ---
+    // CS301: Dr. Amit Patel (t-3), room-cr1 (Lectures), room-lab2 (Labs)
+    { id: 'sc-v1-cs301-l1', versionId: v1Id, courseOfferingId: 'off-cs301', termId: 'term-5', dayOfWeek: 1, startSlot: 1, duration: 1, activityType: 'L', teacherId: 't-3', roomId: 'room-cr1', targetType: 'section', targetId: 'sec-5A', status: 'scheduled' },
+    { id: 'sc-v1-cs301-l2', versionId: v1Id, courseOfferingId: 'off-cs301', termId: 'term-5', dayOfWeek: 2, startSlot: 1, duration: 1, activityType: 'L', teacherId: 't-3', roomId: 'room-cr1', targetType: 'section', targetId: 'sec-5A', status: 'scheduled' },
+    { id: 'sc-v1-cs301-l3', versionId: v1Id, courseOfferingId: 'off-cs301', termId: 'term-5', dayOfWeek: 3, startSlot: 3, duration: 1, activityType: 'L', teacherId: 't-3', roomId: 'room-cr1', targetType: 'section', targetId: 'sec-5A', status: 'scheduled' },
+    { id: 'sc-v1-cs301-p1', versionId: v1Id, courseOfferingId: 'off-cs301', termId: 'term-5', dayOfWeek: 2, startSlot: 7, duration: 2, activityType: 'P', teacherId: 't-3', roomId: 'room-lab2', targetType: 'batch', targetId: 'batch-5A1', status: 'scheduled' },
+    { id: 'sc-v1-cs301-p2', versionId: v1Id, courseOfferingId: 'off-cs301', termId: 'term-5', dayOfWeek: 3, startSlot: 7, duration: 2, activityType: 'P', teacherId: 't-3', roomId: 'room-lab2', targetType: 'batch', targetId: 'batch-5A2', status: 'scheduled' },
+
+    // CS302: Prof. Rajesh Sharma (t-1), room-cr2
+    { id: 'sc-v1-cs302-l1', versionId: v1Id, courseOfferingId: 'off-cs302', termId: 'term-5', dayOfWeek: 1, startSlot: 3, duration: 1, activityType: 'L', teacherId: 't-1', roomId: 'room-cr2', targetType: 'section', targetId: 'sec-5A', status: 'scheduled' },
+    { id: 'sc-v1-cs302-l2', versionId: v1Id, courseOfferingId: 'off-cs302', termId: 'term-5', dayOfWeek: 2, startSlot: 2, duration: 1, activityType: 'L', teacherId: 't-1', roomId: 'room-cr2', targetType: 'section', targetId: 'sec-5A', status: 'scheduled' },
+    { id: 'sc-v1-cs302-l3', versionId: v1Id, courseOfferingId: 'off-cs302', termId: 'term-5', dayOfWeek: 3, startSlot: 1, duration: 1, activityType: 'L', teacherId: 't-1', roomId: 'room-cr2', targetType: 'section', targetId: 'sec-5A', status: 'scheduled' },
+    { id: 'sc-v1-cs302-t1', versionId: v1Id, courseOfferingId: 'off-cs302', termId: 'term-5', dayOfWeek: 4, startSlot: 3, duration: 1, activityType: 'T', teacherId: 't-1', roomId: 'room-cr2', targetType: 'section', targetId: 'sec-5A', status: 'scheduled' },
+
+    // CS303-EL: Prof. Ananya Sengupta (t-6), room-lt2 (Lectures), room-lab1 (Labs)
+    { id: 'sc-v1-cs303-l1', versionId: v1Id, courseOfferingId: 'off-cs303', termId: 'term-5', dayOfWeek: 1, startSlot: 2, duration: 1, activityType: 'L', teacherId: 't-6', roomId: 'room-lt2', targetType: 'elective_group', targetId: 'elec-ml', status: 'scheduled' },
+    { id: 'sc-v1-cs303-l2', versionId: v1Id, courseOfferingId: 'off-cs303', termId: 'term-5', dayOfWeek: 2, startSlot: 3, duration: 1, activityType: 'L', teacherId: 't-6', roomId: 'room-lt2', targetType: 'elective_group', targetId: 'elec-ml', status: 'scheduled' },
+    { id: 'sc-v1-cs303-l3', versionId: v1Id, courseOfferingId: 'off-cs303', termId: 'term-5', dayOfWeek: 3, startSlot: 2, duration: 1, activityType: 'L', teacherId: 't-6', roomId: 'room-lt2', targetType: 'elective_group', targetId: 'elec-ml', status: 'scheduled' },
+    { id: 'sc-v1-cs303-p1', versionId: v1Id, courseOfferingId: 'off-cs303', termId: 'term-5', dayOfWeek: 4, startSlot: 5, duration: 2, activityType: 'P', teacherId: 't-6', roomId: 'room-lab1', targetType: 'elective_group', targetId: 'elec-ml', status: 'scheduled' },
+
+    // --- LEGACY FIXTURES ON FRIDAY (Day 5) for test compatibility ---
+    { id: 'sc-legacy-ds-1', versionId: v1Id, courseOfferingId: 'off-ds-lec', termId: 'term-3', dayOfWeek: 5, startSlot: 1, duration: 1, activityType: 'L', teacherId: 't-1', roomId: 'r-101', targetType: 'section', targetId: 'sec-A', status: 'scheduled' },
+    { id: 'sc-legacy-ds-2', versionId: v1Id, courseOfferingId: 'off-ds-lec', termId: 'term-3', dayOfWeek: 5, startSlot: 3, duration: 1, activityType: 'L', teacherId: 't-1', roomId: 'r-101', targetType: 'section', targetId: 'sec-A', status: 'scheduled' },
+    { id: 'sc-legacy-ds-p', versionId: v1Id, courseOfferingId: 'off-ds-lec', termId: 'term-3', dayOfWeek: 5, startSlot: 5, duration: 2, activityType: 'P', teacherId: 't-1', roomId: 'r-lab1', targetType: 'section', targetId: 'sec-A', status: 'scheduled' },
+  ];
+
+  for (const sc of seedClasses) {
+    tx.scheduledClasses.set(sc.id, sc);
+  }
+
+  // Generate dated occurrences for 14 days starting from term start date (2026-09-01)
+  const startDate = new Date('2026-09-01T00:00:00.000Z');
+  for (let dayOffset = 0; dayOffset < 14; dayOffset++) {
+    const currentDate = new Date(startDate.getTime() + dayOffset * 86400000);
+    const dayOfWeek = currentDate.getUTCDay() === 0 ? 7 : currentDate.getUTCDay();
+    const dateStr = currentDate.toISOString().split('T')[0];
+
+    if (dayOfWeek < 1 || dayOfWeek > 5) continue;
+
+    for (const cls of tx.scheduledClasses.values()) {
+      if (cls.dayOfWeek === dayOfWeek) {
+        const occId = `occ-${dateStr}-${cls.id}`;
+        tx.classOccurrences.set(occId, {
+          id: occId,
+          versionId: cls.versionId,
+          recurringClassId: cls.id,
+          courseOfferingId: cls.courseOfferingId,
+          termId: cls.termId,
+          date: dateStr,
+          dayOfWeek,
+          startSlot: cls.startSlot,
+          duration: cls.duration,
+          activityType: cls.activityType,
+          teacherId: cls.teacherId,
+          roomId: cls.roomId,
+          targetType: cls.targetType,
+          targetId: cls.targetId,
+          status: 'scheduled',
+        });
+      }
+    }
+  }
 }

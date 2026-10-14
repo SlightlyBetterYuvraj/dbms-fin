@@ -6,14 +6,31 @@
 
 import express, { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
-import { TimetableRepository } from '../data/repository.js';
-import { AuthService, AuthSession } from '../services/authService.js';
+import { TimetableRepository, populateRealisticUniversityData } from '../data/repository.js';
+import {
+  AuthService,
+  AuthSession,
+  AuthenticatedUser,
+  createAuthMiddleware,
+  requireAuth,
+  requireRole,
+} from '../services/authService.js';
 import { RegularClassService } from '../services/regularClassService.js';
 import { ExtraClassService } from '../services/extraClassService.js';
 import { StudentTransferService } from '../services/studentTransferService.js';
 import { GeneratorAdapterService } from '../services/generatorAdapter.js';
 import { DraftImportService } from '../services/draftImportService.js';
 import { PublicationService } from '../services/publicationService.js';
+import {
+  AcademicTerm,
+  Section,
+  Batch,
+  Course,
+  CourseOffering,
+  Room,
+  Teacher,
+} from '../domain/types.js';
+import { renderHtmlUI } from './ui.js';
 
 export function createApp(initialRepo?: TimetableRepository) {
   const app = express();
@@ -29,11 +46,24 @@ export function createApp(initialRepo?: TimetableRepository) {
   const importService = new DraftImportService(repo);
   const pubService = new PublicationService(repo);
 
+  // Apply authentication & session verification middleware
+  app.use(createAuthMiddleware(authService));
+
   // Seed sample initial data if repository is empty
   seedInitialData(repo);
 
-  // Authentication helper middleware
+  // Authentication helper middleware: uses verified req.user when present
   function getSession(req: Request): AuthSession {
+    const user = (req as any).user as AuthenticatedUser | undefined;
+    if (user) {
+      return {
+        userId: user.id,
+        email: user.email,
+        role: user.role,
+        linkedId: user.entityId || (user.role === 'teacher' ? 't-1' : (user.role === 'student' ? 'stud-1' : undefined)),
+      };
+    }
+
     const roleHeader = (req.headers['x-user-role'] as string) || 'admin';
     const userIdHeader = (req.headers['x-user-id'] as string) || 'admin-1';
     const linkedIdHeader = req.headers['x-linked-id'] as string;
@@ -42,9 +72,69 @@ export function createApp(initialRepo?: TimetableRepository) {
       userId: userIdHeader,
       email: `${userIdHeader}@university.edu`,
       role: (roleHeader as any) || 'admin',
-      linkedId: linkedIdHeader || (roleHeader === 'teacher' ? 't-1' : undefined),
+      linkedId: linkedIdHeader || (roleHeader === 'teacher' ? 't-1' : (roleHeader === 'student' ? 'stud-1' : undefined)),
     };
   }
+
+  // --------------------------------------------------------------------------
+  // 0. Supabase Authentication & User Provisioning Endpoints
+  // --------------------------------------------------------------------------
+  app.post('/api/auth/login', async (req: Request, res: Response) => {
+    try {
+      const { email, password } = req.body;
+      if (!email || !password) {
+        return res.status(400).json({ success: false, error: 'BAD_REQUEST', message: 'Email and password are required.' });
+      }
+      const { token, user } = await authService.login(email, password);
+      res.json({ success: true, token, user });
+    } catch (err: any) {
+      if (err.message.includes('AUTH_SERVICE_UNCONFIGURED')) {
+        return res.status(503).json({ success: false, error: 'AUTH_SERVICE_UNCONFIGURED', message: err.message });
+      }
+      res.status(401).json({ success: false, error: 'UNAUTHORIZED', message: 'Invalid email or password.' });
+    }
+  });
+
+  app.post('/api/auth/admin/provision-user', requireRole(['admin']), async (req: Request, res: Response) => {
+    try {
+      const actor = (req as any).user as AuthenticatedUser;
+      const { email, name, role, entityId, password } = req.body;
+      if (!email || !name || !role) {
+        return res.status(400).json({ success: false, error: 'BAD_REQUEST', message: 'Email, name, and role are required.' });
+      }
+      const provisioned = await authService.provisionUser(actor.role, {
+        email,
+        name,
+        role,
+        entityId,
+        password,
+      });
+      res.json({ success: true, user: provisioned });
+    } catch (err: any) {
+      if (err.message.startsWith('FORBIDDEN') || err.message.startsWith('ERR_FORBIDDEN')) {
+        return res.status(403).json({ success: false, error: 'FORBIDDEN', message: err.message });
+      }
+      res.status(400).json({ success: false, error: 'PROVISIONING_FAILED', message: err.message });
+    }
+  });
+
+  app.post('/api/auth/forgot-password', async (req: Request, res: Response) => {
+    try {
+      const { email } = req.body;
+      const result = await authService.requestPasswordRecovery(email);
+      res.json({ success: true, message: result.message });
+    } catch {
+      res.json({ success: true, message: 'If the email exists, a reset link has been dispatched' });
+    }
+  });
+
+  app.get('/api/auth/me', requireAuth, (req: Request, res: Response) => {
+    res.json({ success: true, user: (req as any).user });
+  });
+
+  app.post('/api/auth/logout', (req: Request, res: Response) => {
+    res.json({ success: true, message: 'Logged out successfully.' });
+  });
 
   // --------------------------------------------------------------------------
   // 1. Reference Data Endpoints
@@ -55,33 +145,377 @@ export function createApp(initialRepo?: TimetableRepository) {
       academicTerms: Array.from(state.academicTerms.values()),
       rooms: Array.from(state.rooms.values()),
       teachers: Array.from(state.teachers.values()),
+      teacherAvailabilities: Array.from(state.teacherAvailabilities.values()),
       sections: Array.from(state.sections.values()),
       batches: Array.from(state.batches.values()),
+      students: Array.from(state.students.values()),
+      studentGroupMemberships: Array.from(state.studentGroupMemberships.values()),
+      electiveGroups: Array.from(state.electiveGroups.values()),
+      electiveAssignments: Array.from(state.electiveAssignments.values()),
       courses: Array.from(state.courses.values()),
       courseOfferings: Array.from(state.courseOfferings.values()),
       timetableVersions: Array.from(state.timetableVersions.values()),
       scheduledClasses: Array.from(state.scheduledClasses.values()),
       classOccurrences: Array.from(state.classOccurrences.values()),
+      gridConfig: state.gridConfig,
       auditEvents: state.auditEvents.slice(-50),
       notifications: state.notificationOutbox,
     });
   });
 
   // --------------------------------------------------------------------------
+  // 1.1 Modular Entity Management: Academic Hierarchy
+  // --------------------------------------------------------------------------
+  app.post('/api/academic/terms', async (req: Request, res: Response) => {
+    try {
+      const session = getSession(req);
+      if (session.role !== 'admin') {
+        return res.status(403).json({ success: false, error: 'ERR_FORBIDDEN: Only administrators can configure academic terms.' });
+      }
+      const { id, yearLabel, semesterNumber, startDate, endDate, cycle, status, gridConfig } = req.body;
+      if (!yearLabel || !semesterNumber || !startDate || !endDate) {
+        return res.status(400).json({ success: false, error: 'Missing required term fields (yearLabel, semesterNumber, startDate, endDate).' });
+      }
+      const termId = id || `term-${semesterNumber}`;
+      const term: AcademicTerm = {
+        id: termId,
+        yearLabel: String(yearLabel),
+        semesterNumber: Number(semesterNumber),
+        startDate: String(startDate),
+        endDate: String(endDate),
+        cycle: cycle === 'even' ? 'even' : 'odd',
+        status: (status || 'active') as any,
+      };
+
+      await repo.runTransaction(async (tx) => {
+        tx.academicTerms.set(termId, term);
+        if (gridConfig) {
+          if (Array.isArray(gridConfig.days)) tx.gridConfig.days = gridConfig.days;
+          if (typeof gridConfig.slotsPerDay === 'number') tx.gridConfig.slotsPerDay = gridConfig.slotsPerDay;
+        }
+      });
+      repo.logAudit(session.userId, 'CREATE_OR_UPDATE_TERM', 'academic_terms', termId, 'success', { term });
+      res.json({ success: true, term });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/academic/sections', async (req: Request, res: Response) => {
+    try {
+      const session = getSession(req);
+      if (session.role !== 'admin') {
+        return res.status(403).json({ success: false, error: 'ERR_FORBIDDEN: Only administrators can create sections.' });
+      }
+      const { id, termId, name, expectedCount } = req.body;
+      if (!termId || !name) {
+        return res.status(400).json({ success: false, error: 'Missing required section fields (termId, name).' });
+      }
+      const count = Number(expectedCount || 0);
+      if (count <= 0) {
+        return res.status(400).json({ success: false, error: 'Cohort student size must be greater than zero.' });
+      }
+      const state = repo.getState();
+      if (!state.academicTerms.has(termId)) {
+        return res.status(400).json({ success: false, error: `Academic term ${termId} does not exist.` });
+      }
+
+      const secId = id || `sec-${String(name).trim().replace(/[^a-zA-Z0-9]/g, '')}-${Date.now().toString().slice(-4)}`;
+      const section: Section = {
+        id: secId,
+        termId: String(termId),
+        name: String(name),
+        expectedCount: count,
+        active: true,
+      };
+
+      await repo.runTransaction(async (tx) => {
+        tx.sections.set(secId, section);
+      });
+      repo.logAudit(session.userId, 'CREATE_SECTION', 'sections', secId, 'success', { section });
+      res.json({ success: true, section });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/academic/batches', async (req: Request, res: Response) => {
+    try {
+      const session = getSession(req);
+      if (session.role !== 'admin') {
+        return res.status(403).json({ success: false, error: 'ERR_FORBIDDEN: Only administrators can create batches.' });
+      }
+      const { id, sectionId, name, expectedCount } = req.body;
+      if (!sectionId || !name) {
+        return res.status(400).json({ success: false, error: 'Missing required batch fields (sectionId, name).' });
+      }
+      const count = Number(expectedCount || 0);
+      if (count <= 0) {
+        return res.status(400).json({ success: false, error: 'Batch student count must be greater than zero.' });
+      }
+      const state = repo.getState();
+      const parentSection = state.sections.get(sectionId);
+      if (!parentSection) {
+        return res.status(400).json({ success: false, error: `Parent section ${sectionId} does not exist.` });
+      }
+
+      const batchId = id || `batch-${parentSection.name.replace(/[^a-zA-Z0-9]/g, '')}-${String(name).trim().replace(/[^a-zA-Z0-9]/g, '')}-${Date.now().toString().slice(-4)}`;
+      const batch: Batch = {
+        id: batchId,
+        sectionId: String(sectionId),
+        name: String(name),
+        expectedCount: count,
+        active: true,
+      };
+
+      await repo.runTransaction(async (tx) => {
+        tx.batches.set(batchId, batch);
+      });
+      repo.logAudit(session.userId, 'CREATE_BATCH', 'batches', batchId, 'success', { batch });
+      res.json({ success: true, batch });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // 1.2 Modular Entity Management: Course Catalog & Offerings
+  // --------------------------------------------------------------------------
+  app.post('/api/catalog/courses', async (req: Request, res: Response) => {
+    try {
+      const session = getSession(req);
+      if (session.role !== 'admin') {
+        return res.status(403).json({ success: false, error: 'ERR_FORBIDDEN: Only administrators can create courses.' });
+      }
+      const { id, code, name, termId, department, lectureHours, tutorialHours, practicalHours, requiredRoomType } = req.body;
+      if (!code || !name || !termId) {
+        return res.status(400).json({ success: false, error: 'Missing required course fields (code, name, termId).' });
+      }
+
+      const lHours = Math.max(0, Number(lectureHours || 0));
+      const tHours = Math.max(0, Number(tutorialHours || 0));
+      const pHours = Math.max(0, Number(practicalHours || 0));
+
+      // Strict Form Guardrail (D07/D44): Practical hours must be an even integer
+      if (pHours % 2 !== 0) {
+        return res.status(400).json({
+          success: false,
+          code: 'ERR_ODD_P_HOURS',
+          error: 'ERR_ODD_P_HOURS: Practical hours must be an even integer (2 consecutive slots per session). Rounding or conversion is prohibited.',
+        });
+      }
+
+      const roomType = requiredRoomType === 'P' ? 'P' : 'LT';
+      const state = repo.getState();
+      if (!state.academicTerms.has(termId)) {
+        return res.status(400).json({ success: false, error: `Academic term ${termId} does not exist.` });
+      }
+
+      const courseId = id || `c-${String(code).toLowerCase().replace(/[^a-z0-9]/g, '')}-${Date.now().toString().slice(-4)}`;
+      const course: Course = {
+        id: courseId,
+        code: String(code),
+        name: String(name),
+        termId: String(termId),
+        lectureHours: lHours,
+        tutorialHours: tHours,
+        practicalHours: pHours,
+        requiredRoomType: roomType,
+        department: department ? String(department) : undefined,
+      };
+
+      await repo.runTransaction(async (tx) => {
+        tx.courses.set(courseId, course);
+      });
+      repo.logAudit(session.userId, 'CREATE_COURSE', 'courses', courseId, 'success', { course });
+      res.json({ success: true, course });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/catalog/offerings', async (req: Request, res: Response) => {
+    try {
+      const session = getSession(req);
+      if (session.role !== 'admin') {
+        return res.status(403).json({ success: false, error: 'ERR_FORBIDDEN: Only administrators can create course offerings.' });
+      }
+      const { id, courseId, termId: reqTermId, teacherId, targetType, targetId } = req.body;
+      if (!courseId || !teacherId || !targetType || !targetId) {
+        return res.status(400).json({ success: false, error: 'Missing required offering fields (courseId, teacherId, targetType, targetId).' });
+      }
+
+      const state = repo.getState();
+      const course = state.courses.get(courseId);
+      if (!course) {
+        return res.status(400).json({ success: false, error: `Course ${courseId} does not exist.` });
+      }
+      if (!state.teachers.has(teacherId)) {
+        return res.status(400).json({ success: false, error: `Teacher ${teacherId} does not exist.` });
+      }
+
+      const termId = reqTermId || course.termId;
+
+      if (targetType === 'section' && !state.sections.has(targetId)) {
+        return res.status(400).json({ success: false, error: `Target section ${targetId} does not exist.` });
+      } else if (targetType === 'batch' && !state.batches.has(targetId)) {
+        return res.status(400).json({ success: false, error: `Target batch ${targetId} does not exist.` });
+      } else if (targetType === 'elective_group' && !state.electiveGroups.has(targetId)) {
+        return res.status(400).json({ success: false, error: `Target elective group ${targetId} does not exist.` });
+      }
+
+      const offeringId = id || `off-${course.code.toLowerCase().replace(/[^a-z0-9]/g, '')}-${targetId.replace(/[^a-zA-Z0-9]/g, '')}-${Date.now().toString().slice(-4)}`;
+      const offering: CourseOffering = {
+        id: offeringId,
+        courseId: String(courseId),
+        termId: String(termId),
+        teacherId: String(teacherId),
+        targetType: targetType as any,
+        targetId: String(targetId),
+      };
+
+      await repo.runTransaction(async (tx) => {
+        tx.courseOfferings.set(offeringId, offering);
+      });
+      repo.logAudit(session.userId, 'CREATE_COURSE_OFFERING', 'course_offerings', offeringId, 'success', { offering });
+      res.json({ success: true, offering });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  });
+
+  // --------------------------------------------------------------------------
+  // 1.3 Modular Entity Management: Venues & Faculty
+  // --------------------------------------------------------------------------
+  app.post('/api/resources/rooms', async (req: Request, res: Response) => {
+    try {
+      const session = getSession(req);
+      if (session.role !== 'admin') {
+        return res.status(403).json({ success: false, error: 'ERR_FORBIDDEN: Only administrators can create rooms.' });
+      }
+      const { id, roomNumber, building, floor, capacity, roomType, active } = req.body;
+      if (!roomNumber || !building) {
+        return res.status(400).json({ success: false, error: 'Missing required room fields (roomNumber, building).' });
+      }
+      const cap = Number(capacity || 0);
+      if (cap <= 0) {
+        return res.status(400).json({ success: false, error: 'Room capacity must be greater than zero.' });
+      }
+
+      const rType = roomType === 'P' ? 'P' : 'LT';
+      const roomId = id || `r-${String(roomNumber).toLowerCase().replace(/[^a-z0-9]/g, '')}-${Date.now().toString().slice(-4)}`;
+      const room: Room = {
+        id: roomId,
+        roomNumber: String(roomNumber),
+        building: String(building),
+        floor: Number(floor || 1),
+        capacity: cap,
+        roomType: rType,
+        active: active !== false,
+      };
+
+      await repo.runTransaction(async (tx) => {
+        tx.rooms.set(roomId, room);
+      });
+      repo.logAudit(session.userId, 'CREATE_ROOM', 'rooms', roomId, 'success', { room });
+      res.json({ success: true, room });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/resources/teachers', async (req: Request, res: Response) => {
+    try {
+      const session = getSession(req);
+      if (session.role !== 'admin') {
+        return res.status(403).json({ success: false, error: 'ERR_FORBIDDEN: Only administrators can create faculty.' });
+      }
+      const { id, empId, name, email, department, active } = req.body;
+      if (!empId || !name || !email) {
+        return res.status(400).json({ success: false, error: 'Missing required teacher fields (empId, name, email).' });
+      }
+
+      const teacherId = id || `t-${String(empId).toLowerCase().replace(/[^a-z0-9]/g, '')}-${Date.now().toString().slice(-4)}`;
+      const teacher: Teacher = {
+        id: teacherId,
+        empId: String(empId),
+        name: String(name),
+        email: String(email),
+        department: department ? String(department) : undefined,
+        active: active !== false,
+      };
+
+      await repo.runTransaction(async (tx) => {
+        tx.teachers.set(teacherId, teacher);
+      });
+      repo.logAudit(session.userId, 'CREATE_TEACHER', 'teachers', teacherId, 'success', { teacher });
+      res.json({ success: true, teacher });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  });
+
+  app.post('/api/resources/teachers/:id/availability', async (req: Request, res: Response) => {
+    try {
+      const session = getSession(req);
+      if (session.role !== 'admin') {
+        return res.status(403).json({ success: false, error: 'ERR_FORBIDDEN: Only administrators can configure faculty availability.' });
+      }
+      const teacherId = String(req.params.id);
+      const { dayOfWeek, slotIndex, isAvailable } = req.body;
+      const dow = Number(dayOfWeek);
+      const sIdx = Number(slotIndex);
+      const avail = Boolean(isAvailable);
+
+      const state = repo.getState();
+      if (!state.teachers.has(teacherId)) {
+        return res.status(400).json({ success: false, error: `Teacher ${teacherId} does not exist.` });
+      }
+
+      const availKey = `ta-${teacherId}-${dow}-${sIdx}`;
+      await repo.runTransaction(async (tx) => {
+        if (!avail) {
+          tx.teacherAvailabilities.set(availKey, {
+            id: availKey,
+            teacherId,
+            dayOfWeek: dow,
+            slotIndex: sIdx,
+            isAvailable: false,
+          });
+        } else {
+          tx.teacherAvailabilities.delete(availKey);
+        }
+      });
+      repo.logAudit(session.userId, 'SET_TEACHER_AVAILABILITY', 'teacher_availabilities', availKey, 'success', {
+        teacherId,
+        dayOfWeek: dow,
+        slotIndex: sIdx,
+        isAvailable: avail,
+      });
+      res.json({ success: true });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  });
+
+  // --------------------------------------------------------------------------
   // 2. Regular Class Endpoints
   // --------------------------------------------------------------------------
-  app.post('/api/classes/occurrences/:id/cancel', async (req: Request, res: Response, next: NextFunction) => {
+  app.post('/api/classes/occurrences/:id/cancel', requireRole(['teacher', 'admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
       const { reason } = req.body;
       const occ = await regularService.cancelOccurrence(session, String(req.params.id), reason);
       res.json({ success: true, occurrence: occ });
     } catch (err: any) {
+      if (err.message.includes('ERR_FORBIDDEN') || err.message.includes('FORBIDDEN') || err.message.includes('Teachers can only') || err.message.includes('Only teachers or admins')) {
+        return res.status(403).json({ success: false, error: 'FORBIDDEN', message: err.message });
+      }
       res.status(400).json({ success: false, error: err.message });
     }
   });
 
-  app.post('/api/classes/occurrences/:id/reschedule', async (req: Request, res: Response, next: NextFunction) => {
+  app.post('/api/classes/occurrences/:id/reschedule', requireRole(['teacher', 'admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
       const { date, dayOfWeek, startSlot, roomId } = req.body;
@@ -93,6 +527,9 @@ export function createApp(initialRepo?: TimetableRepository) {
       });
       res.json({ success: true, occurrence: occ });
     } catch (err: any) {
+      if (err.message.includes('ERR_FORBIDDEN') || err.message.includes('FORBIDDEN') || err.message.includes('Teachers can only') || err.message.includes('Only teachers or admins')) {
+        return res.status(403).json({ success: false, error: 'FORBIDDEN', message: err.message });
+      }
       res.status(400).json({ success: false, error: err.message });
     }
   });
@@ -198,10 +635,84 @@ export function createApp(initialRepo?: TimetableRepository) {
   // --------------------------------------------------------------------------
   // 6. Generation Contract & Fallback Endpoints
   // --------------------------------------------------------------------------
+  app.post('/api/generation/compile-package', (req: Request, res: Response) => {
+    try {
+      const session = getSession(req);
+      if (session.role !== 'admin') {
+        return res.status(403).json({ success: false, error: 'ERR_FORBIDDEN: Only administrators can compile generation packages.' });
+      }
+      const { termIds, scope } = req.body;
+      const { package: pkg, runId } = genAdapter.exportGenerationInputPackage(session, termIds, scope);
+
+      const state = repo.getState();
+      const selectedOfferings = pkg.courseOfferings as any[];
+      let totalSlotsRequired = 0;
+      const warnings: string[] = [];
+
+      const coursesMap = new Map((pkg.courses as any[]).map((c: any) => [c.id, c]));
+      const teachersMap = new Map((pkg.teachers as any[]).map((t: any) => [t.id, t]));
+      const roomsList = pkg.rooms as any[];
+
+      for (const off of selectedOfferings) {
+        const c = coursesMap.get(off.courseId);
+        if (c) {
+          totalSlotsRequired += (Number(c.lectureHours || 0) + Number(c.tutorialHours || 0) + Number(c.practicalHours || 0));
+          if (Number(c.practicalHours || 0) % 2 !== 0) {
+            warnings.push(`Course ${c.code} (${c.name}) has odd practical hours (${c.practicalHours}), violating ERR_ODD_P_HOURS.`);
+          }
+        }
+        if (!teachersMap.has(off.teacherId)) {
+          warnings.push(`Offering ${off.id} references teacher ${off.teacherId} who is not included in active scope.`);
+        }
+      }
+
+      // Teaching periods per week (non-lunch slots across active days)
+      const nonBreakSlotsPerDay = state.gridConfig.slots.filter((s) => s.dayOfWeek === 1 && !s.isBreak).length || 7;
+      const teachingDaysPerWeek = state.gridConfig.days.length || 5;
+      const slotsPerRoomWeek = nonBreakSlotsPerDay * teachingDaysPerWeek;
+      const totalCapacity = roomsList.length * slotsPerRoomWeek;
+
+      const hasLabRooms = roomsList.some((r) => r.roomType === 'P');
+      const hasLtRooms = roomsList.some((r) => r.roomType === 'LT');
+
+      for (const c of coursesMap.values() as any) {
+        if (c.practicalHours > 0 && !hasLabRooms) {
+          warnings.push(`Course ${c.code} requires practical lab venue ('P'), but no lab rooms are selected in scope.`);
+        }
+        if ((c.lectureHours > 0 || c.tutorialHours > 0) && !hasLtRooms) {
+          warnings.push(`Course ${c.code} requires lecture venue ('LT'), but no lecture halls are selected in scope.`);
+        }
+      }
+
+      if (totalSlotsRequired > totalCapacity) {
+        warnings.push(`Pre-flight Capacity Deficit: Required contact hours (${totalSlotsRequired}) exceed available room-period capacity (${totalCapacity}).`);
+      }
+
+      res.json({
+        success: true,
+        package: pkg,
+        runId,
+        stats: {
+          totalSlotsRequired,
+          totalCapacity,
+          slotsPerRoomWeek,
+          roomCount: roomsList.length,
+          teacherCount: pkg.teachers.length,
+          offeringCount: selectedOfferings.length,
+          cohortCount: (pkg.sections as any[]).length + (pkg.batches as any[]).length,
+          isFeasible: totalSlotsRequired <= totalCapacity,
+          warnings,
+        },
+      });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  });
+
   app.post('/api/generation/request', async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
-      const result = await genAdapter.requestGeneration(session, req.body.termIds);
+      const result = await genAdapter.requestGeneration(session, req.body.termIds, req.body.scope);
       res.json(result);
     } catch (err: any) {
       res.status(400).json({ success: false, error: err.message });
@@ -211,7 +722,20 @@ export function createApp(initialRepo?: TimetableRepository) {
   app.get('/api/generation/package/download', (req: Request, res: Response) => {
     try {
       const session = getSession(req);
-      const { package: pkg } = genAdapter.exportGenerationInputPackage(session);
+      const termIds = req.query.termIds ? String(req.query.termIds).split(',').filter(Boolean) : undefined;
+      const roomIds = req.query.roomIds ? String(req.query.roomIds).split(',').filter(Boolean) : undefined;
+      const teacherIds = req.query.teacherIds ? String(req.query.teacherIds).split(',').filter(Boolean) : undefined;
+      const courseOfferingIds = req.query.offeringIds ? String(req.query.offeringIds).split(',').filter(Boolean) : undefined;
+      const sectionIds = req.query.sectionIds ? String(req.query.sectionIds).split(',').filter(Boolean) : undefined;
+
+      const scope = (roomIds || teacherIds || courseOfferingIds || sectionIds) ? {
+        roomIds,
+        teacherIds,
+        courseOfferingIds,
+        sectionIds,
+      } : undefined;
+
+      const { package: pkg } = genAdapter.exportGenerationInputPackage(session, termIds, scope);
       res.setHeader('Content-Disposition', `attachment; filename="${pkg.packageId}.json"`);
       res.setHeader('Content-Type', 'application/json');
       res.send(JSON.stringify(pkg, null, 2));
@@ -220,7 +744,7 @@ export function createApp(initialRepo?: TimetableRepository) {
     }
   });
 
-  app.post('/api/generation/draft/upload', async (req: Request, res: Response) => {
+  app.post('/api/generation/draft/upload', requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
       const result = await importService.uploadGeneratedDraft(session, req.body.draft, {
@@ -229,6 +753,9 @@ export function createApp(initialRepo?: TimetableRepository) {
       });
       res.json({ success: true, ...result });
     } catch (err: any) {
+      if (err.message.includes('ERR_FORBIDDEN') || err.message.includes('FORBIDDEN')) {
+        return res.status(403).json({ success: false, error: 'FORBIDDEN', message: err.message });
+      }
       res.status(400).json({ success: false, error: err.message });
     }
   });
@@ -236,12 +763,15 @@ export function createApp(initialRepo?: TimetableRepository) {
   // --------------------------------------------------------------------------
   // 7. Publication & Version Recovery Endpoints
   // --------------------------------------------------------------------------
-  app.post('/api/timetable/versions/:id/publish', async (req: Request, res: Response) => {
+  app.post('/api/timetable/versions/:id/publish', requireRole(['admin']), async (req: Request, res: Response) => {
     try {
       const session = getSession(req);
       const result = await pubService.publishDraft(session, String(req.params.id));
       res.json({ success: true, ...result });
     } catch (err: any) {
+      if (err.message.includes('ERR_FORBIDDEN') || err.message.includes('FORBIDDEN') || err.message.includes('Only administrators')) {
+        return res.status(403).json({ success: false, error: 'FORBIDDEN', message: err.message });
+      }
       res.status(400).json({ success: false, error: err.message });
     }
   });
@@ -265,6 +795,94 @@ export function createApp(initialRepo?: TimetableRepository) {
     res.json({ notices });
   });
 
+  // --------------------------------------------------------------------------
+  // 9. Demo Setup & Seeding Helper (Phase Zero UI Verification)
+  // --------------------------------------------------------------------------
+  app.post('/api/demo/seed-and-publish', async (req: Request, res: Response) => {
+    try {
+      const session = getSession(req);
+      const { package: pkg } = genAdapter.exportGenerationInputPackage(session);
+
+      const demoDraft = {
+        schemaVersion: '1.0.0',
+        packageId: pkg.packageId,
+        inputRevision: pkg.inputRevision,
+        status: 'succeeded' as const,
+        termIds: ['term-3'],
+        classes: [
+          {
+            courseOfferingId: 'off-ds-lec',
+            termId: 'term-3',
+            dayOfWeek: 1, // Monday
+            startSlot: 1, // Period 1: 09:00 - 10:00
+            duration: 1,
+            activityType: 'L' as const,
+            teacherId: 't-1',
+            roomId: 'r-101',
+            targetType: 'section' as const,
+            targetId: 'sec-A',
+          },
+          {
+            courseOfferingId: 'off-ds-lec',
+            termId: 'term-3',
+            dayOfWeek: 2, // Tuesday
+            startSlot: 2, // Period 2: 10:00 - 11:00
+            duration: 1,
+            activityType: 'L' as const,
+            teacherId: 't-1',
+            roomId: 'r-101',
+            targetType: 'section' as const,
+            targetId: 'sec-A',
+          },
+          {
+            courseOfferingId: 'off-ds-lec',
+            termId: 'term-3',
+            dayOfWeek: 3, // Wednesday
+            startSlot: 5, // Period 5: 13:00 - 15:00 (spans Period 5 & 6 per D44)
+            duration: 2,
+            activityType: 'P' as const,
+            teacherId: 't-1',
+            roomId: 'r-lab1',
+            targetType: 'section' as const,
+            targetId: 'sec-A',
+          },
+        ],
+      };
+
+      const uploadResult = await importService.uploadGeneratedDraft(session, demoDraft as any, {
+        allowStaleOverride: true,
+        staleOverrideReason: 'Phase Zero demo initialization',
+      });
+
+      const publishResult = await pubService.publishDraft(session, uploadResult.version.id);
+
+      // Add a one-off extra class on Friday (Day 5) slot 2 for completeness
+      try {
+        await extraService.bookExtraClass(session, {
+          date: '2026-09-11',
+          dayOfWeek: 5,
+          startSlot: 2,
+          activityType: 'L',
+          courseOfferingId: 'off-ds-lec',
+          termId: 'term-3',
+          roomId: 'r-102',
+          targetType: 'section',
+          targetId: 'sec-A',
+        });
+      } catch {
+        // Ignored if duplicate or not applicable
+      }
+
+      res.json({
+        success: true,
+        version: publishResult.publishedVersion,
+        instantiatedOccurrences: publishResult.instantiatedOccurrences,
+      });
+    } catch (err: any) {
+      res.status(400).json({ success: false, error: err.message });
+    }
+  });
+
   // Minimal SPA UI serving
   app.use((req: Request, res: Response) => {
     res.send(renderHtmlUI());
@@ -274,583 +892,12 @@ export function createApp(initialRepo?: TimetableRepository) {
 }
 
 /**
- * Seed initial sample dummy university data for ₹0 prototyping.
+ * Seed initial realistic university engineering curriculum fixtures for ₹0 prototyping.
+ * Populates Semester 1, Semester 3, and Semester 5 with published Version 1 schedule.
  */
 function seedInitialData(repo: TimetableRepository) {
   repo.runTransaction(async (tx) => {
-    if (tx.academicTerms.size > 0) return;
-
-    tx.academicTerms.set('term-3', {
-      id: 'term-3',
-      yearLabel: '2026-2027',
-      semesterNumber: 3,
-      startDate: '2026-09-01',
-      endDate: '2026-12-20',
-      cycle: 'odd',
-      status: 'active',
-    });
-
-    tx.rooms.set('r-101', {
-      id: 'r-101',
-      roomNumber: '101',
-      building: 'Engineering Block',
-      floor: 1,
-      capacity: 60,
-      roomType: 'LT',
-      active: true,
-    });
-    tx.rooms.set('r-102', {
-      id: 'r-102',
-      roomNumber: '102',
-      building: 'Engineering Block',
-      floor: 1,
-      capacity: 60,
-      roomType: 'LT',
-      active: true,
-    });
-    tx.rooms.set('r-lab1', {
-      id: 'r-lab1',
-      roomNumber: 'Lab-A',
-      building: 'CS Block',
-      floor: 2,
-      capacity: 35,
-      roomType: 'P',
-      active: true,
-    });
-
-    tx.teachers.set('t-1', {
-      id: 't-1',
-      empId: 'EMP-101',
-      name: 'Dr. Alice Smith',
-      email: 'alice@uni.edu',
-      active: true,
-    });
-    tx.teachers.set('t-2', {
-      id: 't-2',
-      empId: 'EMP-102',
-      name: 'Dr. Bob Jones',
-      email: 'bob@uni.edu',
-      active: true,
-    });
-
-    tx.sections.set('sec-A', {
-      id: 'sec-A',
-      termId: 'term-3',
-      name: 'Section A',
-      expectedCount: 50,
-      active: true,
-    });
-    tx.batches.set('batch-A1', {
-      id: 'batch-A1',
-      sectionId: 'sec-A',
-      name: 'Batch A1',
-      expectedCount: 25,
-      active: true,
-    });
-
-    tx.students.set('stud-1', {
-      id: 'stud-1',
-      rollNumber: 'CS2026-001',
-      name: 'Charlie Brown',
-      email: 'charlie@uni.edu',
-      active: true,
-    });
-    tx.studentGroupMemberships.set('sgm-1', {
-      id: 'sgm-1',
-      studentId: 'stud-1',
-      groupId: 'sec-A',
-      groupType: 'section',
-      effectiveStartDate: '2026-08-01',
-    });
-
-    tx.courses.set('c-ds', {
-      id: 'c-ds',
-      code: 'CS201',
-      name: 'Data Structures',
-      termId: 'term-3',
-      lectureHours: 2,
-      tutorialHours: 0,
-      practicalHours: 2,
-      requiredRoomType: 'LT',
-    });
-
-    tx.courseOfferings.set('off-ds-lec', {
-      id: 'off-ds-lec',
-      courseId: 'c-ds',
-      termId: 'term-3',
-      teacherId: 't-1',
-      targetType: 'section',
-      targetId: 'sec-A',
-    });
+    populateRealisticUniversityData(tx);
   });
 }
 
-/**
- * Minimal Workflow UI HTML/CSS/JS (Phase 7: strictly functional, no decorative distraction)
- */
-function renderHtmlUI(): string {
-  return `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>University Timetable Management System</title>
-  <style>
-    :root {
-      --bg: #0f172a;
-      --card: #1e293b;
-      --border: #334155;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --primary: #38bdf8;
-      --danger: #ef4444;
-      --success: #10b981;
-      --warning: #f59e0b;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background: var(--bg); color: var(--text); padding: 20px; }
-    header { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border); padding-bottom: 15px; margin-bottom: 20px; }
-    .role-badge { background: var(--border); padding: 5px 12px; border-radius: 6px; font-size: 14px; }
-    .role-selector select { background: var(--card); color: var(--text); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; }
-    .card { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 18px; }
-    h2 { font-size: 18px; margin-bottom: 14px; color: var(--primary); }
-    h3 { font-size: 15px; margin: 12px 0 6px 0; color: var(--text); }
-    p, li { font-size: 14px; color: var(--text-muted); line-height: 1.5; }
-    button { background: var(--primary); color: #000; border: none; padding: 8px 14px; border-radius: 6px; font-weight: 600; cursor: pointer; margin-top: 8px; }
-    button:hover { opacity: 0.9; }
-    button.danger { background: var(--danger); color: #fff; }
-    button.warning { background: var(--warning); color: #000; }
-    input, select, textarea { width: 100%; background: #0b1120; border: 1px solid var(--border); color: var(--text); padding: 8px; border-radius: 6px; margin: 6px 0 10px 0; font-size: 13px; }
-    .status-tag { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: 600; }
-    .status-scheduled { background: #064e3b; color: #34d399; }
-    .status-cancelled { background: #7f1d1d; color: #f87171; }
-    .status-draft { background: #78350f; color: #fbbf24; }
-    .status-published { background: #064e3b; color: #34d399; }
-    .error-box { background: rgba(239, 68, 68, 0.15); border: 1px solid var(--danger); color: #fca5a5; padding: 10px; border-radius: 6px; margin-top: 10px; font-size: 13px; display: none; }
-    .success-box { background: rgba(16, 185, 129, 0.15); border: 1px solid var(--success); color: #6ee7b7; padding: 10px; border-radius: 6px; margin-top: 10px; font-size: 13px; display: none; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 13px; }
-    th, td { border: 1px solid var(--border); padding: 8px; text-align: left; }
-    th { background: #131c2e; color: var(--text); }
-  </style>
-</head>
-<body>
-  <header>
-    <div>
-      <h1>University Timetable Management System</h1>
-      <p>Authoritative Backend & Verification Prototype</p>
-    </div>
-    <div class="role-selector">
-      <label>Active Role: </label>
-      <select id="roleSelect" onchange="switchRole()">
-        <option value="admin">Administrator</option>
-        <option value="teacher">Teacher (Dr. Alice Smith)</option>
-        <option value="student">Student (Charlie Brown)</option>
-      </select>
-    </div>
-  </header>
-
-  <div id="alertBox" class="error-box"></div>
-  <div id="infoBox" class="success-box"></div>
-
-  <!-- ADMIN VIEW -->
-  <div id="adminView" class="view-section">
-    <div class="grid">
-      <div class="card">
-        <h2>Semester Timetable Generation</h2>
-        <p>Generates global timetable for all active semesters. Attempts hosted generator or provides download package for local OR-Tools solver.</p>
-        <button onclick="requestGeneration()">Trigger Timetable Generation</button>
-        <button onclick="downloadPackage()" style="background:#475569; color:#fff;">Download Input Package JSON</button>
-        <div id="generationStatus" style="margin-top:12px; font-size:13px;"></div>
-      </div>
-
-      <div class="card">
-        <h2>Import Generated Draft</h2>
-        <p>Upload a structured draft JSON from local/remote solver. Validates all mandatory constraints and checks for stale package revision.</p>
-        <textarea id="draftJsonInput" rows="4" placeholder="Paste draft output JSON here..."></textarea>
-        <label><input type="checkbox" id="overrideStaleCheck" style="width:auto;"> Allow audited stale package override</label>
-        <input type="text" id="staleReasonInput" placeholder="Override reason (audit record)...">
-        <button onclick="uploadDraft()">Validate & Import Draft</button>
-      </div>
-
-      <div class="card">
-        <h2>Timetable Versions & Publication</h2>
-        <p>Draft versions remain unpublished until explicitly published. Atomic switch preserves prior versions.</p>
-        <div id="versionsList">Loading versions...</div>
-      </div>
-
-      <div class="card">
-        <h2>Teacher Unavailability Review</h2>
-        <p>Review submitted unavailability requests. Confirmation lists affected class occurrences for explicit resolution.</p>
-        <div id="unavailabilityList">Loading requests...</div>
-      </div>
-
-      <div class="card">
-        <h2>Student Section Transfer</h2>
-        <p>Transfer student to a new section/batch with effective date. Past classes remain unchanged; electives preserved.</p>
-        <label>Student ID:</label>
-        <input type="text" id="transferStudentId" value="stud-1">
-        <label>New Group ID:</label>
-        <input type="text" id="transferGroupId" value="sec-B">
-        <label>Effective Date:</label>
-        <input type="date" id="transferDate" value="2026-10-01">
-        <button onclick="transferStudent()">Execute Transfer</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- TEACHER VIEW -->
-  <div id="teacherView" class="view-section" style="display:none;">
-    <div class="grid">
-      <div class="card">
-        <h2>Book One-Off Extra Class</h2>
-        <p>Discovers free periods (cancellation-freed ranked first). Validates room capacity and type server-side.</p>
-        <label>Date:</label>
-        <input type="date" id="extraDate" value="2026-09-08">
-        <label>Day of Week (1-5):</label>
-        <input type="number" id="extraDay" min="1" max="5" value="2">
-        <label>Activity Type:</label>
-        <select id="extraActivity">
-          <option value="L">Lecture (1 hour)</option>
-          <option value="P">Practical / Lab (2 consecutive hours)</option>
-        </select>
-        <button onclick="queryFreeSlots()">Query Free Slots</button>
-        <div id="slotsResults" style="margin-top:10px;"></div>
-      </div>
-
-      <div class="card">
-        <h2>Teacher Unavailability Request</h2>
-        <p>Submit date and slot ranges. Unconfirmed requests do not block scheduling until confirmed by an admin.</p>
-        <label>Date:</label>
-        <input type="date" id="unavailDate" value="2026-09-15">
-        <label>Start Slot:</label>
-        <input type="number" id="unavailStart" value="1" min="1" max="8">
-        <label>End Slot:</label>
-        <input type="number" id="unavailEnd" value="3" min="1" max="8">
-        <label>Reason:</label>
-        <input type="text" id="unavailReason" placeholder="Conference, illness...">
-        <button onclick="submitUnavailability()">Submit Request</button>
-      </div>
-    </div>
-  </div>
-
-  <!-- STUDENT VIEW -->
-  <div id="studentView" class="view-section" style="display:none;">
-    <div class="grid">
-      <div class="card">
-        <h2>My Schedule & Venue Location</h2>
-        <p>Displays applicable section, batch, and elective classes with Room number, Building, and Floor.</p>
-        <div id="studentSchedule">Loading schedule...</div>
-      </div>
-
-      <div class="card">
-        <h2>Persistent Inbox Notifications</h2>
-        <p>Post-commit notifications for cancellations, reschedules, and extra classes.</p>
-        <div id="studentInbox">Loading inbox...</div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ACTIVE TIMETABLE DISPLAY -->
-  <div class="card" style="margin-top:20px;">
-    <h2>Current Timetable Occurrences & Day-to-Day Operations</h2>
-    <div id="occurrencesTableContainer">Loading occurrences...</div>
-  </div>
-
-  <script>
-    let currentRole = 'admin';
-    let currentState = {};
-
-    function switchRole() {
-      currentRole = document.getElementById('roleSelect').value;
-      document.getElementById('adminView').style.display = currentRole === 'admin' ? 'block' : 'none';
-      document.getElementById('teacherView').style.display = currentRole === 'teacher' ? 'block' : 'none';
-      document.getElementById('studentView').style.display = currentRole === 'student' ? 'block' : 'none';
-      loadState();
-    }
-
-    function showMsg(text, isError = false) {
-      const errBox = document.getElementById('alertBox');
-      const infoBox = document.getElementById('infoBox');
-      if (isError) {
-        errBox.textContent = text;
-        errBox.style.display = 'block';
-        infoBox.style.display = 'none';
-      } else {
-        infoBox.textContent = text;
-        infoBox.style.display = 'block';
-        errBox.style.display = 'none';
-      }
-      setTimeout(() => { errBox.style.display = 'none'; infoBox.style.display = 'none'; }, 6000);
-    }
-
-    async function api(path, options = {}) {
-      options.headers = {
-        'Content-Type': 'application/json',
-        'x-user-role': currentRole,
-        'x-user-id': currentRole === 'teacher' ? 't-1' : (currentRole === 'student' ? 'stud-1' : 'admin-1'),
-        'x-linked-id': currentRole === 'teacher' ? 't-1' : undefined,
-        ...(options.headers || {})
-      };
-      const res = await fetch(path, options);
-      const data = await res.json();
-      if (!res.ok || data.success === false) {
-        throw new Error(data.error || data.message || 'Request failed');
-      }
-      return data;
-    }
-
-    async function loadState() {
-      try {
-        const res = await fetch('/api/state');
-        currentState = await res.json();
-        renderOccurrences();
-        renderVersions();
-        renderUnavailability();
-        if (currentRole === 'student') renderStudentInbox();
-      } catch (err) {
-        showMsg(err.message, true);
-      }
-    }
-
-    function renderOccurrences() {
-      const occs = currentState.classOccurrences || [];
-      const roomsMap = new Map((currentState.rooms || []).map(r => [r.id, r]));
-      
-      let html = '<table><thead><tr><th>Date</th><th>Slot</th><th>Type</th><th>Room / Venue</th><th>Teacher</th><th>Status</th><th>Actions</th></tr></thead><tbody>';
-      if (occs.length === 0) {
-        html += '<tr><td colspan="7" style="text-align:center;">No active occurrences scheduled yet.</td></tr>';
-      }
-      occs.forEach(o => {
-        const r = roomsMap.get(o.roomId) || { roomNumber: o.roomId, building: '-', floor: '-' };
-        const statusClass = o.status === 'cancelled' ? 'status-cancelled' : 'status-scheduled';
-        html += '<tr>';
-        html += '<td>' + o.date + '</td>';
-        html += '<td>Slot ' + o.startSlot + ' (' + o.duration + 'h)</td>';
-        html += '<td>' + o.activityType + '</td>';
-        html += '<td>Room ' + r.roomNumber + ', ' + r.building + ' (Fl ' + r.floor + ')</td>';
-        html += '<td>' + o.teacherId + '</td>';
-        html += '<td><span class="status-tag ' + statusClass + '">' + o.status + '</span></td>';
-        html += '<td>';
-        if (o.status !== 'cancelled' && (currentRole === 'teacher' || currentRole === 'admin')) {
-          html += '<button class="danger" style="padding:4px 8px; font-size:12px; margin-right:4px;" onclick="cancelOcc(\\'' + o.id + '\\')">Cancel</button>';
-          html += '<button style="padding:4px 8px; font-size:12px;" onclick="promptReschedule(\\'' + o.id + '\\')">Reschedule</button>';
-        } else {
-          html += '-';
-        }
-        html += '</td>';
-        html += '</tr>';
-      });
-      html += '</tbody></table>';
-      document.getElementById('occurrencesTableContainer').innerHTML = html;
-      if (currentRole === 'student') document.getElementById('studentSchedule').innerHTML = html;
-    }
-
-    function renderVersions() {
-      const versions = currentState.timetableVersions || [];
-      let html = '<ul>';
-      if (versions.length === 0) html += '<li>No draft or published versions yet.</li>';
-      versions.forEach(v => {
-        html += '<li style="margin-bottom:8px;">Version ' + v.versionNumber + ' (' + v.termId + ') — <span class="status-tag status-' + v.status + '">' + v.status + '</span>';
-        if (v.status === 'draft' && currentRole === 'admin') {
-          html += ' <button style="padding:3px 8px; font-size:12px;" onclick="publishVersion(\\'' + v.id + '\\')">Publish Version</button>';
-        } else if (v.status === 'superseded' && currentRole === 'admin') {
-          html += ' <button class="warning" style="padding:3px 8px; font-size:12px;" onclick="restoreVersion(\\'' + v.id + '\\')">Restore Version</button>';
-        }
-        html += '</li>';
-      });
-      html += '</ul>';
-      document.getElementById('versionsList').innerHTML = html;
-    }
-
-    function renderUnavailability() {
-      const list = document.getElementById('unavailabilityList');
-      if (!list) return;
-      const reqs = (currentState.auditEvents || []).filter(a => a.action === 'SUBMIT_UNAVAILABILITY');
-      list.innerHTML = reqs.length === 0 ? '<p>No pending unavailability requests.</p>' : '<p>' + reqs.length + ' request(s) recorded in audit log.</p>';
-    }
-
-    async function renderStudentInbox() {
-      const data = await api('/api/notifications/inbox?studentId=stud-1');
-      const inboxEl = document.getElementById('studentInbox');
-      if (!inboxEl) return;
-      if (data.notices.length === 0) {
-        inboxEl.innerHTML = '<p>No notifications yet.</p>';
-        return;
-      }
-      let html = '<ul>';
-      data.notices.forEach(n => {
-        html += '<li style="margin-bottom:8px;"><strong>' + n.title + '</strong>: ' + n.message + ' <br><small>' + n.createdAt + '</small></li>';
-      });
-      html += '</ul>';
-      inboxEl.innerHTML = html;
-    }
-
-    async function cancelOcc(id) {
-      const reason = prompt('Optional cancellation reason:');
-      try {
-        await api('/api/classes/occurrences/' + id + '/cancel', {
-          method: 'POST',
-          body: JSON.stringify({ reason })
-        });
-        showMsg('Class occurrence cancelled successfully.');
-        loadState();
-      } catch (err) {
-        showMsg(err.message, true);
-      }
-    }
-
-    async function promptReschedule(id) {
-      const date = prompt('New date (YYYY-MM-DD):', '2026-09-08');
-      const slot = prompt('New slot (1-8):', '3');
-      if (!date || !slot) return;
-      try {
-        await api('/api/classes/occurrences/' + id + '/reschedule', {
-          method: 'POST',
-          body: JSON.stringify({ date, dayOfWeek: 2, startSlot: parseInt(slot) })
-        });
-        showMsg('Occurrence rescheduled atomically.');
-        loadState();
-      } catch (err) {
-        showMsg(err.message, true);
-      }
-    }
-
-    async function requestGeneration() {
-      try {
-        const res = await api('/api/generation/request', {
-          method: 'POST',
-          body: JSON.stringify({ termIds: ['term-3'] })
-        });
-        document.getElementById('generationStatus').innerHTML = '<p><strong>Status:</strong> ' + res.status + '<br>' + res.message + '</p>';
-        showMsg(res.message);
-        loadState();
-      } catch (err) {
-        showMsg(err.message, true);
-      }
-    }
-
-    function downloadPackage() {
-      window.location.href = '/api/generation/package/download';
-    }
-
-    async function uploadDraft() {
-      const text = document.getElementById('draftJsonInput').value.trim();
-      const allowOverride = document.getElementById('overrideStaleCheck').checked;
-      const reason = document.getElementById('staleReasonInput').value.trim();
-      if (!text) { showMsg('Please paste draft JSON.', true); return; }
-      try {
-        const draft = JSON.parse(text);
-        const res = await api('/api/generation/draft/upload', {
-          method: 'POST',
-          body: JSON.stringify({ draft, allowStaleOverride: allowOverride, staleOverrideReason: reason })
-        });
-        showMsg('Draft imported successfully as ' + res.version.status + ' (' + res.classCount + ' classes).');
-        loadState();
-      } catch (err) {
-        showMsg(err.message, true);
-      }
-    }
-
-    async function publishVersion(id) {
-      try {
-        const res = await api('/api/timetable/versions/' + id + '/publish', { method: 'POST' });
-        showMsg('Timetable version published! ' + res.instantiatedOccurrences + ' dated occurrences instantiated.');
-        loadState();
-      } catch (err) {
-        showMsg(err.message, true);
-      }
-    }
-
-    async function restoreVersion(id) {
-      try {
-        await api('/api/timetable/versions/' + id + '/restore', { method: 'POST' });
-        showMsg('Prior timetable version restored successfully.');
-        loadState();
-      } catch (err) {
-        showMsg(err.message, true);
-      }
-    }
-
-    async function queryFreeSlots() {
-      const date = document.getElementById('extraDate').value;
-      const day = document.getElementById('extraDay').value;
-      const act = document.getElementById('extraActivity').value;
-      try {
-        const res = await api('/api/classes/extra/available-slots?date=' + date + '&dayOfWeek=' + day + '&activityType=' + act + '&teacherId=t-1&targetType=section&targetId=sec-A');
-        let html = '<h4>Eligible Slots:</h4><ul>';
-        if (res.slots.length === 0) html += '<li>No free slots found.</li>';
-        res.slots.forEach(s => {
-          html += '<li>Slot ' + s.slotIndex + (s.isCancellationFreed ? ' <strong>[Cancellation-Freed]</strong>' : '') + ' — Rooms: ' + s.eligibleRooms.map(r => r.roomNumber).join(', ') + ' <button style="padding:2px 6px; font-size:11px;" onclick="bookExtraSlot(' + s.slotIndex + ', \\'' + s.eligibleRooms[0].id + '\\')">Book</button></li>';
-        });
-        html += '</ul>';
-        document.getElementById('slotsResults').innerHTML = html;
-      } catch (err) {
-        showMsg(err.message, true);
-      }
-    }
-
-    async function bookExtraSlot(slot, roomId) {
-      const date = document.getElementById('extraDate').value;
-      const day = document.getElementById('extraDay').value;
-      const act = document.getElementById('extraActivity').value;
-      try {
-        await api('/api/classes/extra/book', {
-          method: 'POST',
-          body: JSON.stringify({
-            date,
-            dayOfWeek: day,
-            startSlot: slot,
-            activityType: act,
-            courseOfferingId: 'off-ds-lec',
-            termId: 'term-3',
-            roomId,
-            targetType: 'section',
-            targetId: 'sec-A'
-          })
-        });
-        showMsg('Extra class booked successfully.');
-        loadState();
-      } catch (err) {
-        showMsg(err.message, true);
-      }
-    }
-
-    async function submitUnavailability() {
-      const date = document.getElementById('unavailDate').value;
-      const startSlot = document.getElementById('unavailStart').value;
-      const endSlot = document.getElementById('unavailEnd').value;
-      const reason = document.getElementById('unavailReason').value;
-      try {
-        await api('/api/teachers/unavailability/request', {
-          method: 'POST',
-          body: JSON.stringify({ date, startSlot, endSlot, reason })
-        });
-        showMsg('Unavailability request submitted (pending confirmation).');
-      } catch (err) {
-        showMsg(err.message, true);
-      }
-    }
-
-    async function transferStudent() {
-      const studentId = document.getElementById('transferStudentId').value;
-      const newGroupId = document.getElementById('transferGroupId').value;
-      const effectiveDate = document.getElementById('transferDate').value;
-      try {
-        await api('/api/students/transfer', {
-          method: 'POST',
-          body: JSON.stringify({ studentId, newGroupId, newGroupType: 'section', effectiveDate })
-        });
-        showMsg('Student transfer executed with effective date ' + effectiveDate);
-        loadState();
-      } catch (err) {
-        showMsg(err.message, true);
-      }
-    }
-
-    // Initial load
-    loadState();
-  </script>
-</body>
-</html>`;
-}

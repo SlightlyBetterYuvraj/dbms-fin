@@ -37,6 +37,13 @@ export interface GenerationRunRecord {
   draftOutput?: Record<string, unknown>;
 }
 
+export interface GenerationScopeOptions {
+  roomIds?: string[];
+  teacherIds?: string[];
+  courseOfferingIds?: string[];
+  sectionIds?: string[];
+}
+
 export class GeneratorAdapterService {
   private runs: Map<string, GenerationRunRecord> = new Map();
 
@@ -48,7 +55,8 @@ export class GeneratorAdapterService {
    */
   public exportGenerationInputPackage(
     session: AuthSession,
-    termIds?: string[]
+    termIds?: string[],
+    scope?: GenerationScopeOptions
   ): { package: GenerationPackage; runId: string } {
     if (session.role !== 'admin') {
       throw new Error('ERR_FORBIDDEN: Only administrators can export generation packages.');
@@ -56,26 +64,47 @@ export class GeneratorAdapterService {
 
     const state = this.repo.getState();
     const activeTerms = Array.from(state.academicTerms.values()).filter((t) =>
-      termIds ? termIds.includes(t.id) : t.status === 'active' || t.status === 'planned'
+      termIds && termIds.length > 0 ? termIds.includes(t.id) : t.status === 'active' || t.status === 'planned'
     );
 
     const targetTermIds = activeTerms.map((t) => t.id);
-    const rooms = Array.from(state.rooms.values()).filter((r) => r.active);
-    const teachers = Array.from(state.teachers.values()).filter((t) => t.active);
-    const teacherAvailabilities = Array.from(state.teacherAvailabilities.values());
-    const sections = Array.from(state.sections.values()).filter((s) =>
+    let rooms = Array.from(state.rooms.values()).filter((r) => r.active);
+    if (scope?.roomIds && scope.roomIds.length > 0) {
+      rooms = rooms.filter((r) => scope.roomIds!.includes(r.id));
+    }
+
+    let teachers = Array.from(state.teachers.values()).filter((t) => t.active);
+    if (scope?.teacherIds && scope.teacherIds.length > 0) {
+      teachers = teachers.filter((t) => scope.teacherIds!.includes(t.id));
+    }
+
+    const teacherIdsSet = new Set(teachers.map((t) => t.id));
+    const teacherAvailabilities = Array.from(state.teacherAvailabilities.values()).filter((ta) =>
+      teacherIdsSet.has(ta.teacherId)
+    );
+
+    let sections = Array.from(state.sections.values()).filter((s) =>
       targetTermIds.includes(s.termId)
     );
+    if (scope?.sectionIds && scope.sectionIds.length > 0) {
+      sections = sections.filter((s) => scope.sectionIds!.includes(s.id));
+    }
+
     const sectionIds = new Set(sections.map((s) => s.id));
     const batches = Array.from(state.batches.values()).filter((b) =>
       sectionIds.has(b.sectionId)
     );
+
     const courses = Array.from(state.courses.values()).filter((c) =>
       targetTermIds.includes(c.termId)
     );
-    const courseOfferings = Array.from(state.courseOfferings.values()).filter((o) =>
+
+    let courseOfferings = Array.from(state.courseOfferings.values()).filter((o) =>
       targetTermIds.includes(o.termId)
     );
+    if (scope?.courseOfferingIds && scope.courseOfferingIds.length > 0) {
+      courseOfferings = courseOfferings.filter((o) => scope.courseOfferingIds!.includes(o.id));
+    }
 
     // Compute deterministic input revision hash
     const inputRevision = computeInputRevision({
@@ -180,7 +209,8 @@ export class GeneratorAdapterService {
    */
   public async requestGeneration(
     session: AuthSession,
-    termIds?: string[]
+    termIds?: string[],
+    scope?: GenerationScopeOptions
   ): Promise<{
     runId: string;
     status: string;
@@ -188,7 +218,7 @@ export class GeneratorAdapterService {
     package?: GenerationPackage;
     message: string;
   }> {
-    const { package: pkg, runId } = this.exportGenerationInputPackage(session, termIds);
+    const { package: pkg, runId } = this.exportGenerationInputPackage(session, termIds, scope);
     const runRecord = this.runs.get(runId)!;
 
     const serviceUrl = process.env.GENERATOR_SERVICE_URL?.trim();

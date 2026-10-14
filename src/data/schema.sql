@@ -229,16 +229,28 @@ CREATE TABLE IF NOT EXISTS extra_classes (
     target_type VARCHAR(16) NOT NULL CHECK (target_type IN ('section', 'batch', 'elective_group')),
     target_id VARCHAR(64) NOT NULL,
     status VARCHAR(16) NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled', 'cancelled', 'rescheduled')),
+    booking_teacher_id UUID REFERENCES auth.users(id),
     booked_at TIMESTAMPTZ DEFAULT NOW(),
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 6. User Profiles & Accounts
+-- 6. User Profiles (Authoritative Supabase Auth mapping)
+CREATE TABLE IF NOT EXISTS profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    email TEXT UNIQUE NOT NULL,
+    full_name TEXT NOT NULL,
+    role TEXT NOT NULL CHECK (role IN ('student', 'teacher', 'admin')),
+    entity_id TEXT, -- References student_id or teacher_id where applicable
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Legacy test fixture table (kept for backward compatibility with local mocks)
 CREATE TABLE IF NOT EXISTS user_profiles (
     id VARCHAR(64) PRIMARY KEY,
     email VARCHAR(128) UNIQUE NOT NULL,
     role VARCHAR(16) NOT NULL CHECK (role IN ('student', 'teacher', 'admin')),
-    linked_id VARCHAR(64), -- student_id or teacher_id
+    linked_id VARCHAR(64),
     password_hash VARCHAR(256) NOT NULL,
     email_verified BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ DEFAULT NOW()
@@ -272,3 +284,115 @@ CREATE TABLE IF NOT EXISTS notification_outbox (
 );
 
 CREATE INDEX IF NOT EXISTS idx_outbox_pending ON notification_outbox(status) WHERE status = 'pending';
+
+-- ====================================================================
+-- ROW-LEVEL SECURITY (RLS) POLICIES
+-- ====================================================================
+
+-- Helper functions for RLS checks
+CREATE OR REPLACE FUNCTION get_auth_role()
+RETURNS TEXT LANGUAGE SQL STABLE AS $$
+    SELECT role FROM profiles WHERE id = auth.uid();
+$$;
+
+CREATE OR REPLACE FUNCTION get_auth_entity_id()
+RETURNS TEXT LANGUAGE SQL STABLE AS $$
+    SELECT entity_id FROM profiles WHERE id = auth.uid();
+$$;
+
+-- Enable RLS on profiles and scheduling tables
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE scheduled_classes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE class_occurrences ENABLE ROW LEVEL SECURITY;
+ALTER TABLE extra_classes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE audit_events ENABLE ROW LEVEL SECURITY;
+
+-- 1. Profiles Policies
+-- Users can read their own profile; admins can read all profiles
+DROP POLICY IF EXISTS profiles_select_policy ON profiles;
+CREATE POLICY profiles_select_policy ON profiles
+    FOR SELECT USING (auth.uid() = id OR get_auth_role() = 'admin');
+
+-- Only admins can insert or update user profiles
+DROP POLICY IF EXISTS profiles_insert_policy ON profiles;
+CREATE POLICY profiles_insert_policy ON profiles
+    FOR INSERT WITH CHECK (get_auth_role() = 'admin');
+
+DROP POLICY IF EXISTS profiles_update_policy ON profiles;
+CREATE POLICY profiles_update_policy ON profiles
+    FOR UPDATE USING (get_auth_role() = 'admin') WITH CHECK (get_auth_role() = 'admin');
+
+-- 2. Scheduled Classes Policies
+-- Public/students/teachers can read published classes; admins can read all
+DROP POLICY IF EXISTS sc_select_policy ON scheduled_classes;
+CREATE POLICY sc_select_policy ON scheduled_classes
+    FOR SELECT USING (
+        version_id IN (SELECT id FROM timetable_versions WHERE status = 'published')
+        OR get_auth_role() = 'admin'
+    );
+
+-- Only admins can modify scheduled_classes
+DROP POLICY IF EXISTS sc_admin_all ON scheduled_classes;
+CREATE POLICY sc_admin_all ON scheduled_classes
+    FOR ALL USING (get_auth_role() = 'admin') WITH CHECK (get_auth_role() = 'admin');
+
+-- 3. Class Occurrences Policies
+-- Public/students/teachers can read published occurrences; admins can read all
+DROP POLICY IF EXISTS co_select_policy ON class_occurrences;
+CREATE POLICY co_select_policy ON class_occurrences
+    FOR SELECT USING (
+        version_id IN (SELECT id FROM timetable_versions WHERE status = 'published')
+        OR get_auth_role() = 'admin'
+    );
+
+-- Only teachers can modify their assigned occurrences; admins can modify any
+DROP POLICY IF EXISTS co_teacher_update_policy ON class_occurrences;
+CREATE POLICY co_teacher_update_policy ON class_occurrences
+    FOR UPDATE USING (
+        (get_auth_role() = 'teacher' AND teacher_id = get_auth_entity_id())
+        OR get_auth_role() = 'admin'
+    ) WITH CHECK (
+        (get_auth_role() = 'teacher' AND teacher_id = get_auth_entity_id())
+        OR get_auth_role() = 'admin'
+    );
+
+DROP POLICY IF EXISTS co_admin_modify_policy ON class_occurrences;
+CREATE POLICY co_admin_modify_policy ON class_occurrences
+    FOR ALL USING (get_auth_role() = 'admin') WITH CHECK (get_auth_role() = 'admin');
+
+-- 4. Extra Classes Policies
+-- Teachers and students can read extra classes
+DROP POLICY IF EXISTS ec_select_policy ON extra_classes;
+CREATE POLICY ec_select_policy ON extra_classes
+    FOR SELECT USING (
+        get_auth_role() IN ('teacher', 'admin')
+        OR true
+    );
+
+-- Teachers and admins can insert extra classes
+DROP POLICY IF EXISTS ec_insert_policy ON extra_classes;
+CREATE POLICY ec_insert_policy ON extra_classes
+    FOR INSERT WITH CHECK (
+        get_auth_role() IN ('teacher', 'admin')
+    );
+
+-- Teachers can update/cancel extra classes where booking_teacher_id = auth.uid(); admins can manage all
+DROP POLICY IF EXISTS ec_teacher_update_policy ON extra_classes;
+CREATE POLICY ec_teacher_update_policy ON extra_classes
+    FOR UPDATE USING (
+        (get_auth_role() = 'teacher' AND booking_teacher_id = auth.uid())
+        OR get_auth_role() = 'admin'
+    ) WITH CHECK (
+        (get_auth_role() = 'teacher' AND booking_teacher_id = auth.uid())
+        OR get_auth_role() = 'admin'
+    );
+
+DROP POLICY IF EXISTS ec_admin_all ON extra_classes;
+CREATE POLICY ec_admin_all ON extra_classes
+    FOR ALL USING (get_auth_role() = 'admin') WITH CHECK (get_auth_role() = 'admin');
+
+-- 5. Audit Events Policies
+-- Read-only for admins; insert allowed only by trusted server service-role
+DROP POLICY IF EXISTS audit_select_admin ON audit_events;
+CREATE POLICY audit_select_admin ON audit_events
+    FOR SELECT USING (get_auth_role() = 'admin');

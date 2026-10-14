@@ -31,6 +31,25 @@ export function validateDraftTimetable(
 ): ValidationResult {
   const errors: ValidationErrorDetail[] = [];
 
+  // 2. Count scheduled sessions by offering and target cohort in the draft
+  const scheduledCountByOffering = new Map<string, Map<string, number>>();
+  const scheduledCountByOfferingTarget = new Map<string, Map<string, Map<string, number>>>();
+  for (const cls of draft.classes) {
+    if (!scheduledCountByOffering.has(cls.courseOfferingId)) {
+      scheduledCountByOffering.set(cls.courseOfferingId, new Map());
+      scheduledCountByOfferingTarget.set(cls.courseOfferingId, new Map());
+    }
+    const typeMap = scheduledCountByOffering.get(cls.courseOfferingId)!;
+    typeMap.set(cls.activityType, (typeMap.get(cls.activityType) || 0) + 1);
+
+    const targetMap = scheduledCountByOfferingTarget.get(cls.courseOfferingId)!;
+    if (!targetMap.has(cls.targetId)) {
+      targetMap.set(cls.targetId, new Map());
+    }
+    const targetTypeMap = targetMap.get(cls.targetId)!;
+    targetTypeMap.set(cls.activityType, (targetTypeMap.get(cls.activityType) || 0) + 1);
+  }
+
   // 1. Validate contact hours for all courses and collect required sessions per offering
   const requiredSessionsByOffering = new Map<
     string,
@@ -41,6 +60,12 @@ export function validateDraftTimetable(
     if (!draft.termIds.includes(offering.termId)) {
       continue;
     }
+    // If draft specifies scheduled classes, only validate offerings included in scope
+    const isOfferingInDraft = scheduledCountByOffering.has(offering.id);
+    if (!isOfferingInDraft && draft.classes.length > 0) {
+      continue;
+    }
+
     const course = courses.get(offering.courseId);
     if (!course) {
       errors.push({
@@ -70,19 +95,11 @@ export function validateDraftTimetable(
     requiredSessionsByOffering.set(offering.id, reqList);
   }
 
-  // 2. Count scheduled sessions by offering in the draft
-  const scheduledCountByOffering = new Map<string, Map<string, number>>();
-  for (const cls of draft.classes) {
-    if (!scheduledCountByOffering.has(cls.courseOfferingId)) {
-      scheduledCountByOffering.set(cls.courseOfferingId, new Map());
-    }
-    const typeMap = scheduledCountByOffering.get(cls.courseOfferingId)!;
-    typeMap.set(cls.activityType, (typeMap.get(cls.activityType) || 0) + 1);
-  }
-
   // 3. Verify completeness: each offering must have exact scheduled count matching required count
   for (const [offeringId, requiredList] of requiredSessionsByOffering.entries()) {
     const scheduledMap = scheduledCountByOffering.get(offeringId) || new Map();
+    const targetMap = scheduledCountByOfferingTarget.get(offeringId) || new Map();
+
     for (const req of requiredList) {
       const scheduledCount = scheduledMap.get(req.activityType) || 0;
       if (scheduledCount < req.count) {
@@ -92,11 +109,28 @@ export function validateDraftTimetable(
           entityId: offeringId,
         });
       } else if (scheduledCount > req.count) {
-        errors.push({
-          code: 'ERR_EXCESS_SESSIONS',
-          message: `Offering ${offeringId} has extra ${req.activityType} sessions. Scheduled: ${scheduledCount}, Required: ${req.count}.`,
-          entityId: offeringId,
-        });
+        // Check if this is a practical lab scheduled once for each distinct constituent batch
+        let validBatchDistribution = false;
+        if (req.activityType === 'P' && targetMap.size > 1) {
+          let allBatchesMatch = true;
+          for (const [tId, tTypeMap] of targetMap.entries()) {
+            if ((tTypeMap.get('P') || 0) !== req.count) {
+              allBatchesMatch = false;
+              break;
+            }
+          }
+          if (allBatchesMatch) {
+            validBatchDistribution = true;
+          }
+        }
+
+        if (!validBatchDistribution) {
+          errors.push({
+            code: 'ERR_EXCESS_SESSIONS',
+            message: `Offering ${offeringId} has extra ${req.activityType} sessions. Scheduled: ${scheduledCount}, Required: ${req.count}.`,
+            entityId: offeringId,
+          });
+        }
       }
     }
   }

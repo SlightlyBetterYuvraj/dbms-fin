@@ -69,8 +69,8 @@ describe('Phase 7 — HTTP API & Workflow Integration', () => {
   });
 
   it('exercises full end-to-end flow: upload draft, publish, book extra class, cancel occurrence', async () => {
-    // 1. Download generation package to obtain matching input revision
-    const pkgRes = await fetch(`${testServer.url}/api/generation/package/download`, {
+    // 1. Download generation package to obtain matching input revision for term-3
+    const pkgRes = await fetch(`${testServer.url}/api/generation/package/download?termIds=term-3`, {
       headers: { 'x-user-role': 'admin' },
     });
     const pkg = await pkgRes.json();
@@ -141,10 +141,10 @@ describe('Phase 7 — HTTP API & Workflow Integration', () => {
     expect(pubData.publishedVersion.status).toBe('published');
     expect(pubData.instantiatedOccurrences).toBeGreaterThan(0);
 
-    // 4. Query state to get an instantiated occurrence ID
+    // 4. Query state to get an instantiated occurrence ID belonging to teacher t-1 for student cohort sec-A
     const stateRes = await fetch(`${testServer.url}/api/state`);
     const state = await stateRes.json();
-    const occId = state.classOccurrences[0].id;
+    const occId = state.classOccurrences.find((o: any) => o.targetId === 'sec-A' && o.teacherId === 't-1')?.id || state.classOccurrences[0].id;
 
     // 5. Cancel occurrence as teacher
     const cancelRes = await fetch(`${testServer.url}/api/classes/occurrences/${occId}/cancel`, {
