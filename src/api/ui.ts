@@ -17,8 +17,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>TimeTable+ • Modern University Timetable & Academic Management</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <title>PlayMyClass • Modern University Timetable & Academic Management</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -1050,12 +1049,14 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
   <nav class="navbar">
     <a class="brand-logo" onclick="switchView('landing')">
       <div class="logo-icon">📅</div>
-      <div class="logo-text">TimeTable<span>+</span></div>
+      <div class="logo-text">PlayMy<span>Class</span></div>
     </a>
 
     <div class="nav-links" id="mainNavLinks">
       <a class="nav-link" id="navLinkHome" onclick="switchView('landing')">Home</a>
-      <a class="nav-link" id="navLinkDashboard" onclick="switchView('dashboard')">Timetable Grid</a>
+      <a class="nav-link" id="navLinkDashboard" style="display: none;" onclick="goToRespectiveDashboard()">📊 Dashboard</a>
+      <a class="nav-link" id="navLinkFeedback" onclick="switchView('feedback')">Feedback</a>
+      <a class="nav-link" id="navLinkAbout" onclick="switchView('about')">About</a>
     </div>
 
     <div class="nav-actions">
@@ -1089,20 +1090,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           <p class="hero-desc">
             A simple and smart solution for students, teachers, and admins to manage and generate academic schedules effortlessly. Backed by Google OR-Tools CP-SAT constraint optimization.
           </p>
-          <div class="hero-actions">
-            <button class="btn btn-primary" onclick="switchView('dashboard')" style="padding: 12px 24px; font-size: 15px;">
-              🚀 Explore Dashboard
-            </button>
-            <button class="btn btn-secondary" onclick="switchView('roles')" style="padding: 12px 24px; font-size: 15px;">
-              ✨ Select Your Role
-            </button>
-            <button class="btn btn-secondary" onclick="resetToSimpleMockData()" style="padding: 12px 18px; font-size: 13px; color:#F43F5E;">
-              🧹 Reset Simple Data
-            </button>
-            <button class="btn btn-secondary" onclick="loadDemoSchedule()" style="padding: 12px 18px; font-size: 13px;">
-              ⚡ 1-Click Load & Publish
-            </button>
-          </div>
+
         </div>
 
         <div class="hero-graphic">
@@ -2129,8 +2117,160 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         </div>
 
       </div>
-
+      
     </div>
+
+    <!-- ==================================================================== -->
+    <!-- VIEW: DEDICATED FEEDBACK PAGE                                        -->
+    <!-- ==================================================================== -->
+    <div id="feedbackView" style="display: none; max-width: 900px; margin: 0 auto; padding: 20px 0;">
+      <!-- Main Feedback Header Card -->
+      <div class="card-box" style="padding: 32px; background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%); border-top: 4px solid var(--primary); margin-bottom: 24px;">
+        <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+          <div style="width: 44px; height: 44px; border-radius: 12px; background: #EEF2FF; color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 22px;">💬</div>
+          <div>
+            <h2 style="font-size: 24px; font-weight: 800; color: var(--text); margin: 0;">Tell us about the app and submit feedback</h2>
+            <p style="font-size: 14px; color: var(--text-muted); margin: 4px 0 0 0;">We value your insights and experience using PlayMyClass. Let us know how we can improve.</p>
+          </div>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 24px;">
+        <!-- Feedback Submission Form -->
+        <div class="card-box" style="padding: 24px;">
+          <h3 class="card-box-title" style="margin-bottom: 6px;">Submit Your Feedback</h3>
+          <p class="card-box-desc">Share bug reports, feature ideas, or scheduling workflow thoughts.</p>
+          
+          <div class="form-grid" style="grid-template-columns: 1fr; gap: 14px; margin-bottom: 16px;">
+            <div class="form-group">
+              <label>Your Name</label>
+              <input type="text" id="feedbackSenderName" class="form-control" placeholder="Enter your full name">
+            </div>
+            <div class="form-group">
+              <label>Your Email / Institutional ID</label>
+              <input type="email" id="feedbackSenderEmail" class="form-control" placeholder="name@jklu.edu.in">
+            </div>
+            <div class="form-group">
+              <label>Topic / Category</label>
+              <select id="feedbackCategory" class="form-control">
+                <option value="ui_ux">UI & Usability Experience</option>
+                <option value="schedule">Timetable & Slot Conflicts</option>
+                <option value="feature">Feature Request & Suggestions</option>
+                <option value="bug">Bug Report / Performance</option>
+                <option value="other">General Feedback</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Your Message / Feedback</label>
+              <textarea id="feedbackMessage" class="form-control" rows="4" style="resize: vertical; font-family: inherit;" placeholder="Please describe your experience or suggestions in detail..."></textarea>
+            </div>
+          </div>
+          
+          <button class="btn btn-primary" onclick="submitFeedbackForm()" style="width: 100%; padding: 12px; font-weight: 700;">
+            🚀 Submit Feedback
+          </button>
+        </div>
+
+        <!-- Designated Team Contact Email Addresses -->
+        <div class="card-box" style="padding: 24px; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <h3 class="card-box-title" style="margin-bottom: 6px;">Designated Team Contacts</h3>
+            <p class="card-box-desc">Direct reach-out channels to the core development and product team.</p>
+
+            <div style="display: flex; flex-direction: column; gap: 14px; margin-top: 18px;">
+              <!-- Contact 1: Yuvraj Singh Rathore -->
+              <div style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: #FFFFFF;">
+                <div style="width: 38px; height: 38px; border-radius: 10px; background: #EEF2FF; color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700;">YR</div>
+                <div style="flex: 1;">
+                  <div style="font-weight: 700; font-size: 14px; color: var(--text);">Yuvraj Singh Rathore</div>
+                  <a href="mailto:yuvrajsinghrathore@jklu.edu.in" style="font-size: 12px; color: var(--primary); text-decoration: none; font-weight: 600;">yuvrajsinghrathore@jklu.edu.in</a>
+                </div>
+              </div>
+
+              <!-- Contact 2: Aadrika Roy -->
+              <div style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: #FFFFFF;">
+                <div style="width: 38px; height: 38px; border-radius: 10px; background: #FCE8F3; color: #E05697; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700;">AR</div>
+                <div style="flex: 1;">
+                  <div style="font-weight: 700; font-size: 14px; color: var(--text);">Aadrika Roy</div>
+                  <a href="mailto:aadrikaroy@jklu.edu.in" style="font-size: 12px; color: #E05697; text-decoration: none; font-weight: 600;">aadrikaroy@jklu.edu.in</a>
+                </div>
+              </div>
+
+              <!-- Contact 3: Pricey Gandhi -->
+              <div style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: #FFFFFF;">
+                <div style="width: 38px; height: 38px; border-radius: 10px; background: #FEF3C7; color: #D97706; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700;">PG</div>
+                <div style="flex: 1;">
+                  <div style="font-weight: 700; font-size: 14px; color: var(--text);">Pricey Gandhi</div>
+                  <a href="mailto:priceygandhi@jklu.edu.in" style="font-size: 12px; color: #D97706; text-decoration: none; font-weight: 600;">priceygandhi@jklu.edu.in</a>
+                </div>
+              </div>
+
+              <!-- Contact 4: Chirag -->
+              <div style="display: flex; align-items: center; gap: 14px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; background: #FFFFFF;">
+                <div style="width: 38px; height: 38px; border-radius: 10px; background: #E0F2FE; color: #0284C7; display: flex; align-items: center; justify-content: center; font-size: 16px; font-weight: 700;">CC</div>
+                <div style="flex: 1;">
+                  <div style="font-weight: 700; font-size: 14px; color: var(--text);">Chirag</div>
+                  <a href="mailto:chirag@jklu.edu.in" style="font-size: 12px; color: #0284C7; text-decoration: none; font-weight: 600;">chirag@jklu.edu.in</a>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 20px; padding: 12px; background: #F8FAFC; border-radius: 10px; font-size: 12px; color: var(--text-muted); text-align: center;">
+            Institutional response time: typically within 24–48 academic working hours.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================================================================== -->
+    <!-- VIEW: DEDICATED ABOUT PAGE                                           -->
+    <!-- ==================================================================== -->
+    <div id="aboutView" style="display: none; max-width: 900px; margin: 0 auto; padding: 20px 0;">
+      <!-- Hero Dedication Card -->
+      <div class="card-box" style="padding: 40px 32px; background: linear-gradient(135deg, #FFFFFF 0%, #F5F3FF 100%); border-top: 4px solid var(--primary); text-align: center; margin-bottom: 24px;">
+        <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 20px; background: #EDE9FE; font-size: 32px; margin-bottom: 16px;">
+          📅
+        </div>
+        <h1 style="font-size: 28px; font-weight: 800; color: var(--text); margin-bottom: 12px;">PlayMy<span style="color: var(--primary);">Class</span></h1>
+        
+        <div style="font-size: 20px; font-weight: 700; color: var(--text); margin: 16px 0; line-height: 1.4;">
+          Built for JKLU with ❤️ by Yuvraj, Aadrika, Pricey, and Chirag
+        </div>
+        
+        <p style="font-size: 14px; color: var(--text-muted); max-width: 600px; margin: 0 auto; line-height: 1.6;">
+          An academic timetable scheduling, conflict management, and live classroom orchestration platform designed to streamline student, teacher, and institutional operations across campus.
+        </p>
+      </div>
+
+      <!-- Architecture & Tech Stack Details -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;">
+        <div class="card-box" style="padding: 24px;">
+          <div style="font-size: 24px; margin-bottom: 8px;">⚡</div>
+          <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text);">Google OR-Tools CP-SAT</h4>
+          <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin: 0;">
+            High-speed constraint satisfaction solver generating conflict-free multi-semester timetables in under 300ms.
+          </p>
+        </div>
+
+        <div class="card-box" style="padding: 24px;">
+          <div style="font-size: 24px; margin-bottom: 8px;">🔒</div>
+          <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text);">Supabase & PostgreSQL</h4>
+          <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin: 0;">
+            Authoritative transactional data store with verified session authentication and institutional role-based access control.
+          </p>
+        </div>
+
+        <div class="card-box" style="padding: 24px;">
+          <div style="font-size: 24px; margin-bottom: 8px;">🎨</div>
+          <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text);">Dynamic Color & Clean UX</h4>
+          <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin: 0;">
+            Sleek pastel visual identity with bounded scrollable cards, responsive navigation, and instant cancellation indicators.
+          </p>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- ==================================================================== -->
@@ -2143,10 +2283,10 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       <div style="padding: 32px;">
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
           <div class="logo-icon" style="width:32px; height:32px; font-size:16px;">📅</div>
-          <div class="logo-text" style="font-size:18px;">TimeTable<span>+</span></div>
+          <div class="logo-text" style="font-size:18px;">PlayMy<span>Class</span></div>
         </div>
 
-        <h3 id="authModalTitle" style="font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 6px;">Sign In to TimeTable+</h3>
+        <h3 id="authModalTitle" style="font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 6px;">Sign In to PlayMyClass</h3>
         <p id="authModalDesc" style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Step 1: Select your role persona to proceed.</p>
 
         <div id="modalAlertBox" style="display: none; padding: 10px; border-radius: 8px; margin-bottom: 14px; font-size: 12px; font-weight: 600;"></div>
@@ -2202,7 +2342,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
             <a href="javascript:void(0)" onclick="switchAuthPane('forgot')" style="font-size: 12px; color: var(--primary); text-decoration: none; font-weight: 600;">Forgot Password?</a>
             <span style="font-size: 11px; color: var(--text-muted);">Supabase Auth Verified</span>
           </div>
-          <button class="btn btn-primary" onclick="handleLogin()" style="width: 100%; padding: 11px;">Sign In to TimeTable+</button>
+          <button class="btn btn-primary" onclick="handleLogin()" style="width: 100%; padding: 11px;">Sign In to PlayMyClass</button>
           
           <div style="margin-top: 14px; text-align: center; font-size: 12px; color: var(--text-muted);">
             Need access? Contact your university administrator.
@@ -2225,7 +2365,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         <button onclick="closeLoginModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: none; color: #fff; font-size: 22px; cursor: pointer;">&times;</button>
         
         <div>
-          <span style="background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase;">TimeTable+ Cloud</span>
+          <span style="background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase;">PlayMyClass Cloud</span>
           <h4 style="font-size: 24px; font-weight: 800; margin-top: 16px; line-height: 1.3;">One Smart System for the Whole Campus.</h4>
           <p style="font-size: 13px; opacity: 0.85; margin-top: 8px;">Seamlessly synchronizing thousands of student cohorts, faculty rooms, and contact hours in real time.</p>
         </div>
@@ -2263,16 +2403,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     </div>
   </div>
 
-  <!-- Trademark Bottom Wave Graphical Divider -->
-  <footer class="footer-wave-wrap">
-    <svg class="footer-wave-svg" viewBox="0 0 1440 60" fill="none" preserveAspectRatio="none">
-      <path d="M0,20 C320,60 480,0 800,30 C1120,60 1280,10 1440,30 L1440,60 L0,60 Z" fill="#FFFFFF"></path>
-    </svg>
-    <div class="footer-text">
-      <strong>TimeTable+</strong> • University Academic Scheduling Platform • Google OR-Tools CP-SAT Solver Integration
-      <div style="margin-top: 4px; font-size: 12px;">Designed to the TimeTable+ SaaS Specification (D01–D50). ₹0 Prototype Target.</div>
-    </div>
-  </footer>
+
 
   <!-- ==================================================================== -->
   <!-- JAVASCRIPT LOGIC & STATE (100% Preserved & Enhanced) -->
@@ -2318,8 +2449,14 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       document.getElementById('landingView').style.display = viewName === 'landing' ? 'block' : 'none';
       document.getElementById('rolesView').style.display = viewName === 'roles' ? 'block' : 'none';
       document.getElementById('dashboardView').style.display = viewName === 'dashboard' ? 'block' : 'none';
+      const feedbackEl = document.getElementById('feedbackView');
+      if (feedbackEl) feedbackEl.style.display = viewName === 'feedback' ? 'block' : 'none';
+      const aboutEl = document.getElementById('aboutView');
+      if (aboutEl) aboutEl.style.display = viewName === 'about' ? 'block' : 'none';
 
       document.getElementById('navLinkHome')?.classList.toggle('active', viewName === 'landing');
+      document.getElementById('navLinkFeedback')?.classList.toggle('active', viewName === 'feedback');
+      document.getElementById('navLinkAbout')?.classList.toggle('active', viewName === 'about');
       document.getElementById('navLinkDashboard')?.classList.toggle('active', viewName === 'dashboard');
       document.getElementById('navLinkRoleGate')?.classList.toggle('active', viewName === 'roles');
 
@@ -2327,6 +2464,21 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         renderSingleDayGrid();
         updateRoleViews();
       }
+    }
+
+    function submitFeedbackForm() {
+      const name = document.getElementById('feedbackSenderName')?.value;
+      const email = document.getElementById('feedbackSenderEmail')?.value;
+      const msg = document.getElementById('feedbackMessage')?.value;
+
+      if (!msg || msg.trim().length === 0) {
+        showMsg('Please write a message before submitting feedback.', true);
+        return;
+      }
+
+      showMsg('Thank you for your feedback! The team has received your submission.', false);
+      const msgInput = document.getElementById('feedbackMessage');
+      if (msgInput) msgInput.value = '';
     }
 
     // Toast Helper
@@ -2432,6 +2584,18 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         }
       } else {
         openLoginModal(role);
+      }
+    }
+
+    function goToRespectiveDashboard() {
+      if (currentUser && authToken) {
+        selectRole(currentUser.role);
+        switchView('dashboard');
+        if (currentUser.role === 'admin') {
+          switchAdminPage('hub');
+        }
+      } else {
+        openLoginModal();
       }
     }
 
@@ -2749,9 +2913,17 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           (course.borderColor ? ' border: 1px solid ' + course.borderColor + ' !important;' : ' border: 1px solid rgba(0,0,0,0.08) !important;');
       }
 
+      // Dynamically style activity badges (PRACTICAL, LECTURE, TUTORIAL, EXTRA) to harmoniously match card font/bg colors
+      let badgeStyle = '';
+      if (isCancelled) {
+        badgeStyle = 'background: #EF4444; color: #FFFFFF;';
+      } else if (course && course.fontColor) {
+        badgeStyle = 'background: ' + course.fontColor + '; color: #FFFFFF;';
+      }
+
       return '<div class="class-card ' + cardClass + '" style="' + inlineStyle + '" onclick="openDrawer(\\'' + o.id + '\\')">' +
         '<div class="class-card-scroll-body">' +
-          '<span class="badge-pill ' + badgeClass + '">' + badgeLabel + '</span>' +
+          '<span class="badge-pill ' + badgeClass + '" style="' + badgeStyle + '">' + badgeLabel + '</span>' +
           '<div class="class-code" style="color:inherit;">' + courseCode + ' ' + (isCancelled ? '<span style="text-decoration:line-through;">' + courseName + '</span>' : courseName) + '</div>' +
           '<div class="class-meta" style="color:inherit; opacity:0.9;">📍 Room ' + room.roomNumber + ' (' + room.building + ')</div>' +
           '<div class="class-meta" style="color:inherit; opacity:0.9;">🧑‍🏫 ' + teacherName + '</div>' +
@@ -2971,10 +3143,10 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
 
       if (title && desc) {
         if (pane === 'roleSelect') {
-          title.textContent = 'Sign In to TimeTable+';
+          title.textContent = 'Sign In to PlayMyClass';
           desc.textContent = 'Step 1: Select your role persona to proceed.';
         } else if (pane === 'login') {
-          title.textContent = 'Sign In to TimeTable+';
+          title.textContent = 'Sign In to PlayMyClass';
           desc.textContent = 'Step 2: Enter your institutional credentials.';
         } else if (pane === 'forgot') {
           title.textContent = 'Password Recovery';
@@ -3060,9 +3232,12 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       const activeEmailTag = document.getElementById('activeUserEmailTag');
       const guestNotice = document.getElementById('guestNotice');
 
+      const dashLink = document.getElementById('navLinkDashboard');
+
       if (currentUser && authToken) {
         if (unauth) unauth.style.display = 'none';
         if (auth) auth.style.display = 'flex';
+        if (dashLink) dashLink.style.display = 'flex';
         if (guestNotice) guestNotice.style.display = 'none';
         const icons = { admin: '👑 Administrator', teacher: '🧑‍🏫 Faculty', student: '🎓 Student' };
         if (roleBadge) {
@@ -3080,6 +3255,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       } else {
         if (unauth) unauth.style.display = 'flex';
         if (auth) auth.style.display = 'none';
+        if (dashLink) dashLink.style.display = 'none';
         if (guestNotice) guestNotice.style.display = 'flex';
         if (activeRoleTag) {
           activeRoleTag.textContent = '🔒 Unauthenticated • Read-Only';

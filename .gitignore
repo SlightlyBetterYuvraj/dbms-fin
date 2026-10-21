@@ -37,6 +37,7 @@ temp/
 
 # IDE & OS metadata
 .DS_Store
-Thumbs.db
-.vscode/
 .idea/
+
+# Local custom palette (do not push to git)
+timetable_pastel_colours.csv

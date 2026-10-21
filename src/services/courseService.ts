@@ -33,21 +33,47 @@ const DEFAULT_PALETTE: CourseColorPair[] = [
 
 /**
  * Loads color pairs from CSV file with fallback to DEFAULT_PALETTE.
+ * Checks for timetable_pastel_colours.csv first, then src/data/course_palette.csv.
  */
 export function loadColorPalette(): CourseColorPair[] {
   try {
-    const csvPath = path.resolve(process.cwd(), 'src/data/course_palette.csv');
-    if (!fs.existsSync(csvPath)) {
+    const candidates = [
+      path.resolve(process.cwd(), 'timetable_pastel_colours.csv'),
+      path.resolve(process.cwd(), 'src/data/timetable_pastel_colours.csv'),
+      path.resolve(process.cwd(), 'src/data/course_palette.csv'),
+    ];
+
+    let csvPath = '';
+    for (const cand of candidates) {
+      if (fs.existsSync(cand)) {
+        csvPath = cand;
+        break;
+      }
+    }
+
+    if (!csvPath) {
       return DEFAULT_PALETTE;
     }
+
     const content = fs.readFileSync(csvPath, 'utf8');
     const lines = content.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
     if (lines.length <= 1) return DEFAULT_PALETTE;
 
     const pairs: CourseColorPair[] = [];
+    // Detect delimiter (; or ,) from header line
+    const delimiter = lines[0].includes(';') ? ';' : ',';
+
     for (let i = 1; i < lines.length; i++) {
-      const parts = lines[i].split(',').map(p => p.trim());
-      if (parts.length >= 2) {
+      const parts = lines[i].split(delimiter).map(p => p.trim());
+      // Handle timetable_pastel_colours.csv format: Colour Name;Background HEX;Font HEX
+      if (parts.length >= 3 && parts[1].startsWith('#') && parts[2].startsWith('#')) {
+        pairs.push({
+          cardBgColor: parts[1],
+          fontColor: parts[2],
+          borderColor: undefined,
+        });
+      } else if (parts.length >= 2 && parts[0].startsWith('#') && parts[1].startsWith('#')) {
+        // Handle course_palette.csv format: card_bg_color,font_color,border_color
         pairs.push({
           cardBgColor: parts[0],
           fontColor: parts[1],
@@ -57,7 +83,7 @@ export function loadColorPalette(): CourseColorPair[] {
     }
     return pairs.length > 0 ? pairs : DEFAULT_PALETTE;
   } catch (err) {
-    console.warn('[CourseService] Could not load course_palette.csv, using default palette:', err);
+    console.warn('[CourseService] Could not load color palette CSV, using default palette:', err);
     return DEFAULT_PALETTE;
   }
 }

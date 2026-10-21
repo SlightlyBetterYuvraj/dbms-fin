@@ -410,6 +410,15 @@ export function populateRealisticUniversityData(tx: RepositoryDataState): void {
     roomType: 'LT',
     active: true,
   });
+  tx.rooms.set('room-lt3', {
+    id: 'room-lt3',
+    roomNumber: '103',
+    building: 'Aryabhata Block',
+    floor: 1,
+    capacity: 75,
+    roomType: 'LT',
+    active: true,
+  });
   tx.rooms.set('room-cr1', {
     id: 'room-cr1',
     roomNumber: '201',
@@ -428,10 +437,19 @@ export function populateRealisticUniversityData(tx: RepositoryDataState): void {
     roomType: 'LT',
     active: true,
   });
+  tx.rooms.set('room-cr3', {
+    id: 'room-cr3',
+    roomNumber: '203',
+    building: 'Ramanujan Block',
+    floor: 2,
+    capacity: 60,
+    roomType: 'LT',
+    active: true,
+  });
 
   tx.rooms.set('room-lab1', {
     id: 'room-lab1',
-    roomNumber: 'Computing Lab 1',
+    roomNumber: 'Computing Lab 1 (DSA/C)',
     building: 'Turing Wing',
     floor: 1,
     capacity: 35,
@@ -440,7 +458,7 @@ export function populateRealisticUniversityData(tx: RepositoryDataState): void {
   });
   tx.rooms.set('room-lab2', {
     id: 'room-lab2',
-    roomNumber: 'Computing Lab 2',
+    roomNumber: 'Computing Lab 2 (DBMS/OS)',
     building: 'Turing Wing',
     floor: 1,
     capacity: 35,
@@ -449,7 +467,7 @@ export function populateRealisticUniversityData(tx: RepositoryDataState): void {
   });
   tx.rooms.set('room-lab3', {
     id: 'room-lab3',
-    roomNumber: 'Systems & Hardware Lab',
+    roomNumber: 'Systems & Hardware Lab (COA/Networks)',
     building: 'Turing Wing',
     floor: 2,
     capacity: 35,
@@ -506,25 +524,25 @@ export function populateRealisticUniversityData(tx: RepositoryDataState): void {
   tx.teachers.set('t-3', {
     id: 't-3',
     empId: 'EMP-103',
-    name: 'Dr. Amit Patel',
-    email: 'amit.patel@uni.edu',
-    department: 'Computer Science',
+    name: 'Rohit Singh',
+    email: 'rohit.singh@uni.edu',
+    department: 'Computer Science & Architecture',
     active: true,
   });
   tx.teachers.set('t-4', {
     id: 't-4',
     empId: 'EMP-104',
-    name: 'Dr. Neha Kulkarni',
-    email: 'neha.kulkarni@uni.edu',
-    department: 'Computer Science',
+    name: 'Prof. S. Taruna',
+    email: 's.taruna@uni.edu',
+    department: 'Computer Science & Databases',
     active: true,
   });
   tx.teachers.set('t-5', {
     id: 't-5',
     empId: 'EMP-105',
-    name: 'Dr. Vikram Rao',
-    email: 'vikram.rao@uni.edu',
-    department: 'Computer Science',
+    name: 'Dr. Ashish Jain',
+    email: 'ashish.jain@uni.edu',
+    department: 'Computer Science & Algorithms',
     active: true,
   });
   tx.teachers.set('t-6', {
@@ -543,9 +561,41 @@ export function populateRealisticUniversityData(tx: RepositoryDataState): void {
     department: 'Electronics & Hardware',
     active: true,
   });
+  tx.teachers.set('t-8', {
+    id: 't-8',
+    empId: 'EMP-108',
+    name: 'Manushi Gupta',
+    email: 'manushi.gupta@uni.edu',
+    department: 'Discrete Mathematics',
+    active: true,
+  });
+  tx.teachers.set('t-9', {
+    id: 't-9',
+    empId: 'EMP-109',
+    name: 'Dr. Amit Patel',
+    email: 'amit.patel@uni.edu',
+    department: 'Computer Systems',
+    active: true,
+  });
+  tx.teachers.set('t-10', {
+    id: 't-10',
+    empId: 'EMP-110',
+    name: 'Dr. Neha Kulkarni',
+    email: 'neha.kulkarni@uni.edu',
+    department: 'Networks & Communications',
+    active: true,
+  });
+  tx.teachers.set('t-11', {
+    id: 't-11',
+    empId: 'EMP-111',
+    name: 'Dr. Vikram Rao',
+    email: 'vikram.rao@uni.edu',
+    department: 'Theoretical Computer Science',
+    active: true,
+  });
 
   // 4. Cohort Hierarchy (Section -> Batches) & Elective Groups
-  // Semester 1
+  // Semester 1 (Three Sections: 1A, 1B, 1C)
   tx.sections.set('sec-1A', {
     id: 'sec-1A',
     termId: 'term-1',
@@ -568,7 +618,51 @@ export function populateRealisticUniversityData(tx: RepositoryDataState): void {
     active: true,
   });
 
-  // Semester 3
+  tx.sections.set('sec-1B', {
+    id: 'sec-1B',
+    termId: 'term-1',
+    name: 'Section 1B',
+    expectedCount: 60,
+    active: true,
+  });
+  tx.batches.set('batch-1B1', {
+    id: 'batch-1B1',
+    sectionId: 'sec-1B',
+    name: 'Batch 1B1',
+    expectedCount: 30,
+    active: true,
+  });
+  tx.batches.set('batch-1B2', {
+    id: 'batch-1B2',
+    sectionId: 'sec-1B',
+    name: 'Batch 1B2',
+    expectedCount: 30,
+    active: true,
+  });
+
+  tx.sections.set('sec-1C', {
+    id: 'sec-1C',
+    termId: 'term-1',
+    name: 'Section 1C',
+    expectedCount: 60,
+    active: true,
+  });
+  tx.batches.set('batch-1C1', {
+    id: 'batch-1C1',
+    sectionId: 'sec-1C',
+    name: 'Batch 1C1',
+    expectedCount: 30,
+    active: true,
+  });
+  tx.batches.set('batch-1C2', {
+    id: 'batch-1C2',
+    sectionId: 'sec-1C',
+    name: 'Batch 1C2',
+    expectedCount: 30,
+    active: true,
+  });
+
+  // Semester 3 (Three Sections: 3A, 3B, 3C)
   tx.sections.set('sec-3A', {
     id: 'sec-3A',
     termId: 'term-3',
@@ -590,6 +684,51 @@ export function populateRealisticUniversityData(tx: RepositoryDataState): void {
     expectedCount: 30,
     active: true,
   });
+
+  tx.sections.set('sec-3B', {
+    id: 'sec-3B',
+    termId: 'term-3',
+    name: 'Section 3B',
+    expectedCount: 60,
+    active: true,
+  });
+  tx.batches.set('batch-3B1', {
+    id: 'batch-3B1',
+    sectionId: 'sec-3B',
+    name: 'Batch 3B1',
+    expectedCount: 30,
+    active: true,
+  });
+  tx.batches.set('batch-3B2', {
+    id: 'batch-3B2',
+    sectionId: 'sec-3B',
+    name: 'Batch 3B2',
+    expectedCount: 30,
+    active: true,
+  });
+
+  tx.sections.set('sec-3C', {
+    id: 'sec-3C',
+    termId: 'term-3',
+    name: 'Section 3C',
+    expectedCount: 60,
+    active: true,
+  });
+  tx.batches.set('batch-3C1', {
+    id: 'batch-3C1',
+    sectionId: 'sec-3C',
+    name: 'Batch 3C1',
+    expectedCount: 30,
+    active: true,
+  });
+  tx.batches.set('batch-3C2', {
+    id: 'batch-3C2',
+    sectionId: 'sec-3C',
+    name: 'Batch 3C2',
+    expectedCount: 30,
+    active: true,
+  });
+
   // Legacy cohorts for backward compatibility with existing tests
   tx.sections.set('sec-A', {
     id: 'sec-A',
@@ -606,7 +745,7 @@ export function populateRealisticUniversityData(tx: RepositoryDataState): void {
     active: true,
   });
 
-  // Semester 5
+  // Semester 5 (Three Sections: 5A, 5B, 5C)
   tx.sections.set('sec-5A', {
     id: 'sec-5A',
     termId: 'term-5',
@@ -625,6 +764,50 @@ export function populateRealisticUniversityData(tx: RepositoryDataState): void {
     id: 'batch-5A2',
     sectionId: 'sec-5A',
     name: 'Batch 5A2',
+    expectedCount: 27,
+    active: true,
+  });
+
+  tx.sections.set('sec-5B', {
+    id: 'sec-5B',
+    termId: 'term-5',
+    name: 'Section 5B',
+    expectedCount: 55,
+    active: true,
+  });
+  tx.batches.set('batch-5B1', {
+    id: 'batch-5B1',
+    sectionId: 'sec-5B',
+    name: 'Batch 5B1',
+    expectedCount: 28,
+    active: true,
+  });
+  tx.batches.set('batch-5B2', {
+    id: 'batch-5B2',
+    sectionId: 'sec-5B',
+    name: 'Batch 5B2',
+    expectedCount: 27,
+    active: true,
+  });
+
+  tx.sections.set('sec-5C', {
+    id: 'sec-5C',
+    termId: 'term-5',
+    name: 'Section 5C',
+    expectedCount: 55,
+    active: true,
+  });
+  tx.batches.set('batch-5C1', {
+    id: 'batch-5C1',
+    sectionId: 'sec-5C',
+    name: 'Batch 5C1',
+    expectedCount: 28,
+    active: true,
+  });
+  tx.batches.set('batch-5C2', {
+    id: 'batch-5C2',
+    sectionId: 'sec-5C',
+    name: 'Batch 5C2',
     expectedCount: 27,
     active: true,
   });
