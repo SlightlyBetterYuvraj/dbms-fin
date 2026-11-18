@@ -252,6 +252,7 @@ export async function hydrateRepositoryFromDatabase(repo: TimetableRepository): 
             teacherId: row.teacher_id,
             targetType: row.target_type,
             targetId: row.target_id,
+            component: row.component || undefined,
           };
           tx.courseOfferings.set(o.id, o);
         }

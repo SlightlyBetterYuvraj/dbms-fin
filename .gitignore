@@ -7,13 +7,15 @@ node_modules/
 dist/
 build/
 out/
+*.tsbuildinfo
 
-# Environment files and credentials
+# Environment files and credentials (AGENTS.md Rule 5)
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env*.local
+.env.development
+.env.test
+.env.production
+!.env.example
 *.pem
 *.key
 *.cert
@@ -27,17 +29,32 @@ venv/
 env/
 .pytest_cache/
 
+# Archives & compressed dumps
+*.zip
+*.rar
+*.tar.gz
+*.7z
+
 # SQLite databases & temp files
 *.sqlite
 *.sqlite3
 *.db
 *.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 tmp/
 temp/
 
 # IDE & OS metadata
 .DS_Store
+Thumbs.db
 .idea/
+.vscode/
+
+# Test coverage
+coverage/
+.nyc_output/
 
 # Local custom palette (do not push to git)
 timetable_pastel_colours.csv

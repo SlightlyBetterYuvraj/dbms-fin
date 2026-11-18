@@ -12,49 +12,142 @@
  */
 
 export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: string }): string {
+  const ICONS = {
+    calendar: `<svg class="lucide lucide-calendar" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>`,
+    dashboard: `<svg class="lucide lucide-layout-dashboard" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>`,
+    modules: `<svg class="lucide lucide-layers" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 12.5-8.58 3.91a2 2 0 0 1-1.66 0L2.6 12.5"/><path d="m22 17.5-8.58 3.91a2 2 0 0 1-1.66 0L2.6 17.5"/></svg>`,
+    students: `<svg class="lucide lucide-graduation-cap" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></svg>`,
+    faculty: `<svg class="lucide lucide-users" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+    matrix: `<svg class="lucide lucide-building" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>`,
+    solver: `<svg class="lucide lucide-zap" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>`,
+    profile: `<svg class="lucide lucide-user" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>`,
+    security: `<svg class="lucide lucide-lock" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`,
+    logout: `<svg class="lucide lucide-log-out" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>`,
+    login: `<svg class="lucide lucide-key" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="16.5" r="5.5"/></svg>`,
+    bell: `<svg class="lucide lucide-bell" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>`,
+    search: `<svg class="lucide lucide-search" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>`,
+    coffee: `<svg class="lucide lucide-coffee" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h12Z"/><path d="M6 2v2"/><line x1="17" x2="19" y1="11" y2="11"/><path d="M17 15h2a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-2"/></svg>`,
+    leave: `<svg class="lucide lucide-calendar-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 4.2A2 2 0 0 0 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 1.8-1.1"/><path d="M3 10h7"/><path d="M21 15V6a2 2 0 0 0-2-2H9"/><path d="m2 2 20 20"/><path d="M16 2v4"/><path d="M8 2v1"/></svg>`,
+    check: `<svg class="lucide lucide-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`,
+    alert: `<svg class="lucide lucide-alert-circle" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>`,
+    close: `<svg class="lucide lucide-x" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>`,
+    refresh: `<svg class="lucide lucide-refresh-cw" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>`,
+    plus: `<svg class="lucide lucide-plus" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>`,
+    sparkles: `<svg class="lucide lucide-sparkles" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>`,
+    room: `<svg class="lucide lucide-map-pin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>`,
+    cohort: `<svg class="lucide lucide-users-2" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+    user: `<svg class="lucide lucide-user-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>`,
+    arrowRight: `<svg class="lucide lucide-arrow-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`,
+    arrowLeft: `<svg class="lucide lucide-arrow-left" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>`,
+    shield: `<svg class="lucide lucide-shield" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>`,
+    globe: `<svg class="lucide lucide-globe" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`,
+    book: `<svg class="lucide lucide-book-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>`,
+    microscope: `<svg class="lucide lucide-microscope" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18h8"/><path d="M3 22h18"/><path d="M14 22a7 7 0 1 0 0-14h-1"/><path d="M9 14h2"/><path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z"/><path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3"/></svg>`,
+    trash: `<svg class="lucide lucide-trash-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>`,
+    package: `<svg class="lucide lucide-package" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>`,
+    feedback: `<svg class="lucide lucide-message-square" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>`,
+    heart: `<svg class="lucide lucide-heart" width="14" height="14" viewBox="0 0 24 24" fill="#EF4444" stroke="#EF4444" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>`,
+    palette: `<svg class="lucide lucide-palette" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>`,
+    chevronRight: `<svg class="lucide lucide-chevron-right" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>`,
+    chevronLeft: `<svg class="lucide lucide-chevron-left" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>`,
+    lock: `<svg class="lucide lucide-lock" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>`
+  };
+
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>PlayMyClass • Modern University Timetable & Academic Management</title>
+  <title>TimeTable+ • Enterprise Academic Timetable Management</title>
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <style>
     :root {
-      --primary: #5842E3;
-      --primary-hover: #4A35D0;
-      --primary-light: #EBE9FC;
-      --secondary: #6C5CE7;
-      --accent-pink: #E05697;
-      --accent-pink-light: #FCE8F3;
+      /* shadcn/ui Design Tokens (Slate + Royal Blue #2563EB) */
+      --background: #F8FAFC;
+      --foreground: #0F172A;
+      --card: #FFFFFF;
+      --card-foreground: #0F172A;
+      --popover: #FFFFFF;
+      --popover-foreground: #0F172A;
+      --primary: #2563EB;
+      --primary-foreground: #FFFFFF;
+      --primary-hover: #1D4ED8;
+      --secondary: #F1F5F9;
+      --secondary-foreground: #0F172A;
+      --muted: #F1F5F9;
+      --muted-foreground: #64748B;
+      --accent: #EFF6FF;
+      --accent-foreground: #2563EB;
+      --destructive: #DC2626;
+      --destructive-foreground: #FFFFFF;
+      --border: #E2E8F0;
+      --input: #E2E8F0;
+      --ring: #2563EB;
+      --radius: 0.5rem; /* 8px */
+
+      /* Surface & Layout Aliases */
+      --bg-canvas: #F8FAFC;
+      --bg-surface: #FFFFFF;
+      --bg-surface-hover: #F1F5F9;
+      --bg-rail: #FFFFFF;
+      --bg-active-pill: #EFF6FF;
+
+      --primary-light: #EFF6FF;
+      --primary-border: #BFDBFE;
+      --primary-blue: #2563EB;
+      --primary-blue-hover: #1D4ED8;
+      --primary-blue-light: #EFF6FF;
+
+      --accent-pink: #E11D48;
+      --accent-pink-light: #FFF1F2;
       --accent-blue: #0284C7;
-      --accent-blue-light: #E0F2FE;
+      --accent-blue-light: #F0F9FF;
       --accent-amber: #D97706;
       --accent-amber-light: #FFFBEB;
       --accent-emerald: #059669;
       --accent-emerald-light: #ECFDF5;
       --accent-purple: #7C3AED;
-      --accent-purple-light: #F3E8FF;
+      --accent-purple-light: #F5F3FF;
       --danger: #DC2626;
       --danger-light: #FEF2F2;
-      --bg: #F8F9FD;
-      --card: #FFFFFF;
-      --border: #E8EBF5;
-      --border-focus: #5842E3;
+
+      --bg: #F8FAFC;
+      --border-subtle: #E2E8F0;
+      --border-focus: #2563EB;
       --text: #0F172A;
+      --text-main: #0F172A;
       --text-muted: #64748B;
-      --radius-sm: 10px;
-      --radius-md: 16px;
-      --radius-lg: 24px;
-      --shadow-sm: 0 2px 6px rgba(88, 66, 227, 0.04);
-      --shadow-md: 0 10px 25px -5px rgba(88, 66, 227, 0.08), 0 4px 10px -2px rgba(0, 0, 0, 0.03);
-      --shadow-lg: 0 20px 35px -5px rgba(88, 66, 227, 0.12), 0 8px 16px -4px rgba(0, 0, 0, 0.04);
+      --text-subtle: #94A3B8;
+
+      --radius-xs: 6px;
+      --radius-sm: 8px;
+      --radius-md: 10px;
+      --radius-lg: 12px;
+
+      --shadow-subtle: 0 1px 2px rgba(15, 23, 42, 0.04);
+      --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05);
+      --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.07), 0 2px 4px -2px rgba(15, 23, 42, 0.04);
+      --shadow-lg: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
+
+      /* Semantic Status Pills */
+      --status-scheduled-bg: #ECFDF5;
+      --status-scheduled-text: #047857;
+      --status-scheduled-border: #A7F3D0;
+      --status-cancelled-bg: #FEF2F2;
+      --status-cancelled-text: #B91C1C;
+      --status-cancelled-border: #FECACA;
+      --status-rescheduled-bg: #FFFBEB;
+      --status-rescheduled-text: #B45309;
+      --status-rescheduled-border: #FDE68A;
+      --status-extraclass-bg: #EEF2FF;
+      --status-extraclass-text: #4338CA;
+      --status-extraclass-border: #C7D2FE;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
-    h1, h2, h3, h4, .brand-font { font-family: 'Poppins', sans-serif; }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    h1, h2, h3, h4, .brand-font { font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; letter-spacing: -0.025em; }
 
     body {
       background: var(--bg);
@@ -89,22 +182,21 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       cursor: pointer;
     }
     .logo-icon {
-      width: 40px;
-      height: 40px;
-      background: linear-gradient(135deg, #5842E3, #6C5CE7);
-      border-radius: 12px;
+      width: 36px;
+      height: 36px;
+      background: var(--primary);
+      border-radius: var(--radius-xs);
       display: flex;
       align-items: center;
       justify-content: center;
-      box-shadow: 0 4px 12px rgba(88, 66, 227, 0.3);
-      color: #fff;
-      font-size: 20px;
+      color: #FFFFFF;
+      box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
     }
     .logo-text {
-      font-size: 22px;
-      font-weight: 800;
-      letter-spacing: -0.5px;
-      color: var(--text);
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      color: var(--foreground);
     }
     .logo-text span {
       color: var(--primary);
@@ -117,8 +209,8 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     }
     .nav-link {
       font-size: 14px;
-      font-weight: 600;
-      color: var(--text-muted);
+      font-weight: 500;
+      color: var(--muted-foreground);
       text-decoration: none;
       cursor: pointer;
       transition: color 0.15s ease;
@@ -127,7 +219,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       gap: 6px;
     }
     .nav-link:hover, .nav-link.active {
-      color: var(--primary);
+      color: var(--foreground);
     }
 
     .nav-actions {
@@ -136,62 +228,93 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       gap: 12px;
     }
 
-    /* Buttons */
+    /* Buttons (shadcn/ui New York / Slate Specification) */
     .btn {
-      padding: 9px 18px;
-      border-radius: var(--radius-sm);
+      height: 36px;
+      padding: 0 14px;
+      border-radius: var(--radius-xs);
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 500;
       border: 1px solid transparent;
       cursor: pointer;
-      transition: all 0.18s ease;
+      transition: all 0.15s ease;
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      gap: 8px;
+      gap: 6px;
       text-decoration: none;
+      white-space: nowrap;
+      user-select: none;
+    }
+    .btn:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--background), 0 0 0 4px var(--primary);
     }
     .btn-primary {
       background: var(--primary);
-      color: #FFFFFF;
-      box-shadow: 0 4px 14px rgba(88, 66, 227, 0.28);
+      color: var(--primary-foreground);
+      border-color: var(--primary);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
     }
     .btn-primary:hover {
       background: var(--primary-hover);
-      box-shadow: 0 6px 18px rgba(88, 66, 227, 0.38);
-      transform: translateY(-1px);
+      border-color: var(--primary-hover);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+      transform: none;
     }
     .btn-secondary {
       background: #FFFFFF;
       border: 1px solid var(--border);
-      color: var(--text);
+      color: var(--foreground);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
     }
     .btn-secondary:hover {
-      background: var(--primary-light);
-      border-color: #D5D1FA;
-      color: var(--primary);
+      background: var(--muted);
+      border-color: #CBD5E1;
+      color: var(--foreground);
+    }
+    .btn-outline {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--foreground);
+    }
+    .btn-outline:hover {
+      background: var(--muted);
+      color: var(--foreground);
+    }
+    .btn-ghost {
+      background: transparent;
+      border: 1px solid transparent;
+      color: var(--muted-foreground);
+    }
+    .btn-ghost:hover {
+      background: var(--muted);
+      color: var(--foreground);
     }
     .btn-accent {
-      background: var(--accent-pink);
-      color: #fff;
+      background: var(--accent);
+      color: var(--primary);
+      border: 1px solid var(--primary-border);
     }
     .btn-accent:hover {
-      opacity: 0.92;
+      background: #DBEAFE;
     }
-    .btn-danger {
-      background: var(--danger);
-      color: #fff;
+    .btn-danger, .btn-destructive {
+      background: var(--destructive);
+      color: var(--destructive-foreground);
+      border-color: var(--destructive);
     }
-    .btn-danger:hover {
-      opacity: 0.9;
+    .btn-danger:hover, .btn-destructive:hover {
+      background: #B91C1C;
+      border-color: #B91C1C;
     }
     .btn-outline-danger {
       background: transparent;
-      border: 1px solid #FCA5A5;
-      color: var(--danger);
+      border: 1px solid #FECACA;
+      color: var(--destructive);
     }
     .btn-outline-danger:hover {
-      background: var(--danger-light);
+      background: #FEF2F2;
     }
 
     /* Main Container */
@@ -203,18 +326,18 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       padding: 24px;
     }
 
-    /* PAGE 1: HERO LANDING SECTION */
+    /* PAGE 1: HERO LANDING SECTION (shadcn/ui Spec) */
     .hero-section {
-      background: radial-gradient(circle at 80% 20%, #EDE9FE 0%, rgba(248, 249, 253, 0) 65%), #FFFFFF;
+      background: #FFFFFF;
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius-sm);
       padding: 56px 48px;
       margin-bottom: 32px;
       display: grid;
       grid-template-columns: 1.15fr 0.85fr;
       gap: 40px;
       align-items: center;
-      box-shadow: var(--shadow-md);
+      box-shadow: var(--shadow-subtle);
       position: relative;
       overflow: hidden;
     }
@@ -222,37 +345,36 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       display: inline-flex;
       align-items: center;
       gap: 8px;
-      background: var(--primary-light);
+      background: var(--accent);
       color: var(--primary);
-      padding: 6px 14px;
-      border-radius: 30px;
-      font-size: 13px;
-      font-weight: 700;
+      border: 1px solid var(--primary-border);
+      padding: 4px 12px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 600;
       margin-bottom: 20px;
     }
     .hero-title {
-      font-size: 44px;
+      font-size: 42px;
       font-weight: 800;
       line-height: 1.15;
-      color: var(--text);
-      letter-spacing: -1px;
+      color: var(--foreground);
+      letter-spacing: -0.03em;
       margin-bottom: 16px;
     }
     .hero-title span {
-      background: linear-gradient(135deg, #5842E3, #E05697);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
+      color: var(--primary);
     }
     .hero-desc {
-      font-size: 16px;
-      color: var(--text-muted);
+      font-size: 15px;
+      color: var(--muted-foreground);
       line-height: 1.6;
       margin-bottom: 28px;
       max-width: 540px;
     }
     .hero-actions {
       display: flex;
-      gap: 14px;
+      gap: 12px;
       flex-wrap: wrap;
     }
 
@@ -264,52 +386,52 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     }
     .hero-card-stack {
       width: 100%;
-      max-width: 400px;
-      background: linear-gradient(145deg, #6C5CE7, #5842E3);
-      border-radius: 24px;
-      padding: 28px;
-      color: #fff;
-      box-shadow: 0 20px 40px rgba(88, 66, 227, 0.35);
+      max-width: 420px;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 24px;
+      color: var(--foreground);
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08);
       position: relative;
-      animation: floatWidget 4s ease-in-out infinite;
-    }
-    @keyframes floatWidget {
-      0%, 100% { transform: translateY(0px); }
-      50% { transform: translateY(-8px); }
     }
     .hero-mock-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 20px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--border);
     }
     .hero-mock-chip {
-      background: rgba(255, 255, 255, 0.2);
-      backdrop-filter: blur(8px);
-      padding: 4px 12px;
-      border-radius: 20px;
+      background: var(--muted);
+      color: var(--foreground);
+      border: 1px solid var(--border);
+      padding: 4px 10px;
+      border-radius: var(--radius-xs);
       font-size: 12px;
       font-weight: 600;
     }
     .hero-mock-class {
-      background: rgba(255, 255, 255, 0.15);
-      border: 1px solid rgba(255, 255, 255, 0.25);
-      border-radius: 14px;
-      padding: 14px;
+      background: #F8FAFC;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xs);
+      padding: 12px 14px;
       margin-bottom: 10px;
       display: flex;
       align-items: center;
       gap: 12px;
     }
     .hero-mock-class-icon {
-      width: 38px;
-      height: 38px;
-      border-radius: 10px;
+      width: 34px;
+      height: 34px;
+      border-radius: var(--radius-xs);
       background: #FFFFFF;
+      border: 1px solid var(--border);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 18px;
+      font-size: 16px;
       color: var(--primary);
     }
 
@@ -323,36 +445,39 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     .value-prop-card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-sm);
       padding: 24px;
-      box-shadow: var(--shadow-sm);
-      transition: all 0.2s ease;
+      box-shadow: var(--shadow-subtle);
+      transition: all 0.15s ease;
       cursor: pointer;
     }
     .value-prop-card:hover {
-      box-shadow: var(--shadow-md);
-      transform: translateY(-3px);
-      border-color: #D0C9FA;
+      box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.08);
+      border-color: #CBD5E1;
+      transform: translateY(-2px);
     }
     .vp-icon-bubble {
-      width: 50px;
-      height: 50px;
-      border-radius: 16px;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-xs);
+      background: var(--accent);
+      border: 1px solid var(--primary-border);
+      color: var(--primary);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
       margin-bottom: 16px;
     }
     .vp-title {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 700;
-      color: var(--text);
+      color: var(--foreground);
       margin-bottom: 8px;
+      letter-spacing: -0.015em;
     }
     .vp-desc {
       font-size: 13px;
-      color: var(--text-muted);
+      color: var(--muted-foreground);
       line-height: 1.5;
     }
 
@@ -360,21 +485,22 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     .role-gate-section {
       background: #FFFFFF;
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius-sm);
       padding: 40px;
       margin-bottom: 32px;
-      box-shadow: var(--shadow-md);
+      box-shadow: var(--shadow-subtle);
       text-align: center;
     }
     .role-gate-title {
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 800;
-      color: var(--text);
+      color: var(--foreground);
       margin-bottom: 8px;
+      letter-spacing: -0.025em;
     }
     .role-gate-subtitle {
-      font-size: 15px;
-      color: var(--text-muted);
+      font-size: 14px;
+      color: var(--muted-foreground);
       margin-bottom: 32px;
     }
     .role-cards-container {
@@ -384,46 +510,48 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       text-align: left;
     }
     .role-select-card {
-      background: var(--bg);
-      border: 2px solid transparent;
-      border-radius: var(--radius-md);
-      padding: 28px 24px;
-      transition: all 0.22s ease;
+      background: #FFFFFF;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      padding: 24px;
+      transition: all 0.15s ease;
       display: flex;
       flex-direction: column;
       justify-content: space-between;
       position: relative;
+      box-shadow: var(--shadow-subtle);
     }
     .role-select-card:hover {
-      border-color: var(--primary);
+      border-color: #CBD5E1;
       background: #FFFFFF;
-      box-shadow: var(--shadow-md);
-      transform: translateY(-4px);
+      box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.08);
+      transform: translateY(-2px);
     }
     .role-select-card.active {
       border-color: var(--primary);
       background: #FFFFFF;
-      box-shadow: 0 0 0 3px rgba(88, 66, 227, 0.15);
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
     }
     .role-card-avatar {
-      width: 64px;
-      height: 64px;
-      border-radius: 20px;
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-xs);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 32px;
-      margin-bottom: 18px;
+      font-size: 20px;
+      margin-bottom: 16px;
     }
     .role-card-name {
-      font-size: 20px;
+      font-size: 18px;
       font-weight: 700;
-      color: var(--text);
+      color: var(--foreground);
       margin-bottom: 6px;
+      letter-spacing: -0.015em;
     }
     .role-card-desc {
       font-size: 13px;
-      color: var(--text-muted);
+      color: var(--muted-foreground);
       line-height: 1.5;
       margin-bottom: 20px;
     }
@@ -432,57 +560,59 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     .day-selector-bar {
       background: #FFFFFF;
       border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 12px 18px;
+      border-radius: var(--radius-sm);
+      padding: 10px 16px;
       margin-bottom: 20px;
       display: flex;
       justify-content: space-between;
       align-items: center;
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--shadow-subtle);
       flex-wrap: wrap;
       gap: 12px;
     }
     .day-pills-group {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
     .day-pill {
-      background: transparent;
+      background: #FFFFFF;
       border: 1px solid var(--border);
-      color: var(--text-muted);
-      padding: 8px 16px;
-      border-radius: 24px;
+      color: var(--muted-foreground);
+      padding: 6px 14px;
+      border-radius: var(--radius-xs);
       font-size: 13px;
-      font-weight: 600;
+      font-weight: 500;
       cursor: pointer;
       transition: all 0.15s ease;
     }
     .day-pill:hover {
-      border-color: #C0B9F7;
-      color: var(--primary);
+      background: var(--muted);
+      color: var(--foreground);
     }
     .day-pill.active {
       background: var(--primary);
-      color: #FFFFFF;
+      color: var(--primary-foreground);
       border-color: var(--primary);
-      box-shadow: 0 3px 10px rgba(88, 66, 227, 0.25);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
     }
     .active-day-heading {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--primary);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--foreground);
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
 
     /* The Timetable Grid Card */
     .timetable-wrapper-card {
       background: #FFFFFF;
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius-sm);
       padding: 24px;
+      box-shadow: var(--shadow-subtle);
+    }
       margin-bottom: 32px;
       box-shadow: var(--shadow-md);
     }
@@ -687,10 +817,10 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     }
     .modal-card-custom {
       background: #FFFFFF;
-      border-radius: var(--radius-lg);
+      border-radius: var(--radius-sm);
       width: 100%;
       max-width: 520px;
-      box-shadow: 0 25px 50px -12px rgba(88, 66, 227, 0.25);
+      box-shadow: 0 20px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.1);
       border: 1px solid var(--border);
       overflow: hidden;
       animation: modalPop 0.2s ease-out;
@@ -718,40 +848,40 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       gap: 10px;
     }
 
-    /* Sub-nav tabs for Admin */
+    /* Sub-nav tabs for Admin (shadcn/ui Spec) */
     .admin-nav-pills {
       display: flex;
-      gap: 6px;
+      gap: 4px;
       margin-bottom: 24px;
       background: #FFFFFF;
-      padding: 6px;
-      border-radius: var(--radius-md);
+      padding: 4px;
+      border-radius: var(--radius-xs);
       border: 1px solid var(--border);
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--shadow-subtle);
       flex-wrap: wrap;
     }
     .admin-pill-btn {
       background: transparent;
       border: none;
-      padding: 9px 18px;
-      border-radius: var(--radius-sm);
+      padding: 6px 14px;
+      border-radius: var(--radius-xs);
       font-size: 13px;
-      font-weight: 600;
-      color: var(--text-muted);
+      font-weight: 500;
+      color: var(--muted-foreground);
       cursor: pointer;
       transition: all 0.15s ease;
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
     }
     .admin-pill-btn:hover {
-      color: var(--primary);
-      background: var(--primary-light);
+      color: var(--foreground);
+      background: var(--muted);
     }
     .admin-pill-btn.active {
       background: var(--primary);
-      color: #FFFFFF;
-      box-shadow: 0 2px 8px rgba(88, 66, 227, 0.25);
+      color: var(--primary-foreground);
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
     }
 
     /* Admin Multi-Page Command Center */
@@ -764,40 +894,40 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     .admin-hero-card {
       background: #FFFFFF;
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 28px;
-      box-shadow: var(--shadow-sm);
+      border-radius: var(--radius-sm);
+      padding: 24px;
+      box-shadow: var(--shadow-subtle);
       display: flex;
       flex-direction: column;
       justify-content: space-between;
-      transition: all 0.2s ease;
+      transition: all 0.15s ease;
       cursor: pointer;
       position: relative;
     }
     .admin-hero-card:hover {
-      transform: translateY(-4px);
-      box-shadow: var(--shadow-md);
-      border-color: var(--primary);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 6px -1px rgba(15, 23, 42, 0.08);
+      border-color: #CBD5E1;
     }
     .admin-hero-card-icon {
-      width: 52px;
-      height: 52px;
-      border-radius: 16px;
+      width: 40px;
+      height: 40px;
+      border-radius: var(--radius-xs);
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 24px;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
     .admin-hero-card-title {
-      font-size: 19px;
+      font-size: 17px;
       font-weight: 700;
-      color: var(--text);
+      color: var(--foreground);
       margin-bottom: 8px;
+      letter-spacing: -0.015em;
     }
     .admin-hero-card-desc {
       font-size: 13px;
-      color: var(--text-muted);
+      color: var(--muted-foreground);
       line-height: 1.5;
       margin-bottom: 20px;
     }
@@ -809,24 +939,27 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       gap: 12px;
       background: #FFFFFF;
       border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      padding: 14px 20px;
+      border-radius: var(--radius-sm);
+      padding: 12px 18px;
       margin-bottom: 24px;
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--shadow-subtle);
     }
     .table-search-input {
-      padding: 8px 14px;
-      border-radius: var(--radius-sm);
+      height: 36px;
+      padding: 0 12px;
+      border-radius: var(--radius-xs);
       border: 1px solid var(--border);
       font-size: 13px;
       width: 100%;
       max-width: 320px;
-      background: #FAFAFA;
+      background: #FFFFFF;
+      color: var(--foreground);
+      transition: all 0.15s ease;
     }
     .table-search-input:focus {
       outline: none;
       border-color: var(--primary);
-      background: #FFFFFF;
+      box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 3.5px rgba(37, 99, 235, 0.25);
     }
     .tt-week-table {
       width: 100%;
@@ -860,29 +993,30 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       height: auto;
     }
 
-    /* Content Cards & Forms */
+    /* Content Cards & Forms (shadcn/ui Spec) */
     .card-box {
       background: #FFFFFF;
       border: 1px solid var(--border);
-      border-radius: var(--radius-md);
+      border-radius: var(--radius-sm);
       padding: 24px;
-      box-shadow: var(--shadow-sm);
+      box-shadow: var(--shadow-subtle);
       margin-bottom: 24px;
     }
     .card-box-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-bottom: 18px;
+      margin-bottom: 16px;
     }
     .card-box-title {
-      font-size: 17px;
+      font-size: 16px;
       font-weight: 700;
-      color: var(--text);
+      color: var(--foreground);
+      letter-spacing: -0.015em;
     }
     .card-box-desc {
       font-size: 13px;
-      color: var(--text-muted);
+      color: var(--muted-foreground);
       margin-bottom: 16px;
     }
 
@@ -896,23 +1030,24 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       display: block;
       font-size: 12px;
       font-weight: 600;
-      color: var(--text);
+      color: var(--foreground);
       margin-bottom: 6px;
     }
     .form-control {
+      height: 36px;
       width: 100%;
       background: #FFFFFF;
       border: 1px solid var(--border);
-      padding: 10px 14px;
-      border-radius: var(--radius-sm);
+      padding: 0 12px;
+      border-radius: var(--radius-xs);
       font-size: 13px;
-      color: var(--text);
-      transition: border-color 0.15s ease;
+      color: var(--foreground);
+      transition: all 0.15s ease;
     }
     .form-control:focus {
       outline: none;
       border-color: var(--primary);
-      box-shadow: 0 0 0 3px rgba(88, 66, 227, 0.12);
+      box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 3.5px rgba(37, 99, 235, 0.25);
     }
 
     /* Modern Data Tables */
@@ -1041,20 +1176,775 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       .navbar { padding: 12px 16px; }
       .main-content { padding: 16px; }
     }
+
+    /* Tabular Numerals on Metrics, Times, and Periods */
+    .tabular-nums, #metricTerms, #metricRooms, #metricTeachers, #metricSections, #metricTimetables,
+    .th-time, .slot-time, .badge-pill, .active-day-heading {
+      font-variant-numeric: tabular-nums;
+      font-feature-settings: 'tnum';
+    }
+
+    /* Enterprise App Layout Frame (Fixed Left Rail + Top Utility Bar) */
+    .app-layout-shell {
+      display: flex;
+      min-height: 100vh;
+      width: 100%;
+      background: var(--bg-canvas);
+    }
+
+    /* Left Sidebar Rail (256px fixed - shadcn/ui Spec) */
+    .app-sidebar-rail {
+      width: 256px;
+      min-width: 256px;
+      background: var(--bg-surface);
+      border-right: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      position: fixed;
+      top: 0;
+      bottom: 0;
+      left: 0;
+      z-index: 120;
+      transition: transform 0.2s ease, width 0.2s ease;
+      overflow-y: auto;
+    }
+
+    .rail-header {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      height: 56px;
+    }
+
+    .rail-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      cursor: pointer;
+    }
+
+    .rail-brand-logo {
+      width: 32px;
+      height: 32px;
+      background: var(--primary);
+      border-radius: var(--radius-xs);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #FFFFFF;
+      font-weight: 700;
+      font-size: 15px;
+      box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2);
+    }
+
+    .rail-brand-text {
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--foreground);
+      letter-spacing: -0.025em;
+    }
+
+    .rail-brand-text span {
+      color: var(--primary);
+    }
+
+    .rail-content {
+      flex: 1;
+      padding: 14px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .rail-section-header {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--muted-foreground);
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 0 8px;
+      margin-bottom: 6px;
+    }
+
+    .rail-nav-group {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .rail-nav-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 10px;
+      border-radius: var(--radius-xs);
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--muted-foreground);
+      text-decoration: none;
+      cursor: pointer;
+      border: 1px solid transparent;
+      transition: all 0.15s ease;
+    }
+
+    .rail-nav-item:hover {
+      background: var(--muted);
+      color: var(--foreground);
+    }
+
+    .rail-nav-item.active {
+      background: var(--accent);
+      color: var(--primary);
+      font-weight: 600;
+      border-color: transparent;
+    }
+
+    .rail-nav-icon {
+      width: 18px;
+      height: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted-foreground);
+      flex-shrink: 0;
+    }
+
+    .rail-nav-item.active .rail-nav-icon {
+      color: var(--primary);
+    }
+
+    .rail-footer {
+      padding: 12px 14px;
+      border-top: 1px solid var(--border-subtle);
+      background: #FAFAFC;
+    }
+
+    .rail-user-card {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .rail-user-avatar {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: var(--accent);
+      border: 1px solid var(--primary-border);
+      color: var(--primary);
+      font-weight: 600;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .rail-user-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .rail-user-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--foreground);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .rail-user-role {
+      font-size: 11px;
+      color: var(--muted-foreground);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* Main Viewport Workspace */
+    .app-main-viewport {
+      margin-left: 256px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      min-height: 100vh;
+    }
+
+    /* Sticky Top Utility Bar */
+    .app-top-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      height: 56px;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border-subtle);
+      padding: 0 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    .topbar-breadcrumb {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .topbar-breadcrumb span.active {
+      color: var(--text-main);
+      font-weight: 700;
+    }
+
+    .topbar-search-box {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 320px;
+      max-width: 100%;
+    }
+
+    .topbar-search-input {
+      width: 100%;
+      height: 36px;
+      background: #FFFFFF;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-xs);
+      padding: 0 54px 0 32px;
+      font-size: 13px;
+      color: var(--foreground);
+      transition: all 0.15s ease;
+    }
+
+    .topbar-search-input:focus {
+      outline: none;
+      background: #FFFFFF;
+      border-color: var(--primary);
+      box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 3.5px rgba(37, 99, 235, 0.25);
+    }
+
+    .topbar-search-icon {
+      position: absolute;
+      left: 10px;
+      color: var(--muted-foreground);
+      font-size: 13px;
+      pointer-events: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .topbar-kbd {
+      position: absolute;
+      right: 8px;
+      padding: 2px 6px;
+      font-size: 10px;
+      font-weight: 600;
+      color: var(--muted-foreground);
+      background: var(--muted);
+      border: 1px solid var(--border-subtle);
+      border-radius: 4px;
+      font-family: var(--font-mono, monospace);
+      pointer-events: none;
+    }
+
+    .topbar-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .topbar-icon-btn {
+      position: relative;
+      width: 36px;
+      height: 36px;
+      border-radius: var(--radius-xs);
+      border: 1px solid var(--border-subtle);
+      background: #FFFFFF;
+      color: var(--muted-foreground);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .topbar-icon-btn:hover {
+      background: var(--muted);
+      border-color: #CBD5E1;
+      color: var(--foreground);
+    }
+
+    .topbar-badge-dot {
+      position: absolute;
+      top: -3px;
+      right: -3px;
+      min-width: 16px;
+      height: 16px;
+      padding: 0 4px;
+      background: var(--destructive);
+      color: #FFFFFF;
+      font-size: 10px;
+      font-weight: 700;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #FFFFFF;
+    }
+
+    /* Notification Dropdown Popover */
+    .notif-popover {
+      position: absolute;
+      top: 48px;
+      right: 0;
+      width: 360px;
+      background: #FFFFFF;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      box-shadow: 0 10px 15px -3px rgba(15, 23, 42, 0.08), 0 4px 6px -4px rgba(15, 23, 42, 0.03);
+      display: none;
+      flex-direction: column;
+      z-index: 150;
+      overflow: hidden;
+    }
+
+    .notif-header {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border-subtle);
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--foreground);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .notif-list {
+      max-height: 280px;
+      overflow-y: auto;
+      padding: 8px 0;
+    }
+
+    .notif-item {
+      padding: 10px 16px;
+      border-bottom: 1px solid #F1F5F9;
+      font-size: 12px;
+      color: var(--foreground);
+      line-height: 1.4;
+    }
+
+    .notif-item:last-child {
+      border-bottom: none;
+    }
+
+    .notif-item .notif-time {
+      font-size: 10px;
+      color: var(--muted-foreground);
+      margin-top: 4px;
+    }
+
+    /* Primary CTAs in Enterprise Palette */
+    .btn-primary {
+      background: var(--primary-blue) !important;
+      color: #FFFFFF !important;
+      box-shadow: 0 1px 2px rgba(37, 99, 235, 0.2) !important;
+      border: 1px solid var(--primary-blue) !important;
+    }
+    .btn-primary:hover {
+      background: var(--primary-blue-hover) !important;
+      border-color: var(--primary-blue-hover) !important;
+    }
+    .btn-secondary {
+      background: #FFFFFF !important;
+      border: 1px solid var(--border-subtle) !important;
+      color: var(--text-main) !important;
+      box-shadow: var(--shadow-subtle) !important;
+    }
+    .btn-secondary:hover {
+      background: var(--bg-surface-hover) !important;
+      border-color: #CBD5E1 !important;
+      color: var(--text-main) !important;
+    }
+
+    /* Semantic Status Badges & Pills */
+    .status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 3px 10px;
+      border-radius: 9999px;
+      font-size: 11px;
+      font-weight: 600;
+      line-height: 1;
+    }
+    .status-badge-published {
+      background: var(--status-scheduled-bg) !important;
+      color: var(--status-scheduled-text) !important;
+      border: 1px solid var(--status-scheduled-border) !important;
+    }
+    .status-badge-draft {
+      background: var(--status-rescheduled-bg) !important;
+      color: var(--status-rescheduled-text) !important;
+      border: 1px solid var(--status-rescheduled-border) !important;
+    }
+    .status-badge-superseded {
+      background: #F1F5F9 !important;
+      color: #64748B !important;
+      border: 1px solid #CBD5E1 !important;
+    }
+    .badge-pill-cancel {
+      background: var(--status-cancelled-bg) !important;
+      color: var(--status-cancelled-text) !important;
+      border: 1px solid var(--status-cancelled-border) !important;
+    }
+
+    /* Card adjustments */
+    .card-box {
+      border: 1px solid var(--border-subtle) !important;
+      border-radius: var(--radius-md) !important;
+      box-shadow: var(--shadow-subtle) !important;
+    }
+
+    @media (max-width: 900px) {
+      .app-sidebar-rail {
+        transform: translateX(-100%);
+      }
+      .app-sidebar-rail.mobile-open {
+        transform: translateX(0);
+      }
+      .app-main-viewport {
+        margin-left: 0;
+      }
+    }
+
+
+    /* Enterprise High-Density Modern Tables */
+    .data-table, table.data-table, table.styled-table {
+      width: 100%;
+      border-collapse: separate;
+      border-spacing: 0;
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-sm);
+      background: var(--bg-surface);
+      font-size: 13px;
+      overflow: hidden;
+    }
+
+    .data-table thead th, table.data-table thead th, table.styled-table thead th {
+      background: #F8FAFC;
+      color: var(--text-muted);
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 10px 14px;
+      border-bottom: 1px solid var(--border-subtle);
+      border-right: none;
+      text-align: left;
+    }
+
+    .data-table tbody td, table.data-table tbody td, table.styled-table tbody td {
+      padding: 12px 14px;
+      border-bottom: 1px solid #F1F5F9;
+      color: var(--text-main);
+      vertical-align: middle;
+      font-size: 13px;
+    }
+
+    .data-table tbody tr:last-child td, table.data-table tbody tr:last-child td, table.styled-table tbody tr:last-child td {
+      border-bottom: none;
+    }
+
+    .data-table tbody tr:hover td, table.data-table tbody tr:hover td, table.styled-table tbody tr:hover td {
+      background: #F8FAFC;
+    }
+
+    /* Timetable Grid Modernization */
+    table.tt-grid {
+      border-collapse: separate;
+      border-spacing: 4px;
+      background: transparent;
+      width: 100%;
+    }
+
+    table.tt-grid th {
+      background: #F8FAFC !important;
+      border: 1px solid var(--border-subtle) !important;
+      border-radius: var(--radius-xs) !important;
+      color: var(--text-muted) !important;
+      padding: 8px 6px !important;
+      font-size: 11px !important;
+      font-weight: 700 !important;
+      text-transform: uppercase !important;
+      letter-spacing: 0.04em !important;
+    }
+
+    table.tt-grid th.col-track {
+      background: #F1F5F9 !important;
+      color: var(--text-main) !important;
+      border-color: #CBD5E1 !important;
+    }
+
+    table.tt-grid th.col-lunch {
+      background: #FFFBEB !important;
+      border: 1px dashed #FCD34D !important;
+      color: #B45309 !important;
+    }
+
+    table.tt-grid td {
+      border: 1px solid var(--border-subtle) !important;
+      border-radius: var(--radius-sm) !important;
+      background: var(--bg-surface) !important;
+      padding: 4px !important;
+      height: 108px !important;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02) !important;
+    }
+
+    table.tt-grid td.cell-track {
+      background: #F8FAFC !important;
+      border: 1px solid var(--border-subtle) !important;
+      color: var(--text-main) !important;
+      font-weight: 700 !important;
+      padding: 12px !important;
+    }
+
+    table.tt-grid td.slot-lunch-break {
+      background: repeating-linear-gradient(
+        -45deg,
+        #FFFDF7,
+        #FFFDF7 8px,
+        #FFFBEB 8px,
+        #FFFBEB 16px
+      ) !important;
+      border: 1px dashed #FDE68A !important;
+      color: #92400E !important;
+      text-align: center !important;
+    }
+
+    table.tt-grid td.slot-free {
+      background: #FAFAFC !important;
+      border: 1px dashed #E2E8F0 !important;
+      color: #94A3B8 !important;
+    }
+
+    table.tt-grid td.slot-free:hover {
+      background: #EFF6FF !important;
+      border-color: #BFDBFE !important;
+    }
+
+    /* Stale-Package Warning Banner & Solver Infeasibility Block */
+    .stale-package-banner {
+      background: #FFFBEB;
+      border: 1px solid #FDE68A;
+      border-left: 4px solid #D97706;
+      border-radius: var(--radius-sm);
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #92400E;
+    }
+
+    .solver-infeasible-block {
+      background: #FEF2F2;
+      border: 1px solid #FECACA;
+      border-left: 4px solid #DC2626;
+      border-radius: var(--radius-sm);
+      padding: 14px 18px;
+      margin-top: 14px;
+      font-size: 12px;
+      color: #991B1B;
+      line-height: 1.5;
+    }
+
+
+    /* 4-Column x 2-Row Full-Canvas Zero-Scroll Schedule Grid */
+    .schedule-grid-canvas {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 16px;
+      width: 100%;
+      margin-top: 12px;
+    }
+
+    @media (max-width: 1100px) {
+      .schedule-grid-canvas {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 680px) {
+      .schedule-grid-canvas {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .period-card-cell {
+      background: var(--bg-surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius-md);
+      box-shadow: var(--shadow-subtle);
+      display: flex;
+      flex-direction: column;
+      min-height: 180px;
+      transition: all 0.15s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .period-card-cell.two-slot-span {
+      grid-column: span 2;
+    }
+
+    @media (max-width: 680px) {
+      .period-card-cell.two-slot-span {
+        grid-column: span 1;
+      }
+    }
+
+    .period-card-header {
+      padding: 10px 14px;
+      background: #F8FAFC;
+      border-bottom: 1px solid var(--border-subtle);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .period-label-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .period-title {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-main);
+    }
+
+    .period-time-range {
+      font-size: 11px;
+      font-family: var(--font-mono, monospace);
+      color: var(--text-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .period-card-body {
+      padding: 14px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .class-card-unclipped {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    .class-card-unclipped:hover {
+      opacity: 0.95;
+    }
+
+    .class-course-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text-main);
+      line-height: 1.35;
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    .class-metadata-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+      font-size: 12px;
+      color: var(--text-muted);
+      border-top: 1px solid rgba(0, 0, 0, 0.06);
+      padding-top: 8px;
+      margin-top: auto;
+    }
+
+    .class-metadata-row {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      white-space: normal;
+      word-break: break-word;
+    }
+
+    .lunch-period-cell {
+      background: repeating-linear-gradient(
+        -45deg,
+        #FFFDF7,
+        #FFFDF7 10px,
+        #FFFBEB 10px,
+        #FFFBEB 20px
+      ) !important;
+      border: 1px dashed #FCD34D !important;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      text-align: center;
+      min-height: 180px;
+    }
+
+    .free-period-cell {
+      background: #FAFAFC;
+      border: 1px dashed #E2E8F0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      text-align: center;
+      min-height: 180px;
+      color: var(--text-muted);
+    }
+
+    .free-period-cell:hover {
+      background: #F1F5F9;
+      border-color: #CBD5E1;
+    }
+
   </style>
 </head>
 <body>
 
-  <!-- Top Navigation Bar -->
-  <nav class="navbar">
+  <!-- Public Top Navigation Bar (Shown on Landing, Roles, About, Feedback views) -->
+  <nav class="navbar" id="publicNavbar">
     <a class="brand-logo" onclick="switchView('landing')">
-      <div class="logo-icon">📅</div>
-      <div class="logo-text">PlayMy<span>Class</span></div>
+      <div class="logo-icon">${ICONS.calendar}</div>
+      <div class="logo-text">TimeTable<span>+</span></div>
     </a>
 
     <div class="nav-links" id="mainNavLinks">
       <a class="nav-link" id="navLinkHome" onclick="switchView('landing')">Home</a>
-      <a class="nav-link" id="navLinkDashboard" style="display: none;" onclick="goToRespectiveDashboard()">📊 Dashboard</a>
+      <a class="nav-link" id="navLinkDashboard" style="display: none;" onclick="goToRespectiveDashboard()">${ICONS.dashboard} Dashboard</a>
       <a class="nav-link" id="navLinkFeedback" onclick="switchView('feedback')">Feedback</a>
       <a class="nav-link" id="navLinkAbout" onclick="switchView('about')">About</a>
     </div>
@@ -1062,19 +1952,210 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     <div class="nav-actions">
       <!-- Unauthenticated View -->
       <div id="unauthNav">
-        <button class="btn btn-primary" onclick="openLoginModal()">🔑 Sign In</button>
+        <button class="btn btn-primary" onclick="openLoginModal()">${ICONS.login} Sign In</button>
       </div>
 
       <!-- Authenticated View -->
       <div id="authNav" style="display: none; align-items: center; gap: 12px;">
-        <span class="status-badge" id="navRoleBadge" style="background:var(--primary-light); color:var(--primary);">👑 Admin</span>
-        <div style="font-size: 13px; font-weight: 600; color: var(--text);" id="navUserName">admin@university.edu</div>
-        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="handleLogout()">🚪 Sign Out</button>
+        <span class="status-badge" id="navRoleBadge" style="background:var(--accent); color:var(--primary);">${ICONS.shield} Admin</span>
+        <div style="font-size: 13px; font-weight: 600; color: var(--foreground);" id="navUserName">admin@university.edu</div>
+        <button class="btn btn-secondary" style="padding: 6px 12px; font-size: 12px;" onclick="handleLogout()">${ICONS.logout} Sign Out</button>
       </div>
     </div>
   </nav>
 
-  <main class="main-content">
+  <!-- Enterprise Application Shell Frame -->
+  <div class="app-layout-shell" id="appLayoutShell">
+
+    <!-- Fixed Left Navigation Rail (256px) -->
+    <aside class="app-sidebar-rail" id="appSidebarRail" style="display: none;">
+      <!-- Rail Header -->
+      <div class="rail-header">
+        <div class="rail-brand" onclick="goToRespectiveDashboard()">
+          <div class="rail-brand-logo">${ICONS.calendar}</div>
+          <div class="rail-brand-text">TimeTable<span>+</span></div>
+        </div>
+        <button class="btn btn-secondary" style="padding: 4px 8px; font-size: 11px;" onclick="switchView('landing')" title="View Public Portal">
+          ${ICONS.globe}
+        </button>
+      </div>
+
+      <!-- Rail Navigation Content (Role-Scoped) -->
+      <div class="rail-content">
+
+        <!-- ADMIN WORKSPACE GROUP -->
+        <div id="railAdminGroup" style="display: none; flex-direction: column; gap: 16px;">
+          <div class="rail-nav-group">
+            <div class="rail-section-header">Overview</div>
+            <a class="rail-nav-item active" id="railItemAdminHub" onclick="switchAdminPage('hub')">
+              <span class="rail-nav-icon">${ICONS.dashboard}</span> Command Center
+            </a>
+            <a class="rail-nav-item" id="railItemAdminTimetables" onclick="switchAdminPage('timetables')">
+              <span class="rail-nav-icon">${ICONS.calendar}</span> Timetables Explorer
+            </a>
+          </div>
+
+          <div class="rail-nav-group">
+            <div class="rail-section-header">Academics</div>
+            <a class="rail-nav-item" id="railItemAdminModules" onclick="switchAdminPage('modules')">
+              <span class="rail-nav-icon">${ICONS.modules}</span> Modules & Hierarchy
+            </a>
+          </div>
+
+          <div class="rail-nav-group">
+            <div class="rail-section-header">People & Spaces</div>
+            <a class="rail-nav-item" id="railItemAdminStudents" onclick="switchAdminPage('students')">
+              <span class="rail-nav-icon">${ICONS.students}</span> Student Directory
+            </a>
+            <a class="rail-nav-item" id="railItemAdminFaculty" onclick="switchAdminPage('faculty')">
+              <span class="rail-nav-icon">${ICONS.faculty}</span> Faculty Registry
+            </a>
+            <a class="rail-nav-item" id="railItemAdminMatrix" onclick="switchAdminPage('matrix')">
+              <span class="rail-nav-icon">${ICONS.matrix}</span> Room Matrix Heatmap
+            </a>
+          </div>
+
+          <div class="rail-nav-group">
+            <div class="rail-section-header">Optimization</div>
+            <a class="rail-nav-item" id="railItemAdminSolver" onclick="switchAdminPage('solver')">
+              <span class="rail-nav-icon">${ICONS.solver}</span> CP-SAT Solver & Drafts
+            </a>
+          </div>
+
+          <div class="rail-nav-group">
+            <div class="rail-section-header">System</div>
+            <a class="rail-nav-item" id="railItemAdminProfile" onclick="switchUserSubPage('profile')">
+              <span class="rail-nav-icon">${ICONS.profile}</span> My Profile
+            </a>
+            <a class="rail-nav-item" id="railItemAdminSecurity" onclick="switchUserSubPage('security')">
+              <span class="rail-nav-icon">${ICONS.security}</span> Password & Security
+            </a>
+          </div>
+        </div>
+
+        <!-- TEACHER WORKSPACE GROUP -->
+        <div id="railTeacherGroup" style="display: none; flex-direction: column; gap: 16px;">
+          <div class="rail-nav-group">
+            <div class="rail-section-header">Schedule</div>
+            <a class="rail-nav-item active" id="railItemTeacherSchedule" onclick="switchUserSubPage('schedule')">
+              <span class="rail-nav-icon">${ICONS.calendar}</span> My Timetable
+            </a>
+          </div>
+
+          <div class="rail-nav-group">
+            <div class="rail-section-header">Faculty Operations</div>
+            <a class="rail-nav-item" id="railItemTeacherExtra" onclick="switchUserSubPage('teacher-extra')">
+              <span class="rail-nav-icon">${ICONS.plus}</span> Book Extra Class
+            </a>
+            <a class="rail-nav-item" id="railItemTeacherRooms" onclick="switchUserSubPage('teacher-rooms')">
+              <span class="rail-nav-icon">${ICONS.matrix}</span> Empty Room Finder
+            </a>
+            <a class="rail-nav-item" id="railItemTeacherLeave" onclick="switchUserSubPage('teacher-leave')">
+              <span class="rail-nav-icon">${ICONS.leave}</span> Leave & Unavailability
+            </a>
+          </div>
+
+          <div class="rail-nav-group">
+            <div class="rail-section-header">Account</div>
+            <a class="rail-nav-item" id="railItemTeacherProfile" onclick="switchUserSubPage('profile')">
+              <span class="rail-nav-icon">${ICONS.profile}</span> My Profile
+            </a>
+            <a class="rail-nav-item" id="railItemTeacherSecurity" onclick="switchUserSubPage('security')">
+              <span class="rail-nav-icon">${ICONS.security}</span> Password & Security
+            </a>
+          </div>
+        </div>
+
+        <!-- STUDENT WORKSPACE GROUP -->
+        <div id="railStudentGroup" style="display: none; flex-direction: column; gap: 16px;">
+          <div class="rail-nav-group">
+            <div class="rail-section-header">Schedule</div>
+            <a class="rail-nav-item active" id="railItemStudentSchedule" onclick="switchUserSubPage('schedule')">
+              <span class="rail-nav-icon">${ICONS.calendar}</span> Academic Timetable
+            </a>
+          </div>
+
+          <div class="rail-nav-group">
+            <div class="rail-section-header">Account</div>
+            <a class="rail-nav-item" id="railItemStudentProfile" onclick="switchUserSubPage('profile')">
+              <span class="rail-nav-icon">${ICONS.profile}</span> My Profile
+            </a>
+            <a class="rail-nav-item" id="railItemStudentSecurity" onclick="switchUserSubPage('security')">
+              <span class="rail-nav-icon">${ICONS.security}</span> Password & Security
+            </a>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Rail Footer (User Profile & Logout) -->
+      <div class="rail-footer">
+        <div class="rail-user-card" onclick="switchUserSubPage('profile')" style="cursor:pointer;" title="View My Profile">
+          <div class="rail-user-avatar" id="railUserAvatar">U</div>
+          <div class="rail-user-info">
+            <div class="rail-user-name" id="railUserName">Signed In User</div>
+            <div class="rail-user-role" id="railUserRole">Verified Session</div>
+          </div>
+        </div>
+        <button class="btn btn-secondary" style="width: 100%; padding: 7px; font-size: 12px; justify-content: center;" onclick="handleLogout()">
+          ${ICONS.logout} Sign Out
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Viewport (Contains Top Bar and Page Content) -->
+    <div class="app-main-viewport" id="appMainViewport">
+
+      <!-- Sticky Top Utility Bar (Shown on Dashboard & Authenticated Views) -->
+      <header class="app-top-bar" id="appTopBar" style="display: none;">
+        <!-- Breadcrumbs -->
+        <div class="topbar-breadcrumb" id="topbarBreadcrumb">
+          <span>TimeTable+</span>
+          <span>/</span>
+          <span class="active" id="topbarActivePage">Command Center</span>
+        </div>
+
+        <!-- Center Quick Search Bar -->
+        <div class="topbar-search-box" id="topbarSearchBox">
+          <span class="topbar-search-icon">${ICONS.search}</span>
+          <input type="text" class="topbar-search-input" id="globalQuickSearch" placeholder="Quick search courses, faculty, rooms..." oninput="handleGlobalSearch(this.value)">
+          <kbd class="topbar-kbd">Ctrl K</kbd>
+        </div>
+
+        <!-- Right Utility Actions -->
+        <div class="topbar-actions">
+          <!-- Notification Bell -->
+          <div style="position: relative;">
+            <button class="topbar-icon-btn" id="notifBellBtn" onclick="toggleNotifPopover()" title="System Notifications">
+              ${ICONS.bell}
+              <span class="topbar-badge-dot" id="notifBadgeCount">3</span>
+            </button>
+
+            <!-- Notifications Dropdown Popover -->
+            <div class="notif-popover" id="notifPopover">
+              <div class="notif-header">
+                <span>Recent System Audits</span>
+                <span class="status-badge status-badge-published" style="font-size: 10px;">Live Realtime</span>
+              </div>
+              <div class="notif-list" id="notifListContainer">
+                <div id="studentInbox" style="display:none;"></div>
+                <div class="notif-item">
+                  <strong>Timetable Version Active</strong>
+                  <div>Institutional semester schedule hydrated cleanly.</div>
+                  <div class="notif-time">Just now</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Context-Aware Primary Action Button -->
+          <button class="btn btn-primary" id="topbarPrimaryCta" onclick="handleTopbarPrimaryCta()">
+            Primary Action
+          </button>
+        </div>
+      </header>
+
+      <main class="main-content">
     
     <!-- Toast notifications -->
     <div id="appToast" class="toast-box"></div>
@@ -1085,7 +2166,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     <div id="landingView">
       <div class="hero-section">
         <div>
-          <div class="hero-badge">✨ Next-Generation University Schedule Engine</div>
+          <div class="hero-badge">${ICONS.sparkles} Next-Generation University Schedule Engine</div>
           <h1 class="hero-title">Smarter Timetables, <span>Brighter Days</span></h1>
           <p class="hero-desc">
             A simple and smart solution for students, teachers, and admins to manage and generate academic schedules effortlessly. Backed by Google OR-Tools CP-SAT constraint optimization.
@@ -1097,24 +2178,24 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           <div class="hero-card-stack">
             <div class="hero-mock-header">
               <span class="hero-mock-chip">Monday • Term 3</span>
-              <span style="font-size: 14px;">⚡ Verified Conflict-Free</span>
+              <span style="font-size: 13px; font-weight: 600; color: #047857; display: flex; align-items: center; gap: 4px;">${ICONS.check} Verified Conflict-Free</span>
             </div>
             <div class="hero-mock-class">
-              <div class="hero-mock-class-icon">📘</div>
+              <div class="hero-mock-class-icon">${ICONS.book}</div>
               <div>
                 <div style="font-weight: 700; font-size: 14px;">CS201 Data Structures</div>
-                <div style="font-size: 12px; opacity: 0.85;">09:00–10:00 • Room 101 (Floor 1)</div>
+                <div style="font-size: 12px; color: var(--muted-foreground);">09:00–10:00 • Room 101 (Floor 1)</div>
               </div>
             </div>
             <div class="hero-mock-class">
-              <div class="hero-mock-class-icon" style="color:var(--accent-purple);">🔬</div>
+              <div class="hero-mock-class-icon" style="color:var(--primary);">${ICONS.microscope}</div>
               <div>
                 <div style="font-weight: 700; font-size: 14px;">CS201 Lab (Batch 3A1)</div>
-                <div style="font-size: 12px; opacity: 0.85;">10:00–12:00 • Lab 1 (2-Slot Spanning)</div>
+                <div style="font-size: 12px; color: var(--muted-foreground);">10:00–12:00 • Lab 1 (2-Slot Spanning)</div>
               </div>
             </div>
-            <div style="margin-top: 16px; font-size: 12px; opacity: 0.8; text-align: center;">
-              🍱 Non-Teaching Lunch Interval at 12:00–13:00 (DEC-04)
+            <div style="margin-top: 16px; font-size: 12px; color: #B45309; text-align: center; display: flex; align-items: center; justify-content: center; gap: 6px;">
+              ${ICONS.coffee} Non-Teaching Lunch Interval at 12:00–13:00 (DEC-04)
             </div>
           </div>
         </div>
@@ -1123,22 +2204,22 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       <!-- 4 Dynamic Value Proposition Cards -->
       <div class="value-props-grid">
         <div class="value-prop-card" onclick="switchView('dashboard')">
-          <div class="vp-icon-bubble" style="background:#E0F2FE; color:#0284C7;">📅</div>
+          <div class="vp-icon-bubble">${ICONS.calendar}</div>
           <div class="vp-title">View Timetable</div>
           <div class="vp-desc">Personalized calendars for students and teachers with color-coded classes, practical lab spans, and instant venue guidance.</div>
         </div>
         <div class="value-prop-card" onclick="handleExploreDashboard('admin', 'solver')">
-          <div class="vp-icon-bubble" style="background:#EDE9FE; color:#6C5CE7;">⚡</div>
+          <div class="vp-icon-bubble">${ICONS.solver}</div>
           <div class="vp-title">Smart Generation</div>
           <div class="vp-desc">OR-Tools CP-SAT constraint optimization generates clash-free schedules across concurrent semesters in under 300ms.</div>
         </div>
         <div class="value-prop-card" onclick="handleExploreDashboard('student')">
-          <div class="vp-icon-bubble" style="background:#DCFCE7; color:#059669;">🔔</div>
+          <div class="vp-icon-bubble">${ICONS.bell}</div>
           <div class="vp-title">Real-Time Updates</div>
           <div class="vp-desc">Post-commit live subscriptions deliver immediate alerts for cancellations, venue relocations, and extra classes.</div>
         </div>
         <div class="value-prop-card" onclick="switchView('roles')">
-          <div class="vp-icon-bubble" style="background:#FCE8F3; color:#E05697;">👥</div>
+          <div class="vp-icon-bubble">${ICONS.faculty}</div>
           <div class="vp-title">Multi-User Access</div>
           <div class="vp-desc">Dedicated, role-isolated workspaces for Students, Faculty, and University Administrators with Supabase Auth.</div>
         </div>
@@ -1157,42 +2238,42 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           <!-- Student Card -->
           <div class="role-select-card" id="roleCardStudent">
             <div>
-              <div class="role-card-avatar" style="background: #E0F2FE; color: #0284C7;">🎓</div>
+              <div class="role-card-avatar" style="background: #EFF6FF; color: var(--primary);">${ICONS.students}</div>
               <div class="role-card-name">Student Portal</div>
               <div class="role-card-desc">
                 View your section lectures, practical lab groups, elective subjects, and real-time alerts for room changes or cancellations.
               </div>
             </div>
             <button class="btn btn-secondary" onclick="handleRoleGateClick('student')" style="width: 100%;">
-              Enter as Student ➔
+              Enter as Student ${ICONS.arrowRight}
             </button>
           </div>
 
           <!-- Teacher Card -->
           <div class="role-select-card" id="roleCardTeacher">
             <div>
-              <div class="role-card-avatar" style="background: #FCE8F3; color: #E05697;">🧑‍🏫</div>
+              <div class="role-card-avatar" style="background: #F8FAFC; color: #475569; border: 1px solid var(--border);">${ICONS.faculty}</div>
               <div class="role-card-name">Teacher Hub</div>
               <div class="role-card-desc">
                 Review your assigned lectures and labs, cancel/reschedule individual occurrences, claim free teaching slots, and submit unavailability.
               </div>
             </div>
             <button class="btn btn-secondary" onclick="handleRoleGateClick('teacher')" style="width: 100%;">
-              Enter as Teacher ➔
+              Enter as Teacher ${ICONS.arrowRight}
             </button>
           </div>
 
           <!-- Admin Card -->
           <div class="role-select-card" id="roleCardAdmin">
             <div>
-              <div class="role-card-avatar" style="background: #EDE9FE; color: #5842E3;">👑</div>
+              <div class="role-card-avatar" style="background: #EFF6FF; color: var(--primary);">${ICONS.shield}</div>
               <div class="role-card-name">Admin Command Center</div>
               <div class="role-card-desc">
                 Configure curriculum, manage venues and instructors, run CP-SAT generation, stage drafts, publish timetables, and provision users.
               </div>
             </div>
             <button class="btn btn-primary" onclick="handleRoleGateClick('admin')" style="width: 100%;">
-              Enter as Administrator ➔
+              Enter as Administrator ${ICONS.arrowRight}
             </button>
           </div>
         </div>
@@ -1220,12 +2301,12 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           </div>
 
           <div class="active-day-heading" id="activeDayText">
-            📅 Monday • September 7, 2026
+            ${ICONS.calendar} Monday • September 7, 2026
           </div>
 
           <!-- Verified User Identity Display -->
           <div id="activeUserBadge" style="display: flex; gap: 8px; align-items: center;">
-            <span id="activeUserRoleTag" class="status-badge" style="background:#F1F5F9; color:#64748B; font-size: 11px; padding: 4px 10px;">🔒 Guest / Read-Only</span>
+            <span id="activeUserRoleTag" class="status-badge" style="background:#F1F5F9; color:#64748B; font-size: 11px; padding: 4px 10px;">${ICONS.shield} Guest / Read-Only</span>
             <span id="activeUserEmailTag" style="font-size: 12px; color: var(--text-muted); font-weight: 500;">(Unauthenticated)</span>
           </div>
         </div>
@@ -1233,10 +2314,10 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         <!-- Unauthenticated Guest Banner -->
         <div id="guestNotice" class="card-box" style="padding: 12px 18px; margin-bottom: 20px; background: #FFFBEB; border: 1px solid #FDE68A; color: #92400E; font-size: 13px; display: none; justify-content: space-between; align-items: center; border-radius: 12px;">
           <div style="display: flex; align-items: center; gap: 8px;">
-            <span>🔒</span>
+            <span>${ICONS.shield}</span>
             <span><strong>Guest Mode:</strong> You are viewing academic timetables in read-only guest mode. Sign in with institutional credentials for role-specific workflows.</span>
           </div>
-          <button class="btn btn-primary" style="padding: 6px 14px; font-size: 12px;" onclick="openLoginModal()">🔑 Sign In</button>
+          <button class="btn btn-primary" style="padding: 6px 14px; font-size: 12px;" onclick="openLoginModal()">${ICONS.login} Sign In</button>
         </div>
 
         <!-- The Timetable Grid Card -->
@@ -1249,148 +2330,141 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
               </p>
             </div>
             <div style="display: flex; gap: 8px;">
-              <button class="btn btn-secondary" onclick="prevDay()" style="padding: 6px 12px; font-size: 12px;">◀ Prev Day</button>
-              <button class="btn btn-secondary" onclick="nextDay()" style="padding: 6px 12px; font-size: 12px;">Next Day ▶</button>
+              <button class="btn btn-secondary" onclick="prevDay()" style="padding: 6px 12px; font-size: 12px;">${ICONS.arrowLeft} Prev Day</button>
+              <button class="btn btn-secondary" onclick="nextDay()" style="padding: 6px 12px; font-size: 12px;">Next Day ${ICONS.arrowRight}</button>
             </div>
           </div>
 
           <div class="table-scroll">
             <div id="timetableGridWrapper">
               <div style="padding: 40px; text-align: center; color: var(--text-muted);">
-                ⏳ Loading timetable schedule...
+                Loading timetable schedule...
               </div>
             </div>
           </div>
         </div>
-
-        <!-- Student View Panels -->
-        <div id="studentViewPanels" style="display: none;">
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 32px;">
-            
-            <!-- Student Profile Card -->
-            <div class="card-box">
-              <div class="card-box-header">
-                <h3 class="card-box-title">🎓 Student Profile & Cohorts</h3>
-              </div>
-              <p style="font-size: 14px; margin-bottom: 12px;">
-                Active Student: <strong id="studentProfileName">Charlie Brown</strong> • <span id="studentProfileMeta" style="color:var(--text-muted);">Roll CS2026-001</span>
-              </p>
-              <ul id="studentCohortsList" style="list-style: none; font-size: 13px; line-height: 1.8; color: var(--text-muted);">
-                <li>🏛️ Section: <strong style="color:var(--text);" id="stdSecLabel">Section 3A (sec-3A)</strong></li>
-                <li>🔬 Practical Lab Batch: <strong style="color:var(--text);" id="stdBatchLabel">Batch 3A1 (batch-3A1)</strong></li>
-                <li>📚 Enrolled Elective: <strong style="color:var(--text);" id="stdElecLabel">Applied Machine Learning</strong></li>
-              </ul>
-              <p style="font-size: 11px; color: var(--text-muted); margin-top: 14px; border-top: 1px solid var(--border); padding-top: 8px;">
-                ℹ️ Your daily grid shows lectures for your section and lab sessions reserved for your practical batch.
-              </p>
-            </div>
-
-            <!-- Announcements & Inbox Card -->
-            <div class="card-box">
-              <div class="card-box-header">
-                <h3 class="card-box-title">🔔 Schedule Announcements</h3>
-              </div>
-              <div id="studentInbox" style="max-height: 200px; overflow-y: auto;">
-                Loading inbox...
-              </div>
-            </div>
-
-            <!-- Student Password Settings Card -->
-            <div class="card-box">
-              <div class="card-box-header">
-                <h3 class="card-box-title">🔒 Account Security & Password</h3>
-              </div>
-              <p class="card-box-desc">Update your institutional student password securely.</p>
-              <div class="form-group" style="margin-bottom: 12px;">
-                <label>New Password (minimum 6 characters):</label>
-                <input type="password" id="studentNewPassword" class="form-control" placeholder="••••••••">
-              </div>
-              <button class="btn btn-primary" onclick="handleStudentChangePassword()">Update Password</button>
-            </div>
-          </div>
-        </div>
-
-        <!-- Teacher View Panels -->
-        <div id="teacherViewPanels" style="display: none;">
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-bottom: 32px;">
-            
-            <!-- Book Extra Class -->
-            <div class="card-box">
-              <div class="card-box-header">
-                <h3 class="card-box-title">⚡ Book One-Off Extra Class</h3>
-              </div>
-              <p class="card-box-desc">Search freed or unoccupied slots to schedule an extra session (D02, D25).</p>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>Date:</label>
-                  <input type="date" id="extraDate" class="form-control" value="2026-09-08">
-                </div>
-                <div class="form-group">
-                  <label>Activity:</label>
-                  <select id="extraActivity" class="form-control">
-                    <option value="L">Lecture (1 hour)</option>
-                    <option value="P">Practical / Lab (2 hours)</option>
-                  </select>
-                </div>
-              </div>
-              <button class="btn btn-primary" onclick="queryFreeSlots()">Search Free Slots</button>
-              <div id="slotsResults" style="margin-top: 14px;"></div>
-            </div>
-
-            <!-- Leave Request -->
-            <div class="card-box">
-              <div class="card-box-header">
-                <h3 class="card-box-title">📅 Submit Unavailability Request</h3>
-              </div>
-              <p class="card-box-desc">Request leave for a date. Admin review confirms absence and resolves occurrences (D29, D30).</p>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>Date:</label>
-                  <input type="date" id="unavailDate" class="form-control" value="2026-09-09">
-                </div>
-                <div class="form-group">
-                  <label>Period Range:</label>
-                  <div style="display:flex; gap:8px;">
-                    <input type="number" id="unavailStart" class="form-control" value="1" min="1" max="8">
-                    <input type="number" id="unavailEnd" class="form-control" value="4" min="1" max="8">
-                  </div>
-                </div>
-              </div>
-              <div class="form-group" style="margin-bottom: 12px;">
-                <label>Reason:</label>
-                <input type="text" id="unavailReason" class="form-control" placeholder="Conference / Medical leave">
-              </div>
-              <button class="btn btn-secondary" onclick="submitUnavailability()">Submit Absence Request</button>
-            </div>
-
-            <!-- Empty Room Finder -->
-            <div class="card-box">
-              <div class="card-box-header">
-                <h3 class="card-box-title">🏢 Empty Classroom Finder</h3>
-              </div>
-              <p class="card-box-desc">Quickly find empty rooms on campus for impromptu study sessions or office hours.</p>
-              <div class="form-grid">
-                <div class="form-group">
-                  <label>Select Period Slot:</label>
-                  <select id="finderSlot" class="form-control" onchange="runEmptyRoomFinder()">
-                    <option value="1">Period 1 (09:00 - 10:00)</option>
-                    <option value="2">Period 2 (10:00 - 11:00)</option>
-                    <option value="3">Period 3 (11:00 - 12:00)</option>
-                    <option value="5">Period 5 (13:00 - 14:00)</option>
-                    <option value="6">Period 6 (14:00 - 15:00)</option>
-                    <option value="7">Period 7 (15:00 - 16:00)</option>
-                    <option value="8">Period 8 (16:00 - 17:00)</option>
-                  </select>
-                </div>
-              </div>
-              <div id="finderResults" style="font-size: 13px; color: var(--text-muted); margin-top: 8px;">
-                Select a period to list free classrooms.
-              </div>
-            </div>
-          </div>
-        </div>
-
       </div>
+
+      <!-- SEPARATE WORKSTATION SUB-PAGES (Clean Single-Purpose Views) -->
+        
+        <!-- SUB-PAGE: USER PROFILE (Student, Teacher, Admin) -->
+        <div id="userSubPageProfile" style="display: none; max-width: 860px; margin: 0 auto; padding-top: 10px;">
+          <div class="card-box" style="padding: 28px;">
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
+              <div class="rail-user-avatar" style="width: 56px; height: 56px; font-size: 24px;" id="profileAvatarLg">U</div>
+              <div>
+                <h2 style="font-size: 22px; font-weight: 800; color: var(--text-main); margin: 0;" id="studentProfileName">Institutional User</h2>
+                <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;" id="studentProfileMeta">Verified Session Member</div>
+              </div>
+            </div>
+
+            <!-- Student Cohort Details (Visible for Students) -->
+            <div id="profileStudentSection" style="margin-top: 18px; border-top: 1px solid var(--border-subtle); padding-top: 18px;">
+              <h4 style="font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 12px;">Active Academic Cohorts & Enrolled Modules</h4>
+              <ul id="studentCohortsList" style="list-style: none; font-size: 13px; line-height: 2; color: var(--text-muted);">
+                <li>Enrolled Section: <strong style="color:var(--text-main);" id="stdSecLabel">Section 3A (sec-3A)</strong></li>
+                <li>Practical Lab Batch: <strong style="color:var(--text-main);" id="stdBatchLabel">Batch 3A1 (batch-3A1)</strong></li>
+                <li>Elective Group: <strong style="color:var(--text-main);" id="stdElecLabel">Applied Machine Learning</strong></li>
+              </ul>
+            </div>
+
+            <!-- Faculty Details (Visible for Teachers) -->
+            <div id="profileTeacherSection" style="display: none; margin-top: 18px; border-top: 1px solid var(--border-subtle); padding-top: 18px;">
+              <h4 style="font-size: 14px; font-weight: 700; color: var(--text-main); margin-bottom: 12px;">Faculty Workload & Contact Allocation</h4>
+              <ul style="list-style: none; font-size: 13px; line-height: 2; color: var(--text-muted);">
+                <li>Daily Contact Limit: <strong style="color:var(--text-main);">Max 4 Hours / Day (PRD D33)</strong></li>
+                <li>Leave Protocol: <strong style="color:var(--text-main);">Administrative Review & Occurrence Re-allocation (D29, D30)</strong></li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- SUB-PAGE: PASSWORD & SECURITY -->
+        <div id="userSubPageSecurity" style="display: none; max-width: 600px; margin: 0 auto; padding-top: 10px;">
+          <div class="card-box" style="padding: 28px;">
+            <h3 class="card-box-title">Account Security & Password Update</h3>
+            <p class="card-box-desc">Update your institutional login password securely. Your next login will require this password.</p>
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label>New Institutional Password (minimum 6 characters):</label>
+              <input type=password id="studentNewPassword" class="form-control" placeholder="••••••••">
+            </div>
+            <button class="btn btn-primary" style="width: 100%;" onclick="handleStudentChangePassword()">Update Password</button>
+          </div>
+        </div>
+
+        <!-- SUB-PAGE: TEACHER BOOK EXTRA CLASS -->
+        <div id="userSubPageTeacherExtra" style="display: none; max-width: 760px; margin: 0 auto; padding-top: 10px;">
+          <div class="card-box" style="padding: 28px;">
+            <h3 class="card-box-title">Book One-Off Extra Class</h3>
+            <p class="card-box-desc">Search freed or unoccupied slots to schedule an extra academic session (D02, D25).</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Date:</label>
+                <input type="date" id="extraDate" class="form-control" value="2026-09-08">
+              </div>
+              <div class="form-group">
+                <label>Activity:</label>
+                <select id="extraActivity" class="form-control">
+                  <option value="L">Lecture (1 hour)</option>
+                  <option value="P">Practical / Lab (2 hours)</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-primary" onclick="queryFreeSlots()">Search Free Slots</button>
+            <div id="slotsResults" style="margin-top: 16px;"></div>
+          </div>
+        </div>
+
+        <!-- SUB-PAGE: TEACHER EMPTY ROOM FINDER -->
+        <div id="userSubPageTeacherRooms" style="display: none; max-width: 760px; margin: 0 auto; padding-top: 10px;">
+          <div class="card-box" style="padding: 28px;">
+            <h3 class="card-box-title">Empty Classroom Finder</h3>
+            <p class="card-box-desc">Quickly find empty rooms on campus for impromptu study sessions or office hours.</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Select Period Slot:</label>
+                <select id="finderSlot" class="form-control" onchange="runEmptyRoomFinder()">
+                  <option value="1">Period 1 (09:00 - 10:00)</option>
+                  <option value="2">Period 2 (10:00 - 11:00)</option>
+                  <option value="3">Period 3 (11:00 - 12:00)</option>
+                  <option value="5">Period 5 (13:00 - 14:00)</option>
+                  <option value="6">Period 6 (14:00 - 15:00)</option>
+                  <option value="7">Period 7 (15:00 - 16:00)</option>
+                  <option value="8">Period 8 (16:00 - 17:00)</option>
+                </select>
+              </div>
+            </div>
+            <div id="finderResults" style="font-size: 13px; color: var(--text-muted); margin-top: 12px;">
+              Select a period to list free classrooms.
+            </div>
+          </div>
+        </div>
+
+        <!-- SUB-PAGE: TEACHER LEAVE & UNAVAILABILITY -->
+        <div id="userSubPageTeacherLeave" style="display: none; max-width: 760px; margin: 0 auto; padding-top: 10px;">
+          <div class="card-box" style="padding: 28px;">
+            <h3 class="card-box-title">Submit Unavailability Request</h3>
+            <p class="card-box-desc">Request leave for a date. Admin review confirms absence and resolves occurrences (D29, D30).</p>
+            <div class="form-grid">
+              <div class="form-group">
+                <label>Date:</label>
+                <input type="date" id="unavailDate" class="form-control" value="2026-09-09">
+              </div>
+              <div class="form-group">
+                <label>Period Range:</label>
+                <div style="display:flex; gap:8px;">
+                  <input type="number" id="unavailStart" class="form-control" value="1" min="1" max="8">
+                  <input type="number" id="unavailEnd" class="form-control" value="4" min="1" max="8">
+                </div>
+              </div>
+            </div>
+            <div class="form-group" style="margin-bottom: 16px;">
+              <label>Reason:</label>
+              <input type="text" id="unavailReason" class="form-control" placeholder="Conference / Medical leave">
+            </div>
+            <button class="btn btn-secondary" onclick="submitUnavailability()">Submit Absence Request</button>
+          </div>
+        </div>
 
       <!-- ================================================================== -->
       <!-- B. ADMIN COMMAND CENTER (Modular, Page-Separated Architecture)     -->
@@ -1403,41 +2477,67 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           <div class="card-box" style="padding: 28px; background: linear-gradient(135deg, #FFFFFF 0%, #F5F3FF 100%); border-left: 4px solid var(--primary); margin-bottom: 24px;">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
               <div>
-                <span class="status-badge" style="background:var(--primary-light); color:var(--primary); font-size:11px; padding:4px 10px; margin-bottom:8px; display:inline-block;">👑 Root Academic Authority</span>
+                <span class="status-badge" style="background:var(--primary-light); color:var(--primary); font-size:11px; padding:4px 10px; margin-bottom:8px; display:inline-block;">${ICONS.shield} Root Academic Authority</span>
                 <h2 style="font-size: 26px; font-weight: 800; color: var(--text); margin-bottom: 6px;">Admin Command Center</h2>
                 <p style="font-size: 14px; color: var(--text-muted); margin: 0; max-width: 640px;">
                   Institutional scheduling authority, curriculum modules, student & faculty accounts, venue utilization, and CP-SAT generation.
                 </p>
               </div>
               <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                <button class="btn btn-secondary" onclick="resetToSimpleMockData()" style="padding: 8px 14px; font-size: 12px; color:#F43F5E;">🧹 Reset Data</button>
-                <button class="btn btn-primary" onclick="loadDemoSchedule()" style="padding: 8px 14px; font-size: 12px;">⚡ 1-Click Demo</button>
+                <button class="btn btn-secondary" onclick="resetToSimpleMockData()" style="padding: 8px 14px; font-size: 12px; color:#F43F5E;">${ICONS.trash} Reset Data</button>
+                <button class="btn btn-primary" onclick="loadDemoSchedule()" style="padding: 8px 14px; font-size: 12px;">${ICONS.solver} 1-Click Demo</button>
               </div>
             </div>
           </div>
 
-          <!-- Summary Metrics Cards -->
-          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 14px; margin-bottom: 28px;">
-            <div class="card-box" style="padding: 16px; text-align: center; margin-bottom: 0;">
-              <div style="font-size: 26px; font-weight: 800; color: var(--primary);" id="metricTerms">0</div>
-              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Academic Terms</div>
+          <!-- 3-Column Enterprise KPI Stat Cards (All 5 IDs Preserved) -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-bottom: 28px;">
+            
+            <!-- Card 1: Official Published Schedules & Cohorts -->
+            <div class="card-box" style="padding: 22px; margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <div>
+                  <span style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Published Timetables</span>
+                  <div style="font-size: 32px; font-weight: 800; color: var(--text-main); margin-top: 4px;" id="metricTimetables">0</div>
+                </div>
+                <span class="status-badge status-badge-published" style="font-size: 11px;">Active Base</span>
+              </div>
+              <div style="border-top: 1px solid var(--border-subtle); padding-top: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted);">
+                <span>Student Cohorts</span>
+                <span class="status-badge" style="background: var(--bg-surface-hover); color: var(--text-main); font-weight: 700;" id="metricSections">0</span>
+              </div>
             </div>
-            <div class="card-box" style="padding: 16px; text-align: center; margin-bottom: 0;">
-              <div style="font-size: 26px; font-weight: 800; color: var(--accent-blue);" id="metricRooms">0</div>
-              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Registered Venues</div>
+
+            <!-- Card 2: Campus Venues & Space Optimization -->
+            <div class="card-box" style="padding: 22px; margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <div>
+                  <span style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Registered Venues</span>
+                  <div style="font-size: 32px; font-weight: 800; color: var(--text-main); margin-top: 4px;" id="metricRooms">0</div>
+                </div>
+                <span class="status-badge" style="background: var(--primary-light); color: var(--primary-blue); font-size: 11px;">LT & Labs</span>
+              </div>
+              <div style="border-top: 1px solid var(--border-subtle); padding-top: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted);">
+                <span>Campus Space Matrix</span>
+                <span style="color: var(--primary-blue); font-weight: 600; cursor: pointer;" onclick="switchAdminPage('matrix')">View Heatmap ${ICONS.arrowRight}</span>
+              </div>
             </div>
-            <div class="card-box" style="padding: 16px; text-align: center; margin-bottom: 0;">
-              <div style="font-size: 26px; font-weight: 800; color: var(--accent-pink);" id="metricTeachers">0</div>
-              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Faculty Instructors</div>
+
+            <!-- Card 3: Teaching Faculty & Academic Terms -->
+            <div class="card-box" style="padding: 22px; margin-bottom: 0; display: flex; flex-direction: column; justify-content: space-between;">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px;">
+                <div>
+                  <span style="font-size: 12px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Faculty Instructors</span>
+                  <div style="font-size: 32px; font-weight: 800; color: var(--text-main); margin-top: 4px;" id="metricTeachers">0</div>
+                </div>
+                <span class="status-badge" style="background: #F5F3FF; color: #7C3AED; font-size: 11px;">Workload Ready</span>
+              </div>
+              <div style="border-top: 1px solid var(--border-subtle); padding-top: 10px; display: flex; justify-content: space-between; align-items: center; font-size: 12px; color: var(--text-muted);">
+                <span>Academic Terms</span>
+                <span class="status-badge" style="background: var(--bg-surface-hover); color: var(--text-main); font-weight: 700;" id="metricTerms">0</span>
+              </div>
             </div>
-            <div class="card-box" style="padding: 16px; text-align: center; margin-bottom: 0;">
-              <div style="font-size: 26px; font-weight: 800; color: var(--accent-purple);" id="metricSections">0</div>
-              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Student Cohorts</div>
-            </div>
-            <div class="card-box" style="padding: 16px; text-align: center; margin-bottom: 0;">
-              <div style="font-size: 26px; font-weight: 800; color: var(--accent-emerald);" id="metricTimetables">0</div>
-              <div style="font-size: 12px; color: var(--text-muted); font-weight: 600;">Published Timetables</div>
-            </div>
+
           </div>
 
           <!-- 6 Primary Navigation Cards -->
@@ -1447,73 +2547,73 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
             <!-- Page Card 1: View Timetables -->
             <div class="admin-hero-card" onclick="switchAdminPage('timetables')">
               <div>
-                <div class="admin-hero-card-icon" style="background:#EDE9FE; color:#5842E3;">📅</div>
+                <div class="admin-hero-card-icon" style="background:#EDE9FE; color:#5842E3;">${ICONS.calendar}</div>
                 <div class="admin-hero-card-title">View All Timetables</div>
                 <div class="admin-hero-card-desc">
                   Interactive campus schedule viewer: filter by Section / Batch, Faculty Member, Classroom Venue, or Master Matrix in Day or Week Grid views.
                 </div>
               </div>
-              <button class="btn btn-primary" style="width: 100%;">Open Timetable Explorer ➔</button>
+              <button class="btn btn-primary" style="width: 100%;">Open Timetable Explorer ${ICONS.arrowRight}</button>
             </div>
 
             <!-- Page Card 2: Academic Modules -->
             <div class="admin-hero-card" onclick="switchAdminPage('modules')">
               <div>
-                <div class="admin-hero-card-icon" style="background:#E0F2FE; color:#0284C7;">🏛️</div>
+                <div class="admin-hero-card-icon" style="background:#E0F2FE; color:#0284C7;">${ICONS.modules}</div>
                 <div class="admin-hero-card-title">Academic Modules & Hierarchy</div>
                 <div class="admin-hero-card-desc">
                   Configure Academic Terms, Sections, Practical Sub-Batches, Course Catalog, Theory (L), Tutorial (T), and Practical (P) contact hours.
                 </div>
               </div>
-              <button class="btn btn-secondary" style="width: 100%;">Manage Modules ➔</button>
+              <button class="btn btn-secondary" style="width: 100%;">Manage Modules ${ICONS.arrowRight}</button>
             </div>
 
             <!-- Page Card 3: Student Management -->
             <div class="admin-hero-card" onclick="switchAdminPage('students')">
               <div>
-                <div class="admin-hero-card-icon" style="background:#DCFCE7; color:#059669;">🎓</div>
+                <div class="admin-hero-card-icon" style="background:#DCFCE7; color:#059669;">${ICONS.students}</div>
                 <div class="admin-hero-card-title">Student Management</div>
                 <div class="admin-hero-card-desc">
                   Search student directory, provision new student accounts, change student passwords, bulk CSV upload, and manage cohort transfers.
                 </div>
               </div>
-              <button class="btn btn-secondary" style="width: 100%;">Manage Students ➔</button>
+              <button class="btn btn-secondary" style="width: 100%;">Manage Students ${ICONS.arrowRight}</button>
             </div>
 
             <!-- Page Card 4: Faculty Management -->
             <div class="admin-hero-card" onclick="switchAdminPage('faculty')">
               <div>
-                <div class="admin-hero-card-icon" style="background:#FCE8F3; color:#E05697;">🧑‍🏫</div>
+                <div class="admin-hero-card-icon" style="background:#FCE8F3; color:#E05697;">${ICONS.faculty}</div>
                 <div class="admin-hero-card-title">Faculty Management</div>
                 <div class="admin-hero-card-desc">
                   Search faculty directory, add professors, change faculty passwords, configure weekly availability/max hours, and approve leave requests.
                 </div>
               </div>
-              <button class="btn btn-secondary" style="width: 100%;">Manage Faculty ➔</button>
+              <button class="btn btn-secondary" style="width: 100%;">Manage Faculty ${ICONS.arrowRight}</button>
             </div>
 
             <!-- Page Card 5: Room Utilization Matrix -->
             <div class="admin-hero-card" onclick="switchAdminPage('matrix')">
               <div>
-                <div class="admin-hero-card-icon" style="background:#FEF3C7; color:#D97706;">📊</div>
+                <div class="admin-hero-card-icon" style="background:#FEF3C7; color:#D97706;">${ICONS.matrix}</div>
                 <div class="admin-hero-card-title">Room Utilization Matrix</div>
                 <div class="admin-hero-card-desc">
                   Campus space optimization, classroom occupancy heatmap across all 8 periods, room capacity metrics, and vacant slot discovery.
                 </div>
               </div>
-              <button class="btn btn-secondary" style="width: 100%;">View Room Matrix ➔</button>
+              <button class="btn btn-secondary" style="width: 100%;">View Room Matrix ${ICONS.arrowRight}</button>
             </div>
 
             <!-- Page Card 6: CP-SAT Solver & Publication -->
             <div class="admin-hero-card" onclick="switchAdminPage('solver')">
               <div>
-                <div class="admin-hero-card-icon" style="background:#FEE2E2; color:#DC2626;">⚡</div>
+                <div class="admin-hero-card-icon" style="background:#FEE2E2; color:#DC2626;">${ICONS.solver}</div>
                 <div class="admin-hero-card-title">CP-SAT Solver & Publication</div>
                 <div class="admin-hero-card-desc">
                   Compile academic input packages, run Google OR-Tools CP-SAT constraint generation with live SSE logs, review drafts, and 1-click publish.
                 </div>
               </div>
-              <button class="btn btn-secondary" style="width: 100%;">Launch Solver Console ➔</button>
+              <button class="btn btn-secondary" style="width: 100%;">Launch Solver Console ${ICONS.arrowRight}</button>
             </div>
 
           </div>
@@ -1523,17 +2623,17 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         <div id="adminSubPageHeader" class="admin-subpage-bar" style="display: none;">
           <div style="display: flex; align-items: center; gap: 14px;">
             <button class="btn btn-secondary" onclick="switchAdminPage('hub')" style="padding: 6px 12px; font-size: 12px;">
-              ⬅ Back to Admin Hub
+              ${ICONS.arrowLeft} Back to Admin Hub
             </button>
             <h2 id="adminBreadcrumbTitle" style="font-size: 17px; font-weight: 800; color: var(--text); margin: 0;"></h2>
           </div>
           <div class="admin-nav-pills" style="margin-bottom: 0; padding: 4px; border: none; box-shadow: none;">
-            <button class="admin-pill-btn" id="adminSubBtnTimetables" onclick="switchAdminPage('timetables')">📅 Timetables</button>
-            <button class="admin-pill-btn" id="adminSubBtnModules" onclick="switchAdminPage('modules')">🏛️ Modules</button>
-            <button class="admin-pill-btn" id="adminSubBtnStudents" onclick="switchAdminPage('students')">🎓 Students</button>
-            <button class="admin-pill-btn" id="adminSubBtnFaculty" onclick="switchAdminPage('faculty')">🧑‍🏫 Faculty</button>
-            <button class="admin-pill-btn" id="adminSubBtnMatrix" onclick="switchAdminPage('matrix')">📊 Room Matrix</button>
-            <button class="admin-pill-btn" id="adminSubBtnSolver" onclick="switchAdminPage('solver')">⚡ Solver</button>
+            <button class="admin-pill-btn" id="adminSubBtnTimetables" onclick="switchAdminPage('timetables')">${ICONS.calendar} Timetables</button>
+            <button class="admin-pill-btn" id="adminSubBtnModules" onclick="switchAdminPage('modules')">${ICONS.modules} Modules</button>
+            <button class="admin-pill-btn" id="adminSubBtnStudents" onclick="switchAdminPage('students')">${ICONS.students} Students</button>
+            <button class="admin-pill-btn" id="adminSubBtnFaculty" onclick="switchAdminPage('faculty')">${ICONS.faculty} Faculty</button>
+            <button class="admin-pill-btn" id="adminSubBtnMatrix" onclick="switchAdminPage('matrix')">${ICONS.matrix} Room Matrix</button>
+            <button class="admin-pill-btn" id="adminSubBtnSolver" onclick="switchAdminPage('solver')">${ICONS.solver} Solver</button>
           </div>
         </div>
 
@@ -1550,8 +2650,8 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
                 <p class="card-box-desc" style="margin-bottom: 0;">Filter schedules campus-wide by Section cohort, Faculty instructor, or Classroom venue.</p>
               </div>
               <div style="display: flex; gap: 6px;">
-                <button class="btn btn-secondary" id="ttFormatDayBtn" onclick="setAdminTtFormat('day')" style="padding: 6px 12px; font-size: 12px; background:var(--primary); color:#fff;">📆 Day View</button>
-                <button class="btn btn-secondary" id="ttFormatWeekBtn" onclick="setAdminTtFormat('week')" style="padding: 6px 12px; font-size: 12px;">🗓️ Full Week View</button>
+                <button class="btn btn-secondary" id="ttFormatDayBtn" onclick="setAdminTtFormat('day')" style="padding: 6px 12px; font-size: 12px; background:var(--primary); color:#fff; display:inline-flex; align-items:center; gap:6px;">${ICONS.calendar} Day View</button>
+                <button class="btn btn-secondary" id="ttFormatWeekBtn" onclick="setAdminTtFormat('week')" style="padding: 6px 12px; font-size: 12px; display:inline-flex; align-items:center; gap:6px;">${ICONS.calendar} Full Week View</button>
               </div>
             </div>
 
@@ -1559,10 +2659,10 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
               <div style="flex: 1; min-width: 180px;">
                 <label style="font-size: 12px; font-weight: 700; color: var(--text); display: block; margin-bottom: 6px;">1. Filter Scope:</label>
                 <select id="adminTtScopeSelect" class="form-control" onchange="handleAdminTtScopeChange(this.value)">
-                  <option value="section">👥 Student Section / Batch</option>
-                  <option value="teacher">🧑‍🏫 Faculty Instructor</option>
-                  <option value="room">🏢 Classroom / Lab Venue</option>
-                  <option value="master">🌐 Campus Master Overview</option>
+                  <option value="section">Student Section / Batch</option>
+                  <option value="teacher">Faculty Instructor</option>
+                  <option value="room">Classroom / Lab Venue</option>
+                  <option value="master">Campus Master Overview</option>
                 </select>
               </div>
 
@@ -1594,8 +2694,8 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
               <button class="day-pill" id="adminDayPill3" onclick="setAdminDay(3)">Thu</button>
               <button class="day-pill" id="adminDayPill4" onclick="setAdminDay(4)">Fri</button>
             </div>
-            <div class="active-day-heading" id="adminActiveDayText">
-              📅 Monday • September 7, 2026
+            <div class="active-day-heading" id="adminActiveDayText" style="display:inline-flex; align-items:center; gap:6px;">
+              ${ICONS.calendar} Monday • September 7, 2026
             </div>
             <div>
               <span id="adminTtActiveTargetBadge" class="status-badge" style="background:var(--primary-light); color:var(--primary);">Section A</span>
@@ -1606,8 +2706,8 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           <div class="timetable-wrapper-card">
             <div class="table-scroll">
               <div id="adminTimetableGridWrapper">
-                <div style="padding: 40px; text-align: center; color: var(--text-muted);">
-                  ⏳ Select target and loading schedule...
+                <div style="padding: 40px; text-align: center; color: var(--text-muted); display:flex; align-items:center; justify-content:center; gap:8px;">
+                  ${ICONS.refresh} Select target and loading schedule...
                 </div>
               </div>
             </div>
@@ -1802,10 +2902,10 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           <div class="card-box">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
               <div>
-                <h3 class="card-box-title">🎓 Student Directory & Cohorts</h3>
+                <h3 class="card-box-title" style="display:flex; align-items:center; gap:8px;">${ICONS.students} Student Directory & Cohorts</h3>
                 <p class="card-box-desc" style="margin-bottom:0;">Live authoritative records from PostgreSQL students and profiles tables.</p>
               </div>
-              <input type="text" id="studentSearchInput" class="table-search-input" placeholder="🔍 Search by name, roll, or email..." oninput="renderStudentsTable(this.value)">
+              <input type="text" id="studentSearchInput" class="table-search-input" placeholder="Search by name, roll, or email..." oninput="renderStudentsTable(this.value)">
             </div>
             <div class="table-scroll">
               <table class="data-table">
@@ -1932,10 +3032,10 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           <div class="card-box">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
               <div>
-                <h3 class="card-box-title">🧑‍🏫 Faculty Instructors Directory</h3>
+                <h3 class="card-box-title" style="display:flex; align-items:center; gap:8px;">${ICONS.faculty} Faculty Instructors Directory</h3>
                 <p class="card-box-desc" style="margin-bottom:0;">Live records from PostgreSQL teachers and profiles tables.</p>
               </div>
-              <input type="text" id="facultySearchInput" class="table-search-input" placeholder="🔍 Search faculty by name, department, or email..." oninput="renderFacultyTable(this.value)">
+              <input type="text" id="facultySearchInput" class="table-search-input" placeholder="Search faculty by name, department, or email..." oninput="renderFacultyTable(this.value)">
             </div>
             <div class="table-scroll">
               <table class="data-table">
@@ -2045,7 +3145,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           <div class="card-box">
             <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; margin-bottom: 16px;">
               <div>
-                <h3 class="card-box-title">📊 Campus Room Utilization & Venue Optimization</h3>
+                <h3 class="card-box-title" style="display:flex; align-items:center; gap:8px;">${ICONS.matrix} Campus Room Utilization & Venue Optimization</h3>
                 <p class="card-box-desc" style="margin-bottom:0;">Live occupancy heatmap of all registered rooms and laboratories across Periods 1 to 8.</p>
               </div>
               <div style="display: flex; gap: 8px; align-items: center;">
@@ -2078,8 +3178,8 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
                 <select id="compileTermSelect" class="form-control"></select>
               </div>
               <div style="display: flex; gap: 8px;">
-                <button class="btn btn-secondary" onclick="handleCompilePackage()">📦 Compile Package</button>
-                <button class="btn btn-primary" onclick="handleTriggerSolver()">⚡ Run CP-SAT Solver</button>
+                <button class="btn btn-secondary" onclick="handleCompilePackage()" style="display:inline-flex; align-items:center; gap:6px;">${ICONS.package} Compile Package</button>
+                <button class="btn btn-primary" onclick="handleTriggerSolver()" style="display:inline-flex; align-items:center; gap:6px;">${ICONS.solver} Run CP-SAT Solver</button>
               </div>
             </div>
 
@@ -2127,10 +3227,10 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       <!-- Main Feedback Header Card -->
       <div class="card-box" style="padding: 32px; background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 100%); border-top: 4px solid var(--primary); margin-bottom: 24px;">
         <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
-          <div style="width: 44px; height: 44px; border-radius: 12px; background: #EEF2FF; color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 22px;">💬</div>
+          <div style="width: 44px; height: 44px; border-radius: 12px; background: #EEF2FF; color: var(--primary); display: flex; align-items: center; justify-content: center;">${ICONS.feedback}</div>
           <div>
             <h2 style="font-size: 24px; font-weight: 800; color: var(--text); margin: 0;">Tell us about the app and submit feedback</h2>
-            <p style="font-size: 14px; color: var(--text-muted); margin: 4px 0 0 0;">We value your insights and experience using PlayMyClass. Let us know how we can improve.</p>
+            <p style="font-size: 14px; color: var(--text-muted); margin: 4px 0 0 0;">We value your insights and experience using TimeTable+. Let us know how we can improve.</p>
           </div>
         </div>
       </div>
@@ -2167,7 +3267,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           </div>
           
           <button class="btn btn-primary" onclick="submitFeedbackForm()" style="width: 100%; padding: 12px; font-weight: 700;">
-            🚀 Submit Feedback
+            Submit Feedback
           </button>
         </div>
 
@@ -2229,13 +3329,13 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     <div id="aboutView" style="display: none; max-width: 900px; margin: 0 auto; padding: 20px 0;">
       <!-- Hero Dedication Card -->
       <div class="card-box" style="padding: 40px 32px; background: linear-gradient(135deg, #FFFFFF 0%, #F5F3FF 100%); border-top: 4px solid var(--primary); text-align: center; margin-bottom: 24px;">
-        <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 20px; background: #EDE9FE; font-size: 32px; margin-bottom: 16px;">
-          📅
+        <div style="display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; border-radius: 20px; background: #EDE9FE; margin-bottom: 16px;">
+          ${ICONS.calendar}
         </div>
-        <h1 style="font-size: 28px; font-weight: 800; color: var(--text); margin-bottom: 12px;">PlayMy<span style="color: var(--primary);">Class</span></h1>
+        <h1 style="font-size: 28px; font-weight: 800; color: var(--text); margin-bottom: 12px;">TimeTable<span style="color: var(--primary);">+</span></h1>
         
         <div style="font-size: 20px; font-weight: 700; color: var(--text); margin: 16px 0; line-height: 1.4;">
-          Built for JKLU with ❤️ by Yuvraj, Aadrika, Pricey, and Chirag
+          Built for JKLU with <span style="display:inline-flex; vertical-align:middle; margin:0 4px;">${ICONS.heart}</span> by Yuvraj, Aadrika, Pricey, and Chirag
         </div>
         
         <p style="font-size: 14px; color: var(--text-muted); max-width: 600px; margin: 0 auto; line-height: 1.6;">
@@ -2246,7 +3346,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       <!-- Architecture & Tech Stack Details -->
       <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 20px;">
         <div class="card-box" style="padding: 24px;">
-          <div style="font-size: 24px; margin-bottom: 8px;">⚡</div>
+          <div style="margin-bottom: 8px; color:var(--primary);">${ICONS.solver}</div>
           <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text);">Google OR-Tools CP-SAT</h4>
           <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin: 0;">
             High-speed constraint satisfaction solver generating conflict-free multi-semester timetables in under 300ms.
@@ -2254,7 +3354,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         </div>
 
         <div class="card-box" style="padding: 24px;">
-          <div style="font-size: 24px; margin-bottom: 8px;">🔒</div>
+          <div style="margin-bottom: 8px; color:var(--primary);">${ICONS.security}</div>
           <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text);">Supabase & PostgreSQL</h4>
           <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin: 0;">
             Authoritative transactional data store with verified session authentication and institutional role-based access control.
@@ -2262,7 +3362,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         </div>
 
         <div class="card-box" style="padding: 24px;">
-          <div style="font-size: 24px; margin-bottom: 8px;">🎨</div>
+          <div style="margin-bottom: 8px; color:var(--primary);">${ICONS.palette}</div>
           <h4 style="font-size: 16px; font-weight: 700; margin-bottom: 6px; color: var(--text);">Dynamic Color & Clean UX</h4>
           <p style="font-size: 13px; color: var(--text-muted); line-height: 1.5; margin: 0;">
             Sleek pastel visual identity with bounded scrollable cards, responsive navigation, and instant cancellation indicators.
@@ -2272,6 +3372,8 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     </div>
 
   </main>
+    </div><!-- /.app-main-viewport -->
+  </div><!-- /.app-layout-shell -->
 
   <!-- ==================================================================== -->
   <!-- MODAL: LOGIN / AUTHENTICATION (Page 3 in Spec) -->
@@ -2282,11 +3384,11 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       <!-- Left Column: Form -->
       <div style="padding: 32px;">
         <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 20px;">
-          <div class="logo-icon" style="width:32px; height:32px; font-size:16px;">📅</div>
-          <div class="logo-text" style="font-size:18px;">PlayMy<span>Class</span></div>
+          <div class="logo-icon" style="width:32px; height:32px; display:flex; align-items:center; justify-content:center;">${ICONS.calendar}</div>
+          <div class="logo-text" style="font-size:18px;">TimeTable<span>+</span></div>
         </div>
 
-        <h3 id="authModalTitle" style="font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 6px;">Sign In to PlayMyClass</h3>
+        <h3 id="authModalTitle" style="font-size: 20px; font-weight: 700; color: var(--text); margin-bottom: 6px;">Sign In to TimeTable+</h3>
         <p id="authModalDesc" style="font-size: 13px; color: var(--text-muted); margin-bottom: 20px;">Step 1: Select your role persona to proceed.</p>
 
         <div id="modalAlertBox" style="display: none; padding: 10px; border-radius: 8px; margin-bottom: 14px; font-size: 12px; font-weight: 600;"></div>
@@ -2295,30 +3397,30 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         <div id="roleSelectPane">
           <div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;">
             <div onclick="selectAuthRole('student')" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: all 0.15s ease; background: #FFFFFF;" onmouseover="this.style.borderColor='var(--primary)'; this.style.background='#F8FAFC';" onmouseout="this.style.borderColor='var(--border)'; this.style.background='#FFFFFF';">
-              <div style="width: 36px; height: 36px; border-radius: 10px; background: #E0F2FE; color: #0284C7; display: flex; align-items: center; justify-content: center; font-size: 18px;">🎓</div>
+              <div style="width: 36px; height: 36px; border-radius: 10px; background: #E0F2FE; color: #0284C7; display: flex; align-items: center; justify-content: center;">${ICONS.students}</div>
               <div style="flex: 1;">
                 <div style="font-weight: 700; font-size: 14px; color: var(--text);">Student Portal</div>
                 <div style="font-size: 11px; color: var(--text-muted);">Personalized section, batches & real-time notices</div>
               </div>
-              <span style="color: var(--primary); font-weight: 700;">➔</span>
+              <span style="color: var(--primary); display:flex; align-items:center;">${ICONS.chevronRight}</span>
             </div>
 
             <div onclick="selectAuthRole('teacher')" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: all 0.15s ease; background: #FFFFFF;" onmouseover="this.style.borderColor='var(--primary)'; this.style.background='#F8FAFC';" onmouseout="this.style.borderColor='var(--border)'; this.style.background='#FFFFFF';">
-              <div style="width: 36px; height: 36px; border-radius: 10px; background: #FCE8F3; color: #E05697; display: flex; align-items: center; justify-content: center; font-size: 18px;">🧑‍🏫</div>
+              <div style="width: 36px; height: 36px; border-radius: 10px; background: #FCE8F3; color: #E05697; display: flex; align-items: center; justify-content: center;">${ICONS.faculty}</div>
               <div style="flex: 1;">
                 <div style="font-weight: 700; font-size: 14px; color: var(--text);">Faculty Hub</div>
                 <div style="font-size: 11px; color: var(--text-muted);">Teaching timetable, slot drawer & leave requests</div>
               </div>
-              <span style="color: var(--primary); font-weight: 700;">➔</span>
+              <span style="color: var(--primary); display:flex; align-items:center;">${ICONS.chevronRight}</span>
             </div>
 
             <div onclick="selectAuthRole('admin')" style="display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: all 0.15s ease; background: #FFFFFF;" onmouseover="this.style.borderColor='var(--primary)'; this.style.background='#F8FAFC';" onmouseout="this.style.borderColor='var(--border)'; this.style.background='#FFFFFF';">
-              <div style="width: 36px; height: 36px; border-radius: 10px; background: #EDE9FE; color: #5842E3; display: flex; align-items: center; justify-content: center; font-size: 18px;">👑</div>
+              <div style="width: 36px; height: 36px; border-radius: 10px; background: #EDE9FE; color: var(--primary); display: flex; align-items: center; justify-content: center;">${ICONS.shield}</div>
               <div style="flex: 1;">
                 <div style="font-weight: 700; font-size: 14px; color: var(--text);">Administrator</div>
                 <div style="font-size: 11px; color: var(--text-muted);">Full campus management & CP-SAT generator</div>
               </div>
-              <span style="color: var(--primary); font-weight: 700;">➔</span>
+              <span style="color: var(--primary); display:flex; align-items:center;">${ICONS.chevronRight}</span>
             </div>
           </div>
         </div>
@@ -2326,8 +3428,8 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         <!-- Step 2: Login Credentials Pane -->
         <div id="loginFormPane" style="display: none;">
           <div style="margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
-            <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;" onclick="switchAuthPane('roleSelect')">⬅ Change Role</button>
-            <span id="activeRolePersonaBadge" class="status-badge" style="background:var(--primary-light); color:var(--primary); font-size:11px;">👑 Administrator</span>
+            <button type="button" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px; display:inline-flex; align-items:center; gap:4px;" onclick="switchAuthPane('roleSelect')">${ICONS.chevronLeft} Change Role</button>
+            <span id="activeRolePersonaBadge" class="status-badge" style="background:var(--primary-light); color:var(--primary); font-size:11px; display:inline-flex; align-items:center; gap:4px;">${ICONS.shield} Administrator</span>
           </div>
 
           <div class="form-group" style="margin-bottom: 12px;">
@@ -2342,7 +3444,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
             <a href="javascript:void(0)" onclick="switchAuthPane('forgot')" style="font-size: 12px; color: var(--primary); text-decoration: none; font-weight: 600;">Forgot Password?</a>
             <span style="font-size: 11px; color: var(--text-muted);">Supabase Auth Verified</span>
           </div>
-          <button class="btn btn-primary" onclick="handleLogin()" style="width: 100%; padding: 11px;">Sign In to PlayMyClass</button>
+          <button class="btn btn-primary" onclick="handleLogin()" style="width: 100%; padding: 11px;">Sign In to TimeTable+</button>
           
           <div style="margin-top: 14px; text-align: center; font-size: 12px; color: var(--text-muted);">
             Need access? Contact your university administrator.
@@ -2361,17 +3463,17 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       </div>
 
       <!-- Right Column: Visual Graphic -->
-      <div style="background: linear-gradient(135deg, #5842E3, #6C5CE7); color: #fff; padding: 32px; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
+      <div style="background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%); color: #fff; padding: 32px; display: flex; flex-direction: column; justify-content: space-between; position: relative;">
         <button onclick="closeLoginModal()" style="position: absolute; top: 16px; right: 16px; background: transparent; border: none; color: #fff; font-size: 22px; cursor: pointer;">&times;</button>
         
         <div>
-          <span style="background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase;">PlayMyClass Cloud</span>
+          <span style="background: rgba(255,255,255,0.15); padding: 4px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing:0.04em;">TimeTable+ Cloud</span>
           <h4 style="font-size: 24px; font-weight: 800; margin-top: 16px; line-height: 1.3;">One Smart System for the Whole Campus.</h4>
           <p style="font-size: 13px; opacity: 0.85; margin-top: 8px;">Seamlessly synchronizing thousands of student cohorts, faculty rooms, and contact hours in real time.</p>
         </div>
 
-        <div style="background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.2); border-radius: 12px; padding: 12px; font-size: 12px;">
-          🔒 Enterprise Row-Level Security & Role Verification
+        <div style="background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.15); border-radius: 12px; padding: 12px; font-size: 12px; display:flex; align-items:center; gap:8px;">
+          ${ICONS.lock} Enterprise Row-Level Security & Role Verification
         </div>
       </div>
 
@@ -2409,6 +3511,46 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
   <!-- JAVASCRIPT LOGIC & STATE (100% Preserved & Enhanced) -->
   <!-- ==================================================================== -->
   <script>
+    const SVG_ICONS = {
+      calendar: '<svg class="lucide lucide-calendar" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>',
+      dashboard: '<svg class="lucide lucide-layout-dashboard" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>',
+      modules: '<svg class="lucide lucide-layers" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12.83 2.18a2 2 0 0 0-1.66 0L2.6 6.08a1 1 0 0 0 0 1.83l8.58 3.91a2 2 0 0 0 1.66 0l8.58-3.9a1 1 0 0 0 0-1.83Z"/><path d="m22 12.5-8.58 3.91a2 2 0 0 1-1.66 0L2.6 12.5"/><path d="m22 17.5-8.58 3.91a2 2 0 0 1-1.66 0L2.6 17.5"/></svg>',
+      students: '<svg class="lucide lucide-graduation-cap" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"/><path d="M22 10v6"/><path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"/></svg>',
+      faculty: '<svg class="lucide lucide-users" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+      matrix: '<svg class="lucide lucide-building" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="16" height="20" x="4" y="2" rx="2" ry="2"/><path d="M9 22v-4h6v4"/><path d="M8 6h.01"/><path d="M16 6h.01"/><path d="M12 6h.01"/><path d="M12 10h.01"/><path d="M12 14h.01"/><path d="M16 10h.01"/><path d="M16 14h.01"/><path d="M8 10h.01"/><path d="M8 14h.01"/></svg>',
+      solver: '<svg class="lucide lucide-zap" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+      profile: '<svg class="lucide lucide-user" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>',
+      security: '<svg class="lucide lucide-lock" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>',
+      logout: '<svg class="lucide lucide-log-out" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" x2="9" y1="12" y2="12"/></svg>',
+      login: '<svg class="lucide lucide-key" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15.5 7.5 2.3 2.3a1 1 0 0 0 1.4 0l2.1-2.1a1 1 0 0 0 0-1.4L19 4"/><path d="m21 2-9.6 9.6"/><circle cx="7.5" cy="16.5" r="5.5"/></svg>',
+      bell: '<svg class="lucide lucide-bell" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>',
+      search: '<svg class="lucide lucide-search" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>',
+      coffee: '<svg class="lucide lucide-coffee" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v2"/><path d="M14 2v2"/><path d="M16 8a1 1 0 0 1 1 1v8a4 4 0 0 1-4 4H7a4 4 0 0 1-4-4V9a1 1 0 0 1 1-1h12Z"/><path d="M6 2v2"/><line x1="17" x2="19" y1="11" y2="11"/><path d="M17 15h2a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-2"/></svg>',
+      leave: '<svg class="lucide lucide-calendar-off" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M4.2 4.2A2 2 0 0 0 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 1.8-1.1"/><path d="M3 10h7"/><path d="M21 15V6a2 2 0 0 0-2-2H9"/><path d="m2 2 20 20"/><path d="M16 2v4"/><path d="M8 2v1"/></svg>',
+      check: '<svg class="lucide lucide-check" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+      alert: '<svg class="lucide lucide-alert-circle" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>',
+      close: '<svg class="lucide lucide-x" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" x2="6" y1="6" y2="18"/><line x1="6" x2="18" y1="6" y2="18"/></svg>',
+      refresh: '<svg class="lucide lucide-refresh-cw" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>',
+      plus: '<svg class="lucide lucide-plus" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" x2="12" y1="5" y2="19"/><line x1="5" x2="19" y1="12" y2="12"/></svg>',
+      sparkles: '<svg class="lucide lucide-sparkles" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/><path d="M5 3v4"/><path d="M19 17v4"/><path d="M3 5h4"/><path d="M17 19h4"/></svg>',
+      room: '<svg class="lucide lucide-map-pin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>',
+      cohort: '<svg class="lucide lucide-users-2" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>',
+      user: '<svg class="lucide lucide-user-check" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><polyline points="16 11 18 13 22 9"/></svg>',
+      arrowRight: '<svg class="lucide lucide-arrow-right" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
+      arrowLeft: '<svg class="lucide lucide-arrow-left" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"/><polyline points="12 19 5 12 12 5"/></svg>',
+      shield: '<svg class="lucide lucide-shield" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>',
+      globe: '<svg class="lucide lucide-globe" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+      book: '<svg class="lucide lucide-book-open" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>',
+      microscope: '<svg class="lucide lucide-microscope" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M6 18h8"/><path d="M3 22h18"/><path d="M14 22a7 7 0 1 0 0-14h-1"/><path d="M9 14h2"/><path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z"/><path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3"/></svg>',
+      trash: '<svg class="lucide lucide-trash-2" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>',
+      package: '<svg class="lucide lucide-package" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m7.5 4.27 9 5.15"/><path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/><path d="m3.3 7 8.7 5 8.7-5"/><path d="M12 22V12"/></svg>',
+      feedback: '<svg class="lucide lucide-message-square" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+      heart: '<svg class="lucide lucide-heart" width="14" height="14" viewBox="0 0 24 24" fill="#EF4444" stroke="#EF4444" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>',
+      palette: '<svg class="lucide lucide-palette" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/></svg>',
+      chevronRight: '<svg class="lucide lucide-chevron-right" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>',
+      chevronLeft: '<svg class="lucide lucide-chevron-left" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>',
+      lock: '<svg class="lucide lucide-lock" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>'
+    };
     const DAYS = [
       { dayOfWeek: 1, name: 'Monday', short: 'Mon', date: '2026-09-07' },
       { dayOfWeek: 2, name: 'Tuesday', short: 'Tue', date: '2026-09-08' },
@@ -2460,10 +3602,28 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       document.getElementById('navLinkDashboard')?.classList.toggle('active', viewName === 'dashboard');
       document.getElementById('navLinkRoleGate')?.classList.toggle('active', viewName === 'roles');
 
+      const isDashboardMode = (viewName === 'dashboard');
+      const rail = document.getElementById('appSidebarRail');
+      const topbar = document.getElementById('appTopBar');
+      const pubNav = document.getElementById('publicNavbar');
+      const viewport = document.getElementById('appMainViewport');
+
+      if (isDashboardMode) {
+        if (rail) rail.style.display = 'flex';
+        if (topbar) topbar.style.display = 'flex';
+        if (pubNav) pubNav.style.display = 'none';
+        if (viewport) viewport.style.marginLeft = '260px';
+      } else {
+        if (rail) rail.style.display = 'none';
+        if (topbar) topbar.style.display = 'none';
+        if (pubNav) pubNav.style.display = 'flex';
+        if (viewport) viewport.style.marginLeft = '0';
+      }
+
       if (viewName === 'dashboard') {
-        renderSingleDayGrid();
         updateRoleViews();
       }
+      updateTopbarCtaAndBreadcrumb();
     }
 
     function submitFeedbackForm() {
@@ -2486,7 +3646,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       const toast = document.getElementById('appToast');
       if (!toast) return;
       toast.className = 'toast-box ' + (isError ? 'toast-error' : 'toast-success');
-      toast.innerHTML = (isError ? '⚠️ ' : '✅ ') + message;
+      toast.innerHTML = '<span style="display:inline-flex; align-items:center; gap:6px;">' + (isError ? SVG_ICONS.alert : SVG_ICONS.check) + ' ' + message + '</span>';
       toast.style.display = 'flex';
       setTimeout(() => { toast.style.display = 'none'; }, 4000);
     }
@@ -2547,7 +3707,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     function handleRealtimeUpdate() {
       if (debounceTimer) clearTimeout(debounceTimer);
       debounceTimer = setTimeout(() => {
-        loadState().then(() => showMsg('⚡ Timetable updated in real time.', false));
+        loadState().then(() => showMsg('Timetable updated in real time.', false));
       }, 300);
     }
 
@@ -2565,13 +3725,16 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         }
       }
       currentRole = role;
+      currentUserSubPage = 'schedule';
+      if (role === 'admin') currentAdminPage = 'hub';
 
       document.getElementById('roleCardStudent')?.classList.toggle('active', role === 'student');
       document.getElementById('roleCardTeacher')?.classList.toggle('active', role === 'teacher');
       document.getElementById('roleCardAdmin')?.classList.toggle('active', role === 'admin');
 
-      updateRoleViews();
-      renderSingleDayGrid();
+      if (currentMainView === 'dashboard') {
+        updateRoleViews();
+      }
     }
 
     function handleRoleGateClick(role) {
@@ -2634,24 +3797,14 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     }
 
     function updateRoleViews() {
-      const userSched = document.getElementById('userScheduleView');
-      const adminDash = document.getElementById('adminDashboardView');
-      const studentPanels = document.getElementById('studentViewPanels');
-      const teacherPanels = document.getElementById('teacherViewPanels');
-
       const effectiveRole = (currentUser && authToken) ? currentRole : 'student';
 
       if (effectiveRole === 'admin') {
-        if (adminDash) adminDash.style.display = 'block';
-        if (userSched) userSched.style.display = 'none';
         switchAdminPage(currentAdminPage || 'hub');
       } else {
-        if (adminDash) adminDash.style.display = 'none';
-        if (userSched) userSched.style.display = 'block';
-        if (studentPanels) studentPanels.style.display = effectiveRole === 'student' ? 'block' : 'none';
-        if (teacherPanels) teacherPanels.style.display = effectiveRole === 'teacher' ? 'block' : 'none';
+        switchUserSubPage(currentUserSubPage || 'schedule');
         if (effectiveRole === 'student') renderStudentInbox();
-        if (effectiveRole === 'teacher') runEmptyRoomFinder();
+        if (effectiveRole === 'teacher' && currentUserSubPage === 'teacher-rooms') runEmptyRoomFinder();
       }
     }
 
@@ -2664,7 +3817,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       }
       const dayObj = DAYS[activeDayIndex];
       const text = document.getElementById('activeDayText');
-      if (text) text.innerHTML = '📅 ' + dayObj.name + ' • September ' + dayObj.date.split('-')[2] + ', 2026';
+      if (text) text.innerHTML = '<span style="display:inline-flex; align-items:center; gap:6px;">' + SVG_ICONS.calendar + ' ' + dayObj.name + ' • September ' + dayObj.date.split('-')[2] + ', 2026</span>';
       renderSingleDayGrid();
       if (currentRole === 'teacher') runEmptyRoomFinder();
       if (currentRole === 'admin') renderRoomMatrix();
@@ -2726,7 +3879,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         }));
       }
 
-      let rowsToRender = [];
+      let relevantOccs = [];
 
       if (currentRole === 'student') {
         const studentEntity = (currentUser && currentUser.role === 'student' && currentUser.entityId) ? currentUser.entityId : 'stud-1';
@@ -2755,123 +3908,179 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           studentElectives.add(ea.electiveGroupId);
         });
 
-        const studentOccs = dayOccs.filter(o => {
+        relevantOccs = dayOccs.filter(o => {
           if (o.targetType === 'section') return studentSections.has(o.targetId);
           if (o.targetType === 'batch') return studentBatches.has(o.targetId);
           if (o.targetType === 'elective_group') return studentElectives.has(o.targetId);
           return false;
         });
 
-        // Update profile labels
-        document.getElementById('studentProfileName').textContent = studentName;
-        document.getElementById('studentProfileMeta').textContent = 'Roll ' + rollLabel;
-        document.getElementById('stdSecLabel').textContent = Array.from(studentSections).join(', ');
-        document.getElementById('stdBatchLabel').textContent = Array.from(studentBatches).join(', ');
-
-        rowsToRender.push({
-          label: studentName + '<br><small style="color:var(--text-muted); font-weight:normal;">' + Array.from(studentSections).join(', ') + ' • ' + Array.from(studentBatches).join(', ') + '</small>',
-          occurrences: studentOccs
-        });
+        // Update profile labels if present
+        const pName = document.getElementById('studentProfileName');
+        if (pName) pName.textContent = studentName;
+        const pMeta = document.getElementById('studentProfileMeta');
+        if (pMeta) pMeta.textContent = 'Roll ' + rollLabel;
+        const pSec = document.getElementById('stdSecLabel');
+        if (pSec) pSec.textContent = Array.from(studentSections).join(', ');
+        const pBatch = document.getElementById('stdBatchLabel');
+        if (pBatch) pBatch.textContent = Array.from(studentBatches).join(', ');
 
       } else if (currentRole === 'teacher') {
         const teacherEntity = (currentUser && currentUser.role === 'teacher' && currentUser.entityId) ? currentUser.entityId : 't-1';
-        const teacherObj = (currentState.teachers || []).find(t => t.id === teacherEntity);
-        const teacherName = teacherObj ? teacherObj.name : 'Dr. Faculty Instructor';
-        const teacherEmpId = teacherObj ? teacherObj.empId : teacherEntity;
-        const teacherOccs = dayOccs.filter(o => o.teacherId === teacherEntity);
-
-        rowsToRender.push({
-          label: teacherName + '<br><small style="color:var(--text-muted); font-weight:normal;">' + teacherEmpId + '</small>',
-          occurrences: teacherOccs
-        });
-
+        relevantOccs = dayOccs.filter(o => o.teacherId === teacherEntity);
       } else {
-        // Admin View
-        if (adminGroupBy === 'section') {
-          let sections = currentState.sections || [];
-          if (adminFilterVal !== 'all') sections = sections.filter(s => s.id === adminFilterVal);
-          sections.forEach(sec => {
-            const secOccs = dayOccs.filter(o => {
-              if (o.targetType === 'section' && o.targetId === sec.id) return true;
-              if (o.targetType === 'batch') {
-                const b = batchesMap.get(o.targetId);
-                return b && b.sectionId === sec.id;
-              }
-              return false;
-            });
-            rowsToRender.push({ label: sec.name, occurrences: secOccs });
-          });
-        } else if (adminGroupBy === 'room') {
-          let rooms = currentState.rooms || [];
-          if (adminFilterVal !== 'all') rooms = rooms.filter(r => r.id === adminFilterVal);
-          rooms.forEach(r => {
-            const rOccs = dayOccs.filter(o => o.roomId === r.id);
-            rowsToRender.push({ label: 'Room ' + r.roomNumber + '<br><small style="color:var(--text-muted);">' + r.building + '</small>', occurrences: rOccs });
-          });
-        } else if (adminGroupBy === 'teacher') {
-          let teachers = currentState.teachers || [];
-          if (adminFilterVal !== 'all') teachers = teachers.filter(t => t.id === adminFilterVal);
-          teachers.forEach(t => {
-            const tOccs = dayOccs.filter(o => o.teacherId === t.id);
-            rowsToRender.push({ label: t.name, occurrences: tOccs });
-          });
-        }
+        // Admin or fallback
+        relevantOccs = dayOccs;
       }
 
-      // Build HTML Table
-      let html = '<table class="tt-grid"><thead><tr>';
-      html += '<th class="col-track">Cohort / Track</th>';
-      PERIODS.forEach(p => {
-        const thClass = p.isLunch ? 'col-period col-lunch' : 'col-period';
-        html += '<th class="' + thClass + '">' + p.label + '<span class="th-time">' + p.time + '</span></th>';
-      });
-      html += '</tr></thead><tbody>';
-
-      if (rowsToRender.length === 0) {
-        html += '<tr><td colspan="9" style="text-align:center; padding:32px; color:var(--text-muted);">No scheduled tracks match the current filter.</td></tr>';
-      }
-
-      rowsToRender.forEach(row => {
-        html += '<tr>';
-        html += '<td class="cell-track">' + row.label + '</td>';
-
-        let slot = 1;
-        while (slot <= 8) {
-          if (slot === 4) {
-            html += '<td class="slot-lunch-break"><div style="font-size:16px;">🍱</div><strong style="color:var(--accent-amber); font-size:11px;">Lunch Break</strong><div style="font-size:10px; color:var(--accent-amber); opacity:0.8;">Non-teaching (DEC-04)</div></td>';
-            slot++;
-            continue;
-          }
-
-          const slotOccs = row.occurrences.filter(o => o.startSlot === slot);
-
-          if (slotOccs.length === 0) {
-            html += '<td class="slot-free">';
-            html += '<span style="font-size:11px;">Free Slot</span>';
-            if (currentRole === 'teacher') {
-              html += '<br><button class="btn btn-secondary" style="padding:2px 8px; font-size:10px; margin-top:4px;" onclick="quickBookTeacherSlot(' + slot + ')">+ Extra</button>';
-            }
-            html += '</td>';
-            slot++;
-          } else {
-            const isTwoSlotLab = slotOccs.some(o => o.duration === 2 || o.activityType === 'P');
-            const colspan = isTwoSlotLab ? ' colspan="2"' : '';
-
-            html += '<td' + colspan + '>';
-            slotOccs.forEach(o => {
-              html += renderOccurrenceCard(o, roomsMap, teachersMap, coursesMap, offeringsMap);
-            });
-            html += '</td>';
-            slot += isTwoSlotLab ? 2 : 1;
-          }
-        }
-
-        html += '</tr>';
-      });
-
-      html += '</tbody></table>';
-      container.innerHTML = html;
+      // Render 4-Column x 2-Row Full-Canvas Grid
+      container.innerHTML = renderResponsiveCanvasGrid(relevantOccs, roomsMap, teachersMap, coursesMap, offeringsMap);
     }
+
+    function renderResponsiveCanvasGrid(occurrences, roomsMap, teachersMap, coursesMap, offeringsMap) {
+      let html = '<div class="schedule-grid-canvas">';
+
+      let p = 1;
+      while (p <= 8) {
+        if (p === 4) {
+          // Period 4 Non-Teaching Lunch Interval (DEC-04)
+          html += '<div class="period-card-cell lunch-period-cell">' +
+            '<div style="margin-bottom:8px; color:#B45309; display:flex; justify-content:center;">' + SVG_ICONS.coffee.replace('width="16"', 'width="28"').replace('height="16"', 'height="28"') + '</div>' +
+            '<div style="font-size:13px; font-weight:800; color:#92400E; text-transform:uppercase; letter-spacing:0.04em;">Period 4 • Lunch Break</div>' +
+            '<div style="font-size:11px; color:#B45309; margin-top:4px;">12:00 – 13:00 • Non-Teaching Interval (DEC-04)</div>' +
+          '</div>';
+          p++;
+          continue;
+        }
+
+        const periodMeta = PERIODS.find(x => x.index === p) || { label: 'Period ' + p, time: '' };
+        const slotOccs = (occurrences || []).filter(o => o.startSlot === p);
+
+        if (slotOccs.length === 0) {
+          // Free Slot
+          html += '<div class="period-card-cell free-period-cell">' +
+            '<div class="period-card-header" style="width:100%; border-radius:var(--radius-md) var(--radius-md) 0 0;">' +
+              '<div class="period-label-wrap">' +
+                '<span class="period-title">' + periodMeta.label + '</span>' +
+                '<span class="period-time-range">' + periodMeta.time + '</span>' +
+              '</div>' +
+              '<span class="status-badge" style="background:#F1F5F9; color:#64748B; font-size:10px;">Free Period</span>' +
+            '</div>' +
+            '<div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:16px;">' +
+              '<span style="font-size:12px; font-weight:600; color:var(--text-muted);">No Academic Commitment</span>' +
+              (currentRole === 'teacher' ? '<button class="btn btn-secondary" style="padding:4px 10px; font-size:11px; margin-top:8px;" onclick="quickBookTeacherSlot(' + p + ')">+ Book Extra</button>' : '') +
+            '</div>' +
+          '</div>';
+          p++;
+        } else {
+          // One or more occurrences
+          const isTwoSlotLab = slotOccs.some(o => o.duration === 2 || o.activityType === 'P');
+          const spanClass = isTwoSlotLab ? ' two-slot-span' : '';
+          const endPeriodMeta = isTwoSlotLab ? (PERIODS.find(x => x.index === p + 1) || periodMeta) : periodMeta;
+          const combinedTime = isTwoSlotLab ? (periodMeta.time.split('–')[0].trim() + ' – ' + endPeriodMeta.time.split('–')[1].trim()) : periodMeta.time;
+
+          html += '<div class="period-card-cell' + spanClass + '">';
+
+          // Card Header with Period Label & Combined Time
+          html += '<div class="period-card-header">' +
+            '<div class="period-label-wrap">' +
+              '<span class="period-title">' + periodMeta.label + (isTwoSlotLab ? ' & ' + endPeriodMeta.label : '') + '</span>' +
+              '<span class="period-time-range">' + combinedTime + '</span>' +
+            '</div>' +
+            '<div style="display:flex; gap:6px; align-items:center;">' +
+              (isTwoSlotLab ? '<span class="status-badge" style="background:#EEF2FF; color:#4338CA; border:1px solid #C7D2FE; font-size:10px;">2-Slot Practical</span>' : '') +
+            '</div>' +
+          '</div>';
+
+          // Card Body with Unclipped Details
+          html += '<div class="period-card-body">';
+          slotOccs.forEach(o => {
+            html += renderFullDetailOccurrence(o, roomsMap, teachersMap, coursesMap, offeringsMap);
+          });
+          html += '</div>';
+
+          html += '</div>';
+          p += (isTwoSlotLab ? 2 : 1);
+        }
+      }
+
+      html += '</div>';
+      return html;
+    }
+
+    function renderFullDetailOccurrence(o, roomsMap, teachersMap, coursesMap, offeringsMap) {
+      const offering = offeringsMap.get(o.courseOfferingId);
+      const course = offering ? coursesMap.get(offering.courseId) : null;
+      const courseCode = course ? course.code : 'CS201';
+      const courseName = course ? course.name : 'Course Session';
+      const teacher = teachersMap.get(o.teacherId);
+      const teacherName = teacher ? teacher.name : o.teacherId;
+      const room = roomsMap.get(o.roomId) || { roomNumber: o.roomId, building: 'Academic Block', floor: 1 };
+
+      const isCancelled = (o.status === 'cancelled');
+
+      // Component Pills
+      let compLabel = 'LECTURE • 1H';
+      let compBg = '#EFF6FF';
+      let compColor = '#2563EB';
+      let compBorder = '#BFDBFE';
+
+      if (o.activityType === 'P' || o.duration === 2) {
+        compLabel = 'LAB • 2H';
+        compBg = '#F5F3FF';
+        compColor = '#7C3AED';
+        compBorder = '#DDD6FE';
+      } else if (o.activityType === 'T') {
+        compLabel = 'TUTORIAL • 1H';
+        compBg = '#FFFBEB';
+        compColor = '#B45309';
+        compBorder = '#FDE68A';
+      } else if (o.isExtraClass) {
+        compLabel = 'EXTRA CLASS';
+        compBg = '#ECFDF5';
+        compColor = '#047857';
+        compBorder = '#A7F3D0';
+      }
+
+      // Status Pill
+      let statusLabel = 'SCHEDULED';
+      let statusBg = '#ECFDF5';
+      let statusColor = '#047857';
+      let statusBorder = '#A7F3D0';
+
+      if (isCancelled) {
+        statusLabel = 'CANCELLED';
+        statusBg = '#FEF2F2';
+        statusColor = '#B91C1C';
+        statusBorder = '#FECACA';
+      } else if (o.isExtraClass) {
+        statusLabel = 'CONFIRMED EXTRA';
+        statusBg = '#EEF2FF';
+        statusColor = '#4338CA';
+        statusBorder = '#C7D2FE';
+      }
+
+      const cardBg = isCancelled ? '#FEF2F2' : (course && course.cardBgColor ? course.cardBgColor : '#FFFFFF');
+      const cardBorder = isCancelled ? '#FCA5A5' : (course && course.borderColor ? course.borderColor : 'var(--border-subtle)');
+
+      return '<div class="class-card-unclipped" style="background:' + cardBg + '; border:1px solid ' + cardBorder + '; border-radius:var(--radius-sm); padding:12px;" data-occ-id="' + o.id + '" onclick="openDrawer(this.dataset.occId)">' +
+        '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:6px;">' +
+          '<span class="status-badge" style="background:' + compBg + '; color:' + compColor + '; border:1px solid ' + compBorder + '; font-size:10px;">' + compLabel + '</span>' +
+          '<span class="status-badge" style="background:' + statusBg + '; color:' + statusColor + '; border:1px solid ' + statusBorder + '; font-size:10px;">' + statusLabel + '</span>' +
+        '</div>' +
+        '<div style="margin-top:6px;">' +
+          '<span style="font-size:12px; font-weight:800; color:var(--text-main); font-family:var(--font-mono, monospace); margin-right:6px;">' + courseCode + '</span>' +
+          '<span class="class-course-title" style="' + (isCancelled ? 'text-decoration:line-through; opacity:0.75;' : '') + '">' + courseName + '</span>' +
+        '</div>' +
+        (o.targetId ? '<div style="font-size:11px; color:var(--text-muted); font-weight:600; margin-top:2px; display:inline-flex; align-items:center; gap:4px;">' + SVG_ICONS.cohort + ' ' + (o.targetType === 'batch' ? 'Practical Batch: ' : 'Cohort: ') + o.targetId + '</div>' : '') +
+        '<div class="class-metadata-grid">' +
+          '<div class="class-metadata-row"><span style="display:inline-flex; align-items:center;">' + SVG_ICONS.user + '</span><strong>' + teacherName + '</strong></div>' +
+          '<div class="class-metadata-row"><span style="display:inline-flex; align-items:center;">' + SVG_ICONS.room + '</span><span>Room ' + room.roomNumber + ' • ' + room.building + ' (Floor ' + room.floor + ')</span></div>' +
+          (isCancelled && o.cancellationReason ? '<div style="margin-top:4px; padding:4px 8px; background:rgba(254,202,202,0.6); border-radius:4px; color:#991B1B; font-weight:700; font-size:11px; display:flex; align-items:center; gap:4px;">' + SVG_ICONS.alert + ' Reason: ' + o.cancellationReason + '</div>' : '') +
+        '</div>' +
+      '</div>';
+    }
+
 
     // Render individual occurrence card
     function renderOccurrenceCard(o, roomsMap, teachersMap, coursesMap, offeringsMap) {
@@ -2885,50 +4094,60 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
 
       const isCancelled = o.status === 'cancelled';
       let cardClass = 'class-lecture';
-      let badgeClass = 'badge-pill-lec';
-      let badgeLabel = 'LECTURE (L) • 1H';
+      let badgeLabel = 'SCHEDULED';
+      let badgeBg = '#ECFDF5';
+      let badgeText = '#047857';
+      let badgeBorder = '#A7F3D0';
 
       if (o.activityType === 'P' || o.duration === 2) {
         cardClass = 'class-practical';
-        badgeClass = 'badge-pill-lab';
-        badgeLabel = 'PRACTICAL (P) • 2H';
+        badgeLabel = 'LAB • 2H';
+        badgeBg = '#EEF2FF';
+        badgeText = '#4338CA';
+        badgeBorder = '#C7D2FE';
       } else if (o.activityType === 'T') {
         cardClass = 'class-tutorial';
-        badgeClass = 'badge-pill-tut';
-        badgeLabel = 'TUTORIAL (T) • 1H';
+        badgeLabel = 'TUTORIAL';
+        badgeBg = '#FFFBEB';
+        badgeText = '#B45309';
+        badgeBorder = '#FDE68A';
       } else if (o.isExtraClass) {
         cardClass = 'class-extra';
-        badgeClass = 'badge-pill-extra';
         badgeLabel = 'EXTRA CLASS';
+        badgeBg = '#EEF2FF';
+        badgeText = '#4338CA';
+        badgeBorder = '#C7D2FE';
       }
 
-      let inlineStyle = '';
+      let inlineStyle = 'border: 1px solid var(--border-subtle);';
       if (isCancelled) {
         cardClass = 'class-cancelled';
-        badgeClass = 'badge-pill-cancel';
         badgeLabel = 'CANCELLED';
-        inlineStyle = 'background: #FEE2E2 !important; color: #991B1B !important; border: 1px dashed #FCA5A5 !important;';
+        badgeBg = '#FEF2F2';
+        badgeText = '#B91C1C';
+        badgeBorder = '#FECACA';
+        inlineStyle = 'background: #FEF2F2 !important; color: #991B1B !important; border: 1px dashed #FCA5A5 !important;';
       } else if (course && course.cardBgColor && course.fontColor) {
         inlineStyle = 'background: ' + course.cardBgColor + ' !important; color: ' + course.fontColor + ' !important;' +
           (course.borderColor ? ' border: 1px solid ' + course.borderColor + ' !important;' : ' border: 1px solid rgba(0,0,0,0.08) !important;');
+        badgeBg = 'rgba(255, 255, 255, 0.85)';
+        badgeText = course.fontColor;
+        badgeBorder = course.borderColor || 'rgba(0,0,0,0.12)';
       }
 
-      // Dynamically style activity badges (PRACTICAL, LECTURE, TUTORIAL, EXTRA) to harmoniously match card font/bg colors
-      let badgeStyle = '';
-      if (isCancelled) {
-        badgeStyle = 'background: #EF4444; color: #FFFFFF;';
-      } else if (course && course.fontColor) {
-        badgeStyle = 'background: ' + course.fontColor + '; color: #FFFFFF;';
-      }
+      const badgeStyle = 'background:' + badgeBg + '; color:' + badgeText + '; border:1px solid ' + badgeBorder + '; font-size:9px; padding:2px 6px; border-radius:4px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase;';
 
-      return '<div class="class-card ' + cardClass + '" style="' + inlineStyle + '" onclick="openDrawer(\\'' + o.id + '\\')">' +
+      return '<div class="class-card ' + cardClass + '" style="' + inlineStyle + '" data-occ-id="' + o.id + '" onclick="openDrawer(this.dataset.occId)">' +
         '<div class="class-card-scroll-body">' +
-          '<span class="badge-pill ' + badgeClass + '" style="' + badgeStyle + '">' + badgeLabel + '</span>' +
-          '<div class="class-code" style="color:inherit;">' + courseCode + ' ' + (isCancelled ? '<span style="text-decoration:line-through;">' + courseName + '</span>' : courseName) + '</div>' +
-          '<div class="class-meta" style="color:inherit; opacity:0.9;">📍 Room ' + room.roomNumber + ' (' + room.building + ')</div>' +
-          '<div class="class-meta" style="color:inherit; opacity:0.9;">🧑‍🏫 ' + teacherName + '</div>' +
-          (o.targetId ? '<div class="class-meta" style="color:inherit; opacity:0.85; font-size:10px;">👥 ' + (o.targetType === 'batch' ? 'Batch: ' : 'Section: ') + o.targetId + '</div>' : '') +
-          (isCancelled && o.cancellationReason ? '<div style="font-size:10px; color:#7F1D1D; font-weight:700; margin-top:4px; padding:3px 6px; background:rgba(254,202,202,0.6); border-radius:4px;">⚠️ Reason: ' + o.cancellationReason + '</div>' : '') +
+          '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">' +
+            '<span class="badge-pill" style="' + badgeStyle + '">' + badgeLabel + '</span>' +
+            (o.activityType === 'P' ? '<span style="font-size:10px; font-weight:700; opacity:0.8;">2-Slot</span>' : '') +
+          '</div>' +
+          '<div class="class-code" style="color:inherit; font-size:12px; font-weight:700;">' + courseCode + ' ' + (isCancelled ? '<span style="text-decoration:line-through; opacity:0.8;">' + courseName + '</span>' : courseName) + '</div>' +
+          '<div class="class-meta" style="color:inherit; opacity:0.85; font-size:11px; display:flex; align-items:center; gap:4px;"><span style="display:inline-flex;">' + SVG_ICONS.room + '</span> Room ' + room.roomNumber + ' (' + room.building + ')</div>' +
+          '<div class="class-meta" style="color:inherit; opacity:0.85; font-size:11px; display:flex; align-items:center; gap:4px;"><span style="display:inline-flex;">' + SVG_ICONS.faculty + '</span> ' + teacherName + '</div>' +
+          (o.targetId ? '<div class="class-meta" style="color:inherit; opacity:0.8; font-size:10px; display:flex; align-items:center; gap:4px;"><span style="display:inline-flex;">' + SVG_ICONS.cohort + '</span> ' + (o.targetType === 'batch' ? 'Batch ' : 'Section ') + o.targetId + '</div>' : '') +
+          (isCancelled && o.cancellationReason ? '<div style="font-size:10px; color:#991B1B; font-weight:700; margin-top:4px; padding:2px 6px; background:rgba(254,202,202,0.7); border-radius:4px; display:flex; align-items:center; gap:4px;"><span style="display:inline-flex;">' + SVG_ICONS.alert + '</span> Reason: ' + o.cancellationReason + '</div>' : '') +
         '</div>' +
       '</div>';
     }
@@ -2964,8 +4183,8 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       if (currentRole === 'teacher' || currentRole === 'admin') {
         if (occ.status === 'scheduled') {
           actionsEl.innerHTML = '<div style="display:flex; gap:8px;">' +
-            '<button class="btn btn-outline-danger" style="flex:1;" onclick="cancelOccurrencePrompt(\\'' + occ.id + '\\')">Cancel Session</button>' +
-            '<button class="btn btn-primary" style="flex:1;" onclick="rescheduleOccurrencePrompt(\\'' + occ.id + '\\')">Reschedule</button>' +
+            '<button class="btn btn-outline-danger" style="flex:1;" data-occ-id="' + occ.id + '" onclick="cancelOccurrencePrompt(this.dataset.occId)">Cancel Session</button>' +
+            '<button class="btn btn-primary" style="flex:1;" data-occ-id="' + occ.id + '" onclick="rescheduleOccurrencePrompt(this.dataset.occId)">Reschedule</button>' +
           '</div>';
         } else {
           actionsEl.innerHTML = '<div style="font-size:12px; color:var(--text-muted); text-align:center;">This occurrence is already cancelled.</div>';
@@ -3024,7 +4243,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
 
     // Empty Classroom Finder (Spec Page 5)
     function runEmptyRoomFinder() {
-      const slot = parseInt(document.getElementById('finderSlotSelect')?.value || '1', 10);
+      const slot = parseInt(document.getElementById('finderSlot')?.value || document.getElementById('finderSlotSelect')?.value || '1', 10);
       const activeDay = DAYS[activeDayIndex];
       const rooms = currentState.rooms || [];
       const occs = (currentState.classOccurrences || []).filter(o => o.date === activeDay.date && o.status === 'scheduled');
@@ -3063,24 +4282,37 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       const rooms = currentState.rooms || [];
       const occs = (currentState.classOccurrences || []).filter(o => o.date === activeDay.date && o.status === 'scheduled');
 
-      let html = '<table class="styled-table" style="font-size:12px;"><thead><tr><th>Room Venue</th>';
+      let html = '<div style="margin-bottom:12px; font-size:13px; color:var(--text-muted); display:flex; justify-content:space-between; align-items:center;">' +
+        '<div>Viewing room occupancy on <strong>' + activeDay.name + '</strong> (' + activeDay.date + ')</div>' +
+        '<div style="display:flex; gap:12px; font-size:11px;">' +
+          '<span style="display:inline-flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:2px; background:#EFF6FF; border:1px solid #BFDBFE; display:inline-block;"></span> Occupied</span>' +
+          '<span style="display:inline-flex; align-items:center; gap:4px;"><span style="width:10px; height:10px; border-radius:2px; background:#ECFDF5; border:1px solid #A7F3D0; display:inline-block;"></span> Vacant</span>' +
+        '</div>' +
+      '</div>';
+
+      html += '<table class="styled-table"><thead><tr><th style="width:220px;">Room / Venue</th>';
       for (let s = 1; s <= 8; s++) {
-        html += '<th style="text-align:center;">P' + s + (s === 4 ? ' (Lunch)' : '') + '</th>';
+        html += '<th style="text-align:center;">P' + s + (s === 4 ? '<br><small style="font-size:9px; opacity:0.8;">(Lunch)</small>' : '') + '</th>';
       }
       html += '</tr></thead><tbody>';
 
       rooms.forEach(r => {
-        html += '<tr><td><strong>Room ' + r.roomNumber + '</strong> (' + r.building + ')</td>';
+        html += '<tr>' +
+          '<td>' +
+            '<div style="font-weight:700; color:var(--text-main);">Room ' + r.roomNumber + '</div>' +
+            '<div style="font-size:11px; color:var(--text-muted);">' + r.building + ' • Cap: ' + r.capacity + ' (' + r.roomType + ')</div>' +
+          '</td>';
+
         for (let s = 1; s <= 8; s++) {
           if (s === 4) {
-            html += '<td style="background:#FFFBEB; text-align:center; color:#D97706; font-size:10px;">Lunch</td>';
+            html += '<td style="background:#FFFBEB; text-align:center; color:#92400E; font-size:10px; font-weight:700;">Lunch</td>';
             continue;
           }
           const occInSlot = occs.find(o => o.roomId === r.id && s >= o.startSlot && s <= (o.startSlot + o.duration - 1));
           if (occInSlot) {
-            html += '<td style="background:#EDE9FE; color:#5842E3; text-align:center; font-weight:700; font-size:10px;">BUSY</td>';
+            html += '<td style="background:#EFF6FF; border-left:2px solid #2563EB; color:#1D4ED8; text-align:center; font-weight:700; font-size:11px;">' + (occInSlot.activityType === 'P' ? 'LAB' : 'CLASS') + '</td>';
           } else {
-            html += '<td style="background:#ECFDF5; color:#059669; text-align:center; font-size:10px;">FREE</td>';
+            html += '<td style="background:#ECFDF5; color:#047857; text-align:center; font-size:11px; font-weight:600;">FREE</td>';
           }
         }
         html += '</tr>';
@@ -3122,9 +4354,9 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       prefillAuth(role);
       const badge = document.getElementById('activeRolePersonaBadge');
       if (badge) {
-        if (role === 'admin') badge.innerHTML = '👑 Administrator';
-        else if (role === 'teacher') badge.innerHTML = '🧑‍🏫 Faculty Hub';
-        else badge.innerHTML = '🎓 Student Portal';
+        if (role === 'admin') badge.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px;">' + SVG_ICONS.shield + ' Administrator</span>';
+        else if (role === 'teacher') badge.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px;">' + SVG_ICONS.faculty + ' Faculty Hub</span>';
+        else badge.innerHTML = '<span style="display:inline-flex; align-items:center; gap:4px;">' + SVG_ICONS.students + ' Student Portal</span>';
       }
       switchAuthPane('login');
     }
@@ -3143,10 +4375,10 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
 
       if (title && desc) {
         if (pane === 'roleSelect') {
-          title.textContent = 'Sign In to PlayMyClass';
+          title.textContent = 'Sign In to TimeTable+';
           desc.textContent = 'Step 1: Select your role persona to proceed.';
         } else if (pane === 'login') {
-          title.textContent = 'Sign In to PlayMyClass';
+          title.textContent = 'Sign In to TimeTable+';
           desc.textContent = 'Step 2: Enter your institutional credentials.';
         } else if (pane === 'forgot') {
           title.textContent = 'Password Recovery';
@@ -3231,41 +4463,66 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       const activeRoleTag = document.getElementById('activeUserRoleTag');
       const activeEmailTag = document.getElementById('activeUserEmailTag');
       const guestNotice = document.getElementById('guestNotice');
-
       const dashLink = document.getElementById('navLinkDashboard');
+
+      const railAvatar = document.getElementById('railUserAvatar');
+      const railName = document.getElementById('railUserName');
+      const railRole = document.getElementById('railUserRole');
+      const railAdmin = document.getElementById('railAdminGroup');
+      const railTeacher = document.getElementById('railTeacherGroup');
+      const railStudent = document.getElementById('railStudentGroup');
 
       if (currentUser && authToken) {
         if (unauth) unauth.style.display = 'none';
         if (auth) auth.style.display = 'flex';
         if (dashLink) dashLink.style.display = 'flex';
         if (guestNotice) guestNotice.style.display = 'none';
-        const icons = { admin: '👑 Administrator', teacher: '🧑‍🏫 Faculty', student: '🎓 Student' };
+        const icons = { admin: 'Administrator', teacher: 'Faculty', student: 'Student' };
         if (roleBadge) {
           roleBadge.textContent = icons[currentUser.role] || currentUser.role;
         }
         if (userName) userName.textContent = currentUser.fullName || currentUser.email;
         if (activeRoleTag) {
           activeRoleTag.textContent = icons[currentUser.role] || currentUser.role;
-          activeRoleTag.style.background = currentUser.role === 'admin' ? 'var(--primary-light)' : (currentUser.role === 'teacher' ? '#FCE8F3' : '#E0F2FE');
-          activeRoleTag.style.color = currentUser.role === 'admin' ? 'var(--primary)' : (currentUser.role === 'teacher' ? '#E05697' : '#0284C7');
+          activeRoleTag.style.background = currentUser.role === 'admin' ? 'var(--primary-light)' : (currentUser.role === 'teacher' ? '#FFF1F2' : '#F0F9FF');
+          activeRoleTag.style.color = currentUser.role === 'admin' ? 'var(--primary-blue)' : (currentUser.role === 'teacher' ? '#E11D48' : '#0284C7');
         }
         if (activeEmailTag) {
           activeEmailTag.textContent = currentUser.email;
         }
+
+        // Left Rail User Card
+        if (railAvatar) railAvatar.textContent = (currentUser.fullName || currentUser.email || 'U').charAt(0).toUpperCase();
+        if (railName) railName.textContent = currentUser.fullName || currentUser.email;
+        if (railRole) railRole.textContent = icons[currentUser.role] || currentUser.role;
+
+        // Show role-scoped rail sections
+        if (railAdmin) railAdmin.style.display = (currentUser.role === 'admin') ? 'flex' : 'none';
+        if (railTeacher) railTeacher.style.display = (currentUser.role === 'teacher') ? 'flex' : 'none';
+        if (railStudent) railStudent.style.display = (currentUser.role === 'student') ? 'flex' : 'none';
+
       } else {
         if (unauth) unauth.style.display = 'flex';
         if (auth) auth.style.display = 'none';
         if (dashLink) dashLink.style.display = 'none';
         if (guestNotice) guestNotice.style.display = 'flex';
         if (activeRoleTag) {
-          activeRoleTag.textContent = '🔒 Unauthenticated • Read-Only';
+          activeRoleTag.textContent = 'Unauthenticated • Read-Only';
           activeRoleTag.style.background = '#F1F5F9';
           activeRoleTag.style.color = '#64748B';
         }
         if (activeEmailTag) {
           activeEmailTag.textContent = '(Guest)';
         }
+
+        if (railAvatar) railAvatar.textContent = 'G';
+        if (railName) railName.textContent = 'Guest Preview';
+        if (railRole) railRole.textContent = 'Read-Only';
+        if (railAdmin) railAdmin.style.display = 'none';
+        if (railTeacher) railTeacher.style.display = 'none';
+        if (railStudent) railStudent.style.display = 'flex';
       }
+      updateTopbarCtaAndBreadcrumb();
     }
 
     // Student Inbox Notifications
@@ -3274,9 +4531,11 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       if (!inboxEl) return;
       const targetStudent = (currentUser && currentUser.role === 'student' && currentUser.entityId) ? currentUser.entityId : 'stud-1';
       const notifications = (currentState.notifications || []).filter(n => !n.recipientStudentId || n.recipientStudentId === targetStudent);
+      const badge = document.getElementById('notifBadgeCount');
+      if (badge) badge.textContent = notifications.length.toString();
 
       if (notifications.length === 0) {
-        inboxEl.innerHTML = '<div style="font-size:13px; color:var(--text-muted); padding:10px 0;">✨ All caught up! No unread notifications.</div>';
+        inboxEl.innerHTML = '<div style="font-size:13px; color:var(--text-muted); padding:10px 0; display:flex; align-items:center; gap:6px;">' + SVG_ICONS.sparkles + ' All caught up! No unread notifications.</div>';
         return;
       }
 
@@ -3554,7 +4813,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
     // Solver Actions
     async function triggerGeneration() {
       const statusBox = document.getElementById('generationStatusBox');
-      if (statusBox) statusBox.innerHTML = '⚡ Invoking Python CP-SAT solver...';
+      if (statusBox) statusBox.innerHTML = '<span style="display:inline-flex; align-items:center; gap:6px;">' + SVG_ICONS.solver + ' Invoking Python CP-SAT solver...</span>';
       try {
         const terms = (currentState.academicTerms || []).map(t => t.id);
         const data = await api('/api/generation/request', {
@@ -3562,14 +4821,14 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           body: JSON.stringify({ termIds: terms })
         });
         if (data.status === 'optimal' || data.status === 'feasible') {
-          if (statusBox) statusBox.innerHTML = '<span style="color:#059669; font-weight:700;">✅ Solver Optimal (' + (data.solveTimeMs || 250) + 'ms): ' + data.classesCount + ' classes staged as draft Version ' + data.draftVersionNumber + '!</span>';
+          if (statusBox) statusBox.innerHTML = '<span style="color:#059669; font-weight:700; display:inline-flex; align-items:center; gap:6px;">' + SVG_ICONS.check + ' Solver Optimal (' + (data.solveTimeMs || 250) + 'ms): ' + data.classesCount + ' classes staged as draft Version ' + data.draftVersionNumber + '!</span>';
           showMsg('Solver succeeded. Staged draft ready for publication.', false);
           await loadState();
         } else {
-          if (statusBox) statusBox.innerHTML = '<span style="color:#DC2626;">❌ Infeasible: ' + (data.message || data.error) + '</span>';
+          if (statusBox) statusBox.innerHTML = '<span style="color:#DC2626; display:inline-flex; align-items:center; gap:6px;">' + SVG_ICONS.close + ' Infeasible: ' + (data.message || data.error) + '</span>';
         }
       } catch (err) {
-        if (statusBox) statusBox.innerHTML = '<span style="color:#DC2626;">❌ Generation Error: ' + err.message + '</span>';
+        if (statusBox) statusBox.innerHTML = '<span style="color:#DC2626; display:inline-flex; align-items:center; gap:6px;">' + SVG_ICONS.close + ' Generation Error: ' + err.message + '</span>';
         showMsg(err.message, true);
       }
     }
@@ -3591,23 +4850,27 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
 
     // Staged Drafts Review & Publish
     function renderStagedDraftsReview() {
-      const container = document.getElementById('stagedDraftsList');
+      const container = document.getElementById('stagedDraftsList') || document.getElementById('stagedDraftReview');
       if (!container) return;
       const drafts = (currentState.timetableVersions || []).filter(v => v.status === 'draft');
 
       if (drafts.length === 0) {
-        container.innerHTML = '<div style="font-size:13px; color:var(--text-muted);">No uncommitted drafts pending publication.</div>';
+        container.innerHTML = '<div style="padding:14px; background:var(--bg-canvas); border:1px solid var(--border-subtle); border-radius:var(--radius-sm); font-size:13px; color:var(--text-muted);">No uncommitted drafts pending publication. Use the actions on the left to compile a package or run CP-SAT.</div>';
         return;
       }
 
-      let html = '<div style="display:flex; flex-direction:column; gap:10px;">';
+      let html = '<div style="display:flex; flex-direction:column; gap:12px;">';
       drafts.forEach(d => {
-        html += '<div style="background:#FFFFFF; border:1px solid var(--border); border-left:4px solid var(--accent-amber); padding:14px; border-radius:10px; display:flex; justify-content:space-between; align-items:center;">' +
-          '<div>' +
-            '<div style="font-weight:700;">Draft Version ' + d.versionNumber + ' (Term: ' + d.termId + ')</div>' +
-            '<div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Created: ' + new Date(d.createdAt).toLocaleString() + '</div>' +
+        const isStale = (currentState.catalogRevision && d.inputRevision && d.inputRevision < currentState.catalogRevision);
+        html += '<div style="background:var(--bg-surface); border:1px solid var(--border-subtle); border-left:4px solid var(--primary-blue); padding:16px; border-radius:var(--radius-sm); box-shadow:var(--shadow-subtle);">' +
+          (isStale ? '<div class="stale-package-banner"><span style="display:inline-flex; align-items:center; gap:6px;">' + SVG_ICONS.alert + ' <strong>Stale Input Package:</strong></span> Academic modules have been modified since Draft Version ' + d.versionNumber + ' was compiled. Re-compiling recommended before publication (D50).</div>' : '') +
+          '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">' +
+            '<div>' +
+              '<div style="font-weight:700; font-size:14px; color:var(--text-main);">Draft Version ' + d.versionNumber + ' <span class="status-badge status-badge-draft" style="font-size:10px;">Pending Publish</span></div>' +
+              '<div style="font-size:12px; color:var(--text-muted); margin-top:2px;">Term: <strong>' + d.termId + '</strong> • Created: ' + new Date(d.createdAt).toLocaleString() + '</div>' +
+            '</div>' +
+            '<button class="btn btn-primary" data-draft-id="' + d.id + '" onclick="publishDraft(this.dataset.draftId)" style="display:inline-flex; align-items:center; gap:6px;">' + SVG_ICONS.check + ' Publish Official Schedule</button>' +
           '</div>' +
-          '<button class="btn btn-primary" onclick="publishDraft(\\'' + d.id + '\\')">🚀 Publish Version ' + d.versionNumber + '</button>' +
         '</div>';
       });
       html += '</div>';
@@ -3739,7 +5002,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         let html = '<div style="font-size:12px; font-weight:700; margin-bottom:6px;">Available Free Slots:</div><div style="display:flex; flex-direction:column; gap:6px;">';
         data.slots.slice(0, 5).forEach(s => {
           html += '<div style="background:#FFFFFF; border:1px solid var(--border); padding:8px 12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">' +
-            '<div><strong>Period ' + s.startSlot + '</strong> (' + s.roomNumber + ', ' + s.building + ') ' + (s.freedByCancellation ? '<span style="color:#059669; font-weight:700;">★ Freed</span>' : '') + '</div>' +
+            '<div><strong>Period ' + s.startSlot + '</strong> (' + s.roomNumber + ', ' + s.building + ') ' + (s.freedByCancellation ? '<span style="color:#059669; font-weight:700;">Freed</span>' : '') + '</div>' +
             '<button class="btn btn-primary" style="padding:4px 10px; font-size:11px;" onclick="bookExtraClassDirect(\\'' + date + '\\', ' + dayOfWeek + ', ' + s.startSlot + ', \\'' + s.roomId + '\\', \\'' + activityType + '\\')">Book Slot</button>' +
           '</div>';
         });
@@ -3809,29 +5072,131 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
 
 
     // ========================================================================
-    // ADMIN PAGE-WISE NAVIGATION & MULTI-PAGE CONTROLS
+    // UNIFIED PAGE NAVIGATION & WORKSTATION CONTROLS (Student, Faculty & Admin)
     // ========================================================================
+    let currentUserSubPage = 'schedule'; // 'schedule', 'profile', 'security', 'teacher-extra', 'teacher-rooms', 'teacher-leave'
     let currentAdminPage = 'hub'; // 'hub', 'timetables', 'modules', 'students', 'faculty', 'matrix', 'solver'
     let adminTtFormat = 'day'; // 'day' or 'week'
     let adminTtScope = 'section'; // 'section', 'teacher', 'room', 'master'
     let adminTtTarget = 'all';
     let adminTtDayIndex = 0;
 
+    function switchUserSubPage(pageKey) {
+      currentUserSubPage = pageKey;
+      if (currentMainView !== 'dashboard') {
+        switchView('dashboard');
+        return;
+      }
+
+      const userSched = document.getElementById('userScheduleView');
+      const adminDash = document.getElementById('adminDashboardView');
+      const profilePage = document.getElementById('userSubPageProfile');
+      const securityPage = document.getElementById('userSubPageSecurity');
+      const teacherExtra = document.getElementById('userSubPageTeacherExtra');
+      const teacherRooms = document.getElementById('userSubPageTeacherRooms');
+      const teacherLeave = document.getElementById('userSubPageTeacherLeave');
+
+      const allSubPages = [profilePage, securityPage, teacherExtra, teacherRooms, teacherLeave];
+
+      if (pageKey === 'schedule') {
+        if (adminDash) adminDash.style.display = 'none';
+        allSubPages.forEach(el => { if (el) el.style.display = 'none'; });
+        if (userSched) userSched.style.display = 'block';
+        renderSingleDayGrid();
+      } else {
+        if (userSched) userSched.style.display = 'none';
+        if (adminDash) adminDash.style.display = 'none';
+        allSubPages.forEach(el => { if (el) el.style.display = 'none'; });
+
+        if (pageKey === 'profile') {
+          if (profilePage) profilePage.style.display = 'block';
+          populateUserProfilePage();
+        } else if (pageKey === 'security') {
+          if (securityPage) securityPage.style.display = 'block';
+        } else if (pageKey === 'teacher-extra') {
+          if (teacherExtra) teacherExtra.style.display = 'block';
+        } else if (pageKey === 'teacher-rooms') {
+          if (teacherRooms) teacherRooms.style.display = 'block';
+          runEmptyRoomFinder();
+        } else if (pageKey === 'teacher-leave') {
+          if (teacherLeave) teacherLeave.style.display = 'block';
+        }
+      }
+
+      highlightActiveRailLink(pageKey);
+      updateTopbarCtaAndBreadcrumb();
+    }
+
+    function populateUserProfilePage() {
+      const pName = document.getElementById('studentProfileName');
+      const pMeta = document.getElementById('studentProfileMeta');
+      const avatarLg = document.getElementById('profileAvatarLg');
+      const studentSec = document.getElementById('profileStudentSection');
+      const teacherSec = document.getElementById('profileTeacherSection');
+
+      const effectiveRole = (currentUser && authToken) ? currentUser.role : currentRole;
+      const displayName = currentUser ? (currentUser.fullName || currentUser.email) : (effectiveRole === 'teacher' ? 'Faculty Instructor' : (effectiveRole === 'admin' ? 'System Administrator' : 'Guest Student'));
+      const initial = displayName.charAt(0).toUpperCase();
+
+      if (pName) pName.textContent = displayName;
+      if (avatarLg) avatarLg.textContent = initial;
+
+      if (effectiveRole === 'student') {
+        if (studentSec) studentSec.style.display = 'block';
+        if (teacherSec) teacherSec.style.display = 'none';
+        if (pMeta) {
+          const roll = (currentUser && currentUser.entityId) ? currentUser.entityId : 'ST-2026-3A';
+          pMeta.textContent = 'Enrolled Student • Roll ' + roll;
+        }
+      } else if (effectiveRole === 'teacher') {
+        if (studentSec) studentSec.style.display = 'none';
+        if (teacherSec) teacherSec.style.display = 'block';
+        if (pMeta) {
+          const tid = (currentUser && currentUser.entityId) ? currentUser.entityId : 't-1';
+          pMeta.textContent = 'Faculty Instructor • Academic Staff (' + tid + ')';
+        }
+      } else {
+        if (studentSec) studentSec.style.display = 'none';
+        if (teacherSec) teacherSec.style.display = 'none';
+        if (pMeta) pMeta.textContent = 'System Administrator • Full Permissions';
+      }
+    }
+
     function switchAdminPage(pageKey) {
       currentAdminPage = pageKey;
+      currentUserSubPage = 'admin';
+      if (currentMainView !== 'dashboard') {
+        switchView('dashboard');
+        return;
+      }
+
+      const adminDash = document.getElementById('adminDashboardView');
+      if (adminDash) adminDash.style.display = 'block';
+      const userSched = document.getElementById('userScheduleView');
+      if (userSched) userSched.style.display = 'none';
+
+      const allSubPages = ['userSubPageProfile', 'userSubPageSecurity', 'userSubPageTeacherExtra', 'userSubPageTeacherRooms', 'userSubPageTeacherLeave'];
+      allSubPages.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.style.display = 'none';
+      });
+
       const hubEl = document.getElementById('adminPageHub');
       const headerEl = document.getElementById('adminSubPageHeader');
       const titleEl = document.getElementById('adminBreadcrumbTitle');
 
       const pages = ['timetables', 'modules', 'students', 'faculty', 'matrix', 'solver'];
       const pageTitles = {
-        timetables: '📅 Campus Timetable Explorer & Filter',
-        modules: '🏛️ Academic Modules, Terms & Curriculum LTP',
-        students: '🎓 Student Management, Directory & Passwords',
-        faculty: '🧑‍🏫 Faculty Instructors & Workload Rules',
-        matrix: '📊 Room Utilization Matrix & Heatmap',
-        solver: '⚡ CP-SAT Solver Runner & Publication Hub'
+        timetables: 'Campus Timetable Explorer & Filter',
+        modules: 'Academic Modules, Terms & Curriculum LTP',
+        students: 'Student Management, Directory & Passwords',
+        faculty: 'Faculty Instructors & Workload Rules',
+        matrix: 'Room Utilization Matrix & Heatmap',
+        solver: 'CP-SAT Solver Runner & Publication Hub'
       };
+
+      // Highlight active Left Rail item
+      highlightActiveRailLink(pageKey);
 
       if (pageKey === 'hub') {
         if (hubEl) hubEl.style.display = 'block';
@@ -3869,6 +5234,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           renderStagedDraftsReview();
         }
       }
+      updateTopbarCtaAndBreadcrumb();
     }
 
     // ========================================================================
@@ -3900,7 +5266,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       }
       const dayObj = DAYS[adminTtDayIndex];
       const text = document.getElementById('adminActiveDayText');
-      if (text) text.innerHTML = '📅 ' + dayObj.name + ' • September ' + dayObj.date.split('-')[2] + ', 2026';
+      if (text) text.innerHTML = '<span style="display:inline-flex; align-items:center; gap:6px;">' + SVG_ICONS.calendar + ' ' + dayObj.name + ' • September ' + dayObj.date.split('-')[2] + ', 2026</span>';
       renderAdminTimetable();
     }
 
@@ -3912,21 +5278,21 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       let html = '<option value="all">-- All Targets in Scope --</option>';
       if (scope === 'section') {
         (currentState.sections || []).forEach(s => {
-          html += '<option value="' + s.id + '">👥 Section ' + s.name + '</option>';
+          html += '<option value="' + s.id + '">Section ' + s.name + '</option>';
         });
         (currentState.batches || []).forEach(b => {
-          html += '<option value="batch:' + b.id + '">🔬 Practical Batch ' + b.name + '</option>';
+          html += '<option value="batch:' + b.id + '">Practical Batch ' + b.name + '</option>';
         });
       } else if (scope === 'teacher') {
         (currentState.teachers || []).forEach(t => {
-          html += '<option value="' + t.id + '">🧑‍🏫 ' + t.name + ' (' + t.empId + ')</option>';
+          html += '<option value="' + t.id + '">' + t.name + ' (' + t.empId + ')</option>';
         });
       } else if (scope === 'room') {
         (currentState.rooms || []).forEach(r => {
-          html += '<option value="' + r.id + '">🏢 Room ' + r.roomNumber + ' (' + r.building + ' • Cap: ' + r.capacity + ')</option>';
+          html += '<option value="' + r.id + '">Room ' + r.roomNumber + ' (' + r.building + ' • Cap: ' + r.capacity + ')</option>';
         });
       } else if (scope === 'master') {
-        html = '<option value="all">🌐 Entire Campus Master Schedule</option>';
+        html = '<option value="all">Entire Campus Master Schedule</option>';
       }
       targetSel.innerHTML = html;
       adminTtTarget = 'all';
@@ -4017,105 +5383,29 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       const activeDay = DAYS[adminTtDayIndex];
       let dayOccs = activeOccs.filter(o => o.date === activeDay.date || o.dayOfWeek === activeDay.dayOfWeek);
 
-      let rowsToRender = [];
+      let targetOccs = dayOccs;
 
       if (adminTtScope === 'section') {
-        let sections = currentState.sections || [];
         if (adminTtTarget.startsWith('batch:')) {
           const batchId = adminTtTarget.replace('batch:', '');
-          const b = batchesMap.get(batchId);
-          const bOccs = dayOccs.filter(o => o.targetType === 'batch' && o.targetId === batchId);
-          rowsToRender.push({ label: 'Batch ' + (b ? b.name : batchId), occurrences: bOccs });
-        } else {
-          if (adminTtTarget !== 'all') {
-            sections = sections.filter(s => s.id === adminTtTarget);
-          }
-          sections.forEach(sec => {
-            const secOccs = dayOccs.filter(o => {
-              if (o.targetType === 'section' && o.targetId === sec.id) return true;
-              if (o.targetType === 'batch') {
-                const b = batchesMap.get(o.targetId);
-                return b && b.sectionId === sec.id;
-              }
-              return false;
-            });
-            rowsToRender.push({ label: 'Section ' + sec.name, occurrences: secOccs });
-          });
-        }
-      } else if (adminTtScope === 'teacher') {
-        let teachers = currentState.teachers || [];
-        if (adminTtTarget !== 'all') {
-          teachers = teachers.filter(t => t.id === adminTtTarget);
-        }
-        teachers.forEach(t => {
-          const tOccs = dayOccs.filter(o => o.teacherId === t.id);
-          rowsToRender.push({ label: t.name + '<br><small style="color:var(--text-muted);">' + t.empId + '</small>', occurrences: tOccs });
-        });
-      } else if (adminTtScope === 'room') {
-        let rooms = currentState.rooms || [];
-        if (adminTtTarget !== 'all') {
-          rooms = rooms.filter(r => r.id === adminTtTarget);
-        }
-        rooms.forEach(r => {
-          const rOccs = dayOccs.filter(o => o.roomId === r.id);
-          rowsToRender.push({ label: 'Room ' + r.roomNumber + '<br><small style="color:var(--text-muted);">' + r.building + ' • Cap ' + r.capacity + '</small>', occurrences: rOccs });
-        });
-      } else {
-        // Master Overview
-        (currentState.sections || []).forEach(sec => {
-          const secOccs = dayOccs.filter(o => {
-            if (o.targetType === 'section' && o.targetId === sec.id) return true;
+          targetOccs = dayOccs.filter(o => o.targetType === 'batch' && o.targetId === batchId);
+        } else if (adminTtTarget !== 'all') {
+          targetOccs = dayOccs.filter(o => {
+            if (o.targetType === 'section' && o.targetId === adminTtTarget) return true;
             if (o.targetType === 'batch') {
               const b = batchesMap.get(o.targetId);
-              return b && b.sectionId === sec.id;
+              return b && b.sectionId === adminTtTarget;
             }
             return false;
           });
-          rowsToRender.push({ label: 'Section ' + sec.name, occurrences: secOccs });
-        });
-      }
-
-      let html = '<table class="tt-grid"><thead><tr>';
-      html += '<th class="col-track">Entity / Track</th>';
-      PERIODS.forEach(p => {
-        const thClass = p.isLunch ? 'col-period col-lunch' : 'col-period';
-        html += '<th class="' + thClass + '">' + p.label + '<span class="th-time">' + p.time + '</span></th>';
-      });
-      html += '</tr></thead><tbody>';
-
-      if (rowsToRender.length === 0) {
-        html += '<tr><td colspan="9" style="text-align:center; padding:32px; color:var(--text-muted);">No scheduled classes match this target.</td></tr>';
-      }
-
-      rowsToRender.forEach(row => {
-        html += '<tr><td class="cell-track">' + row.label + '</td>';
-        let slot = 1;
-        while (slot <= 8) {
-          if (slot === 4) {
-            html += '<td class="slot-lunch-break"><div style="font-size:16px;">🍱</div><strong style="color:var(--accent-amber); font-size:11px;">Lunch Break</strong></td>';
-            slot++;
-            continue;
-          }
-          const slotOccs = row.occurrences.filter(o => o.startSlot === slot);
-          if (slotOccs.length === 0) {
-            html += '<td class="slot-free"><span style="font-size:11px; color:#94A3B8;">Free Slot</span></td>';
-            slot++;
-          } else {
-            const isTwoSlotLab = slotOccs.some(o => o.duration === 2 || o.activityType === 'P');
-            const colspan = isTwoSlotLab ? ' colspan="2"' : '';
-            html += '<td' + colspan + '>';
-            slotOccs.forEach(o => {
-              html += renderOccurrenceCard(o, roomsMap, teachersMap, coursesMap, offeringsMap);
-            });
-            html += '</td>';
-            slot += isTwoSlotLab ? 2 : 1;
-          }
         }
-        html += '</tr>';
-      });
+      } else if (adminTtScope === 'teacher' && adminTtTarget !== 'all') {
+        targetOccs = dayOccs.filter(o => o.teacherId === adminTtTarget);
+      } else if (adminTtScope === 'room' && adminTtTarget !== 'all') {
+        targetOccs = dayOccs.filter(o => o.roomId === adminTtTarget);
+      }
 
-      html += '</tbody></table>';
-      container.innerHTML = html;
+      container.innerHTML = renderResponsiveCanvasGrid(targetOccs, roomsMap, teachersMap, coursesMap, offeringsMap);
     }
 
     function renderAdminFullWeekGrid(container, activeOccs, roomsMap, teachersMap, coursesMap, offeringsMap, batchesMap) {
@@ -4141,7 +5431,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         targetOccs = activeOccs.filter(o => o.roomId === adminTtTarget);
       }
 
-      let html = '<div style="margin-bottom:12px; font-weight:700; color:var(--text); font-size:14px;">🗓️ Full 5-Day Weekly Matrix (Monday – Friday)</div>';
+      let html = '<div style="margin-bottom:12px; font-weight:700; color:var(--text); font-size:14px; display:flex; align-items:center; gap:6px;">' + SVG_ICONS.calendar + ' Full 5-Day Weekly Matrix (Monday – Friday)</div>';
       html += '<table class="tt-grid"><thead><tr>';
       html += '<th class="col-track">Day of Week</th>';
       PERIODS.forEach(p => {
@@ -4156,7 +5446,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
         let slot = 1;
         while (slot <= 8) {
           if (slot === 4) {
-            html += '<td class="slot-lunch-break"><div style="font-size:16px;">🍱</div><strong style="color:var(--accent-amber); font-size:11px;">Lunch</strong></td>';
+            html += '<td class="slot-lunch-break"><div style="margin-bottom:4px; color:var(--accent-amber); display:flex; justify-content:center;">' + SVG_ICONS.coffee + '</div><strong style="color:var(--accent-amber); font-size:11px;">Lunch</strong></td>';
             slot++;
             continue;
           }
@@ -4205,7 +5495,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       }
 
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:24px; color:var(--text-muted);">No student records found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:28px; color:var(--text-muted); font-size:13px;">No student records match the search filter.</td></tr>';
         return;
       }
 
@@ -4213,19 +5503,27 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       filtered.forEach(s => {
         const sSecMem = members.find(m => m.studentId === s.id && m.groupType === 'section');
         const sBatchMem = members.find(m => m.studentId === s.id && m.groupType === 'batch');
-        const secLabel = sSecMem ? (sectionsMap.get(sSecMem.groupId) || sSecMem.groupId) : '—';
-        const batchLabel = sBatchMem ? (batchesMap.get(sBatchMem.groupId) || sBatchMem.groupId) : '—';
+        const secLabel = sSecMem ? (sectionsMap.get(sSecMem.groupId) || sSecMem.groupId) : 'Unassigned';
+        const batchLabel = sBatchMem ? (batchesMap.get(sBatchMem.groupId) || sBatchMem.groupId) : 'Unassigned';
         const email = s.email || (s.rollNumber.toLowerCase() + '@university.edu');
+        const initial = (s.name || 'S').charAt(0).toUpperCase();
 
         html += '<tr>' +
-          '<td><strong style="color:var(--primary);">' + s.rollNumber + '</strong></td>' +
-          '<td>' + s.name + '</td>' +
-          '<td>' + email + '</td>' +
-          '<td><span class="status-badge" style="background:#E0F2FE; color:#0284C7;">' + secLabel + '</span></td>' +
-          '<td><span class="status-badge" style="background:#FCE8F3; color:#E05697;">' + batchLabel + '</span></td>' +
-          '<td><span class="status-badge status-badge-published">Enrolled</span></td>' +
           '<td>' +
-            '<button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="prefillResetPasswordModal(\\'student\\', \\'' + email + '\\')">🔑 Reset Pass</button>' +
+            '<div style="display:flex; align-items:center; gap:10px;">' +
+              '<div style="width:32px; height:32px; border-radius:50%; background:var(--primary-light); color:var(--primary-blue); font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center;">' + initial + '</div>' +
+              '<div>' +
+                '<div style="font-weight:700; color:var(--text-main);">' + s.name + '</div>' +
+                '<div style="font-size:11px; color:var(--text-muted);">' + email + '</div>' +
+              '</div>' +
+            '</div>' +
+          '</td>' +
+          '<td><span style="font-family:var(--font-mono, monospace); font-weight:700; font-size:12px; color:var(--text-main);">' + s.rollNumber + '</span></td>' +
+          '<td><span class="status-badge" style="background:var(--bg-surface-hover); color:var(--text-main); font-size:11px;">' + secLabel + '</span></td>' +
+          '<td><span class="status-badge" style="background:#EFF6FF; color:#2563EB; font-size:11px;">' + batchLabel + '</span></td>' +
+          '<td><span class="status-badge status-badge-published">Enrolled</span></td>' +
+          '<td style="text-align:right;">' +
+            '<button class="btn btn-secondary" style="padding:4px 10px; font-size:11px; display:inline-flex; align-items:center; gap:4px;" data-role="student" data-email="' + email + '" onclick="prefillResetPasswordModal(this.dataset.role, this.dataset.email)">' + SVG_ICONS.login + ' Reset Pass</button>' +
           '</td>' +
         '</tr>';
       });
@@ -4330,7 +5628,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           method: 'POST',
           body: JSON.stringify({ targetEmail, newPassword })
         });
-        showMsg('✅ ' + data.message, false);
+        showMsg(data.message, false);
         if (role === 'student') {
           if (document.getElementById('resetStdNewPassword')) document.getElementById('resetStdNewPassword').value = '';
         } else {
@@ -4448,20 +5746,28 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       }
 
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:24px; color:var(--text-muted);">No faculty records found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:28px; color:var(--text-muted); font-size:13px;">No faculty records match the search filter.</td></tr>';
         return;
       }
 
       let html = '';
       filtered.forEach(t => {
+        const initial = (t.name || 'F').charAt(0).toUpperCase();
         html += '<tr>' +
-          '<td>' + t.id + '</td>' +
-          '<td><strong>' + t.name + '</strong></td>' +
-          '<td>' + t.empId + '</td>' +
-          '<td>' + t.email + '</td>' +
-          '<td><span class="status-badge" style="background:#EDE9FE; color:#5842E3;">4 Hours/Day</span></td>' +
           '<td>' +
-            '<button class="btn btn-secondary" style="padding:4px 8px; font-size:11px;" onclick="prefillResetPasswordModal(\\'faculty\\', \\'' + t.email + '\\')">🔑 Reset Pass</button>' +
+            '<div style="display:flex; align-items:center; gap:10px;">' +
+              '<div style="width:32px; height:32px; border-radius:50%; background:#F5F3FF; color:#7C3AED; font-weight:700; font-size:13px; display:flex; align-items:center; justify-content:center;">' + initial + '</div>' +
+              '<div>' +
+                '<div style="font-weight:700; color:var(--text-main);">' + t.name + '</div>' +
+                '<div style="font-size:11px; color:var(--text-muted);">' + (t.email || (t.id + '@university.edu')) + '</div>' +
+              '</div>' +
+            '</div>' +
+          '</td>' +
+          '<td><span style="font-family:var(--font-mono, monospace); font-weight:700; font-size:12px; color:var(--text-main);">' + t.empId + '</span></td>' +
+          '<td><span class="status-badge" style="background:#ECFDF5; color:#047857; font-size:11px;">Max 4 Hrs/Day</span></td>' +
+          '<td><span class="status-badge status-badge-published">Active Faculty</span></td>' +
+          '<td style="text-align:right;">' +
+            '<button class="btn btn-secondary" style="padding:4px 10px; font-size:11px; display:inline-flex; align-items:center; gap:4px;" data-role="faculty" data-email="' + t.email + '" onclick="prefillResetPasswordModal(this.dataset.role, this.dataset.email)">' + SVG_ICONS.login + ' Reset Pass</button>' +
           '</td>' +
         '</tr>';
       });
@@ -4517,7 +5823,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       if (!el) return;
       const leaves = currentState.teacherUnavailability || [];
       if (leaves.length === 0) {
-        el.innerHTML = '<div style="font-size:13px; color:var(--text-muted); padding:8px 0;">✨ No pending leave or absence requests.</div>';
+        el.innerHTML = '<div style="font-size:13px; color:var(--text-muted); padding:8px 0; display:flex; align-items:center; gap:6px;">' + SVG_ICONS.sparkles + ' No pending leave or absence requests.</div>';
         return;
       }
       let html = '<div style="display:flex; flex-direction:column; gap:8px;">';
@@ -4656,7 +5962,7 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
       const badge = document.getElementById('solverStatusBadge');
       const log = document.getElementById('solverLogConsole');
       const nl = String.fromCharCode(10);
-      if (badge) { badge.textContent = 'Solving...'; badge.className = 'status-badge status-badge-superseded'; }
+      if (badge) { badge.textContent = 'Solving...'; badge.className = 'status-badge status-badge-draft'; }
       if (log) log.innerHTML += nl + '[SOLVER] Dispatching CP-SAT generation request to port 5001...';
 
       try {
@@ -4665,16 +5971,356 @@ export function renderHtmlUI(config?: { supabaseUrl?: string; supabaseAnonKey?: 
           method: 'POST',
           body: JSON.stringify({ termIds: termId ? [termId] : undefined })
         });
-        if (badge) { badge.textContent = 'Complete'; badge.className = 'status-badge status-badge-published'; }
-        if (log) log.innerHTML += nl + '[SOLVER] Result: ' + data.status + ' (' + (data.solveTimeMs || 200) + 'ms). Generated ' + data.classesCount + ' classes as Draft Version ' + data.draftVersionNumber + '.';
-        showMsg('Solver succeeded! Draft Version ' + data.draftVersionNumber + ' staged.', false);
+
+        if (data.status === 'infeasible' || data.status === 'INFEASIBLE') {
+          if (badge) { badge.textContent = 'Infeasible'; badge.className = 'status-badge badge-pill-cancel'; }
+          if (log) {
+            log.innerHTML += nl + '[ERROR] CP-SAT reported model INFEASIBLE (D21).';
+            if (data.message) log.innerHTML += nl + '[DIAGNOSTICS] ' + data.message;
+          }
+          showMsg('Solver returned INFEASIBLE. Review constraint capacities.', true);
+        } else {
+          if (badge) { badge.textContent = 'Complete'; badge.className = 'status-badge status-badge-published'; }
+          if (log) log.innerHTML += nl + '[SOLVER] Result: ' + data.status + ' (' + (data.solveTimeMs || 200) + 'ms). Staged Draft Version ' + data.draftVersionNumber + ' with ' + data.classesCount + ' classes.';
+          showMsg('Solver succeeded! Draft Version ' + data.draftVersionNumber + ' staged.', false);
+        }
         await loadState();
       } catch (err) {
-        if (badge) { badge.textContent = 'Failed'; badge.className = 'status-badge'; }
+        if (badge) { badge.textContent = 'Failed'; badge.className = 'status-badge badge-pill-cancel'; }
         if (log) log.innerHTML += nl + '[ERROR] Generation failed: ' + err.message;
         showMsg(err.message, true);
       }
     }
+
+
+    // Enterprise Topbar & Shortcut Utilities
+    function updateTopbarCtaAndBreadcrumb() {
+      const topTitle = document.getElementById('topbarActivePage');
+      const cta = document.getElementById('topbarPrimaryCta');
+      const searchBox = document.getElementById('topbarSearchBox');
+      const searchInput = document.getElementById('globalQuickSearch');
+      if (!topTitle || !cta) return;
+
+      const effectiveRole = (currentUser && authToken) ? currentUser.role : currentRole;
+
+      // 1. Configure Search Bar Visibility: Show ONLY for Admin on directory/matrix sub-pages
+      const adminSearchablePages = ['students', 'faculty', 'modules', 'matrix', 'timetables'];
+      const showSearch = (effectiveRole === 'admin' && currentUserSubPage === 'admin' && adminSearchablePages.includes(currentAdminPage));
+      if (searchBox) {
+        searchBox.style.display = showSearch ? 'flex' : 'none';
+        if (!showSearch && searchInput) {
+          searchInput.value = '';
+          handleGlobalSearch('');
+        }
+      }
+
+      // 2. Configure Dynamic Breadcrumbs and Contextual Primary CTA
+      if (effectiveRole === 'admin') {
+        if (currentUserSubPage === 'profile') {
+          topTitle.textContent = 'Administrator Profile';
+          cta.style.display = 'none';
+        } else if (currentUserSubPage === 'security') {
+          topTitle.textContent = 'Account Security';
+          cta.style.display = 'none';
+        } else {
+          const titles = {
+            hub: 'Command Center',
+            timetables: 'Timetable Explorer',
+            modules: 'Modules & Curriculum LTP',
+            students: 'Student Directory',
+            faculty: 'Faculty Registry',
+            matrix: 'Room Utilization Matrix',
+            solver: 'CP-SAT Solver Console'
+          };
+          topTitle.textContent = titles[currentAdminPage || 'hub'] || 'Admin Hub';
+
+          if (currentAdminPage === 'solver') {
+            cta.innerHTML = '<span style="display:inline-flex; align-items:center; gap:6px;">' + SVG_ICONS.solver + ' Run Solver</span>';
+            cta.style.display = 'inline-flex';
+            cta.onclick = handleTriggerSolver;
+          } else if (currentAdminPage === 'timetables') {
+            cta.innerHTML = '<span style="display:inline-flex; align-items:center; gap:6px;">' + SVG_ICONS.refresh + ' Refresh Grid</span>';
+            cta.style.display = 'inline-flex';
+            cta.onclick = renderAdminTimetable;
+          } else if (currentAdminPage === 'modules') {
+            cta.textContent = '+ Create Term';
+            cta.style.display = 'inline-flex';
+            cta.onclick = () => {
+              const input = document.getElementById('termYear');
+              if (input) { input.scrollIntoView({ behavior: 'smooth' }); input.focus(); }
+            };
+          } else if (currentAdminPage === 'students') {
+            cta.textContent = '+ Provision Student';
+            cta.style.display = 'inline-flex';
+            cta.onclick = () => {
+              const input = document.getElementById('stdAddName');
+              if (input) { input.scrollIntoView({ behavior: 'smooth' }); input.focus(); }
+            };
+          } else if (currentAdminPage === 'faculty') {
+            cta.textContent = '+ Register Faculty';
+            cta.style.display = 'inline-flex';
+            cta.onclick = () => {
+              const input = document.getElementById('facultyAddName');
+              if (input) { input.scrollIntoView({ behavior: 'smooth' }); input.focus(); }
+            };
+          } else if (currentAdminPage === 'matrix') {
+            cta.innerHTML = '<span style="display:inline-flex; align-items:center; gap:6px;">' + SVG_ICONS.refresh + ' Refresh Matrix</span>';
+            cta.style.display = 'inline-flex';
+            cta.onclick = renderRoomMatrix;
+          } else {
+            // Admin Hub: 1-Click Demo
+            cta.innerHTML = '<span style="display:inline-flex; align-items:center; gap:6px;">' + SVG_ICONS.solver + ' 1-Click Demo</span>';
+            cta.style.display = 'inline-flex';
+            cta.onclick = loadDemoSchedule;
+          }
+        }
+      } else if (effectiveRole === 'teacher') {
+        const titles = {
+          'schedule': 'Faculty Timetable Workstation',
+          'teacher-extra': 'Book Extra Class',
+          'teacher-rooms': 'Empty Classroom Finder',
+          'teacher-leave': 'Leave & Unavailability Request',
+          'profile': 'Faculty Profile',
+          'security': 'Account Security'
+        };
+        topTitle.textContent = titles[currentUserSubPage || 'schedule'] || 'Faculty Workstation';
+
+        if (currentUserSubPage === 'schedule') {
+          cta.textContent = '+ Book Extra Class';
+          cta.style.display = 'inline-flex';
+          cta.onclick = () => switchUserSubPage('teacher-extra');
+        } else {
+          cta.style.display = 'none';
+        }
+      } else {
+        const titles = {
+          'schedule': 'Academic Timetable',
+          'profile': 'Student Profile',
+          'security': 'Account Security'
+        };
+        topTitle.textContent = titles[currentUserSubPage || 'schedule'] || 'Student Portal';
+        cta.style.display = 'none';
+      }
+    }
+
+    function handleTopbarPrimaryCta() {
+      const effectiveRole = (currentUser && authToken) ? currentUser.role : currentRole;
+      if (effectiveRole === 'teacher' && currentUserSubPage === 'schedule') {
+        switchUserSubPage('teacher-extra');
+      } else if (effectiveRole === 'admin') {
+        if (currentAdminPage === 'solver') handleTriggerSolver();
+        else if (currentAdminPage === 'timetables') renderAdminTimetable();
+        else if (currentAdminPage === 'matrix') renderRoomMatrix();
+        else loadDemoSchedule();
+      }
+    }
+
+
+    // Explicit Role Workstation Focus Handlers
+    function focusSchedule() {
+      switchUserSubPage('schedule');
+    }
+
+    function focusTeacherExtraClass() {
+      switchUserSubPage('teacher-extra');
+    }
+
+    function focusTeacherLeave() {
+      switchUserSubPage('teacher-leave');
+    }
+
+    function focusTeacherRoomFinder() {
+      switchUserSubPage('teacher-rooms');
+    }
+
+    function focusStudentInbox() {
+      toggleNotifPopover();
+    }
+
+    function focusStudentSecurity() {
+      switchUserSubPage('security');
+    }
+
+    function highlightActiveRailLink(activeKey) {
+      const allRailIds = [
+        'railItemAdminHub', 'railItemAdminTimetables', 'railItemAdminModules',
+        'railItemAdminStudents', 'railItemAdminFaculty', 'railItemAdminMatrix',
+        'railItemAdminSolver', 'railItemAdminProfile', 'railItemAdminSecurity',
+        'railItemTeacherSchedule', 'railItemTeacherExtra', 'railItemTeacherRooms',
+        'railItemTeacherLeave', 'railItemTeacherProfile', 'railItemTeacherSecurity',
+        'railItemStudentSchedule', 'railItemStudentProfile', 'railItemStudentSecurity'
+      ];
+      allRailIds.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.classList.remove('active');
+      });
+
+      const effectiveRole = (currentUser && authToken) ? currentUser.role : currentRole;
+
+      if (effectiveRole === 'admin') {
+        if (activeKey === 'profile') {
+          document.getElementById('railItemAdminProfile')?.classList.add('active');
+        } else if (activeKey === 'security') {
+          document.getElementById('railItemAdminSecurity')?.classList.add('active');
+        } else {
+          const keyCap = activeKey.charAt(0).toUpperCase() + activeKey.slice(1);
+          document.getElementById('railItemAdmin' + keyCap)?.classList.add('active');
+        }
+      } else if (effectiveRole === 'teacher') {
+        const teacherMap = {
+          'schedule': 'railItemTeacherSchedule',
+          'teacher-extra': 'railItemTeacherExtra',
+          'teacher-rooms': 'railItemTeacherRooms',
+          'teacher-leave': 'railItemTeacherLeave',
+          'profile': 'railItemTeacherProfile',
+          'security': 'railItemTeacherSecurity'
+        };
+        const targetId = teacherMap[activeKey];
+        if (targetId) document.getElementById(targetId)?.classList.add('active');
+      } else {
+        const studentMap = {
+          'schedule': 'railItemStudentSchedule',
+          'profile': 'railItemStudentProfile',
+          'security': 'railItemStudentSecurity'
+        };
+        const targetId = studentMap[activeKey];
+        if (targetId) document.getElementById(targetId)?.classList.add('active');
+      }
+    }
+
+    function toggleNotifPopover() {
+      const popover = document.getElementById('notifPopover');
+      if (!popover) return;
+      const isOpen = popover.style.display === 'flex';
+      popover.style.display = isOpen ? 'none' : 'flex';
+      if (!isOpen) {
+        renderNotifPopoverList();
+      }
+    }
+
+    function renderNotifPopoverList() {
+      const listEl = document.getElementById('notifListContainer');
+      const badge = document.getElementById('notifBadgeCount');
+      if (!listEl) return;
+
+      const effectiveRole = (currentUser && authToken) ? currentUser.role : currentRole;
+
+      if (effectiveRole === 'student') {
+        // Render student-targeted alerts
+        const targetStudent = (currentUser && currentUser.entityId) ? currentUser.entityId : 'stud-1';
+        const notifs = (currentState && currentState.notifications) ? currentState.notifications.filter(n => !n.recipientStudentId || n.recipientStudentId === targetStudent) : [];
+        if (badge) badge.textContent = notifs.length.toString();
+
+        if (notifs.length === 0) {
+          listEl.innerHTML = '<div style="padding:16px; text-align:center; color:var(--text-muted); font-size:12px; display:flex; align-items:center; justify-content:center; gap:6px;">' + SVG_ICONS.sparkles + ' No schedule displacement notices.</div>';
+          return;
+        }
+
+        listEl.innerHTML = notifs.slice(-6).reverse().map(n => {
+          const title = n.title || 'Schedule Notice';
+          const msg = n.message || n.details || 'Your class occurrence was updated.';
+          const dateStr = n.createdAt ? new Date(n.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent';
+          return '<div class="notif-item"><strong>' + title + '</strong><div>' + msg + '</div><div class="notif-time">' + dateStr + '</div></div>';
+        }).join('');
+      } else {
+        // Render institutional audit log events (for Admin & Teacher)
+        const audits = (currentState && currentState.auditEvents) ? currentState.auditEvents.slice(-6).reverse() : [];
+        if (badge) badge.textContent = audits.length.toString();
+
+        if (audits.length === 0) {
+          listEl.innerHTML = '<div style="padding:16px; text-align:center; color:var(--text-muted); font-size:12px;">No recent system events.</div>';
+          return;
+        }
+
+        listEl.innerHTML = audits.map(a => {
+          const action = (a.action || 'AUDIT_RECORD').replace(/_/g, ' ');
+          const dateStr = a.timestamp ? new Date(a.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : 'Recent';
+          return '<div class="notif-item"><strong>' + action + '</strong><div>' + (a.details || 'System event recorded.') + '</div><div class="notif-time">' + dateStr + '</div></div>';
+        }).join('');
+      }
+    }
+
+    function handleGlobalSearch(term) {
+      const q = (term || '').toLowerCase().trim();
+
+      // 1. If on Students Page, filter students table
+      const studentInput = document.getElementById('studentSearchInput');
+      if (studentInput && currentAdminPage === 'students') {
+        studentInput.value = term;
+        renderStudentsTable(term);
+        return;
+      }
+
+      // 2. If on Faculty Page, filter faculty table
+      const facultyInput = document.getElementById('facultySearchInput');
+      if (facultyInput && currentAdminPage === 'faculty') {
+        facultyInput.value = term;
+        renderFacultyTable(term);
+        return;
+      }
+
+      // 3. Filter active timetable grid occurrences
+      const classCards = document.querySelectorAll('.class-card, .class-card-unclipped');
+      if (classCards.length > 0) {
+        classCards.forEach(card => {
+          if (!q) {
+            card.style.opacity = '1';
+            card.style.filter = 'none';
+          } else {
+            const text = (card.textContent || '').toLowerCase();
+            if (text.includes(q)) {
+              card.style.opacity = '1';
+              card.style.filter = 'none';
+              card.style.boxShadow = '0 0 0 2px var(--primary-blue)';
+            } else {
+              card.style.opacity = '0.25';
+              card.style.filter = 'grayscale(60%)';
+              card.style.boxShadow = 'none';
+            }
+          }
+        });
+      }
+
+      // 4. Filter generic data tables
+      const tableRows = document.querySelectorAll('.data-table tbody tr, table.styled-table tbody tr');
+      if (tableRows.length > 0 && currentAdminPage !== 'students' && currentAdminPage !== 'faculty') {
+        tableRows.forEach(row => {
+          if (!q) {
+            row.style.display = '';
+          } else {
+            const rowText = (row.textContent || '').toLowerCase();
+            row.style.display = rowText.includes(q) ? '' : 'none';
+          }
+        });
+      }
+    }
+
+    // Keyboard shortcut for Cmd+K / Ctrl+K, '/', and Escape to clear
+    window.addEventListener('keydown', function(e) {
+      const searchInput = document.getElementById('globalQuickSearch');
+      const isInput = ['INPUT', 'TEXTAREA', 'SELECT'].includes((e.target.tagName || ''));
+
+      if (((e.metaKey || e.ctrlKey) && e.key === 'k') || (e.key === '/' && !isInput)) {
+        e.preventDefault();
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.select();
+        }
+      } else if (e.key === 'Escape' && searchInput && document.activeElement === searchInput) {
+        searchInput.value = '';
+        handleGlobalSearch('');
+        searchInput.blur();
+      }
+    });
+
+    // Close popovers on outside click
+    window.addEventListener('click', function(e) {
+      const popover = document.getElementById('notifPopover');
+      const btn = document.getElementById('notifBellBtn');
+      if (popover && btn && !popover.contains(e.target) && !btn.contains(e.target)) {
+        popover.style.display = 'none';
+      }
+    });
 
     // Init Application
     async function init() {

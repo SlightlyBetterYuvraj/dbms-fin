@@ -95,7 +95,7 @@ CREATE TABLE IF NOT EXISTS teachers (
 
 CREATE TABLE IF NOT EXISTS rooms (
     id VARCHAR(64) PRIMARY KEY,
-    room_number VARCHAR(32) NOT NULL,
+    room_number VARCHAR(128) NOT NULL,
     building VARCHAR(64) NOT NULL,
     floor INT NOT NULL,
     capacity INT NOT NULL CHECK (capacity > 0),
